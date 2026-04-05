@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart'; // Pastikan Anda sudah menjalankan flutterfire configure
+import 'firebase_options.dart';
 import 'routes/app_pages.dart';
 import 'modules/auth/controllers/auth_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inisialisasi Firebase
+  // Inisialisasi Firebase menggunakan file hasil flutterfire configure
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Inject AuthController secara global agar selalu aktif memantau status login
+  Get.put(AuthController(), permanent: true);
 
   runApp(const MyApp());
 }
@@ -28,17 +31,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
         useMaterial3: true,
       ),
-      // Mendaftarkan AuthController di awal agar langsung mengecek status login
-      initialBinding: BindingsBuilder(() {
-        Get.put(AuthController());
-      }),
-      // Tampilan loading sementara sebelum diarahkan oleh AuthController
-      home: const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Colors.teal),
-        ),
-      ),
-      // Mendaftarkan semua rute halaman
+      // Tampilan awal berupa loading, lalu akan di-redirect oleh AuthController
+      home: const Scaffold(body: Center(child: CircularProgressIndicator())),
       getPages: AppPages.routes,
     );
   }
