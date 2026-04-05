@@ -14,9 +14,9 @@ dependencies:
   get: ^4.6.6
 
   # Firebase Services (Backend)
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
+  firebase_core: ^2.32.0  # Update ini
+  firebase_auth: ^4.19.0  # Update ini (Penting untuk fix Pigeon error)
+  cloud_firestore: ^4.17.0 # Update ini
   firebase_storage: ^11.5.6
 
   # Location & Maps (Untuk Algoritma Haversine)
