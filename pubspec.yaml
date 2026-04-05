@@ -1,0 +1,40 @@
+name: talagasari_hub
+description: Implementasi Platform Komunitas Terpadu untuk Informasi Warga dan Layanan Jasa Berbasis Lokasi (Desa Talagasari).
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management & Routing
+  get: ^4.6.6
+
+  # Firebase Services (Backend)
+  firebase_core: ^2.24.2
+  firebase_auth: ^4.15.3
+  cloud_firestore: ^4.13.6
+  firebase_storage: ^11.5.6
+
+  # Location & Maps (Untuk Algoritma Haversine)
+  geolocator: ^10.1.0
+  google_maps_flutter: ^2.5.3
+
+  # UI Helpers & Utilities
+  intl: ^0.19.0 # Untuk format tanggal/waktu
+  cached_network_image: ^3.3.1 # Menampilkan gambar dari Firebase dengan cache
+  flutter_spinkit: ^5.2.0 # Loading animation yang bagus
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  # Nantinya aset gambar bisa ditambahkan di sini
+  # assets:
+  #   - assets/images/
