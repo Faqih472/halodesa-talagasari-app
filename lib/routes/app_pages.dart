@@ -2,49 +2,72 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'app_routes.dart';
 
-// Import Controller
+// --- IMPORT INI YANG TADI KURANG ---
 import '../modules/auth/controllers/auth_controller.dart';
-
-// Import Views (Halaman Utama)
 import '../modules/auth/views/login_view.dart';
 import '../modules/auth/views/register_view.dart';
-import '../modules/dashboard_warga/views/warga_home_view.dart';
-import '../modules/dashboard_admin/views/admin_home_view.dart';
-import '../modules/dashboard_kades/views/kades_home_view.dart';
+
+// Halaman dummy/sementara agar tidak error saat dipanggil oleh AuthController
+class DummyPage extends StatelessWidget {
+  final String title;
+  const DummyPage({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.account_circle, size: 100, color: Colors.teal.withOpacity(0.5)),
+            const SizedBox(height: 20),
+            Text(
+                title,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
+            ),
+            const SizedBox(height: 10),
+            const Text("Berhasil Login & Role Terdeteksi"),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () => Get.find<AuthController>().logout(),
+              child: const Text('Logout', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class AppPages {
-  // Rute awal saat aplikasi dibuka (akan diproses oleh AuthController)
   static const INITIAL = Routes.LOGIN;
 
   static final routes = [
-    // Halaman Login
     GetPage(
       name: Routes.LOGIN,
       page: () => const LoginView(),
     ),
-
-    // Halaman Registrasi
     GetPage(
       name: Routes.REGISTER,
       page: () => const RegisterView(),
     ),
-
-    // Dashboard Warga (Melihat Berita)
     GetPage(
       name: Routes.DASHBOARD_WARGA,
-      page: () => WargaHomeView(),
+      page: () => const DummyPage(title: 'Dashboard Warga'),
     ),
-
-    // Dashboard Admin (Input Berita)
     GetPage(
       name: Routes.DASHBOARD_ADMIN,
-      page: () => AdminHomeView(),
+      page: () => const DummyPage(title: 'Dashboard Admin'),
     ),
-
-    // Dashboard Kades (Persetujuan/Approval Berita)
     GetPage(
       name: Routes.DASHBOARD_KADES,
-      page: () => KadesHomeView(),
+      page: () => const DummyPage(title: 'Dashboard Kepala Desa'),
     ),
   ];
 }
