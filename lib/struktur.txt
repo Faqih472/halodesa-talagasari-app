@@ -1,0 +1,19 @@
+lib/
+ ├── main.dart             (Entry point, Inisialisasi Firebase & GetX)
+ ├── core/
+ │    ├── app_utils.dart   (Logic algoritma Haversine & Date formatter)
+ │    └── app_theme.dart   (Logic dinamis pengatur warna: if role==admin set Blue, dll)
+ ├── models/
+ │    └── app_models.dart  (Satu file berisi UserModel, NewsModel, ServiceModel)
+ ├── controllers/
+ │    ├── auth_controller.dart    (Logic Login dan penentuan Role)
+ │    ├── main_controller.dart    (Logic perpindahan tab Navbar berdasarkan Role)
+ │    └── data_controller.dart    (Satu controller sentral untuk mengubah data dan tempat menaruh logika If-Else kategori berita)
+ └── views/
+      ├── auth_view.dart          (Halaman Login & Register)
+      ├── main_layout_view.dart   (Kerangka utama penyedia Navbar dinamis)
+      ├── tab_home_view.dart      (Tab 1: Beranda Info & Jasa untuk semua aktor)
+      ├── tab_manage_view.dart    (Tab 2 Admin/Kades: Kelola Pengajuan Warga)
+      ├── tab_pending_view.dart   (Tab 3 Admin/Kades: Draft & Pending List)
+      ├── tab_myrequest_view.dart (Tab 2 Warga: Status Pengajuan Saya)
+      └── tab_settings_view.dart  (Tab Terakhir: Pengaturan & Profil)
