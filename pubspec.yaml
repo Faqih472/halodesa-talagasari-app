@@ -23,10 +23,17 @@ dependencies:
   # Location & GPS
   geolocator: ^10.1.0
   permission_handler: ^11.1.0
+  flutter_map: ^7.0.2      # peta OpenStreetMap (gratis, tanpa API key)
+  latlong2: ^0.9.1
 
   # Image
   image_picker: ^1.0.5
   cached_network_image: ^3.3.0
+
+  # Local storage (remember-me / quick login / preferensi)
+  get_storage: ^2.1.1
+  # Penyimpanan terenkripsi (Keystore/Keychain) untuk password Login Cepat multi-akun
+  flutter_secure_storage: ^9.2.2
 
   # Utilities
   intl: ^0.20.2
@@ -41,5 +48,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/images/
+ ## assets:
+  ##  - assets/images/
