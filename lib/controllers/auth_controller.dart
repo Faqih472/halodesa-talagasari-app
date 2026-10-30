@@ -7,8 +7,6 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -29,7 +27,6 @@ class AuthController extends GetxController {
   // ─── Firebase Instances ──────────────────────────────────
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // ─── Reactive State ──────────────────────────────────────
   final Rx<User?> _firebaseUser = Rx<User?>(null);
@@ -47,7 +44,6 @@ class AuthController extends GetxController {
   /// Data profil dari form registrasi (dipakai jika dokumen users/{uid} perlu
   /// dibuat ulang otomatis).
   Map<String, String>? _pendingProfil;
-  bool _fcmListenerAktif = false;
 
   // ─── Getters ─────────────────────────────────────────────
   bool get isLoggedIn => _firebaseUser.value != null;
@@ -135,7 +131,6 @@ class AuthController extends GetxController {
         _pendingProfil = null;
 
         await LocalStore.setAppLocked(false);
-        unawaited(_daftarFcmTokenDiam());
         _navigateByRole(currentUser.value!.role);
       } else {
         // Dokumen user tidak ada di Firestore → kemungkinan bug, logout
@@ -596,6 +591,9 @@ class AuthController extends GetxController {
     required String nama,
     required String nomorTelepon,
     File? fotoFile,
+    String? bio,
+    String? jenisKelamin,
+    DateTime? tanggalLahir,
   }) async {
     try {
       isLoading.value = true;
@@ -605,33 +603,140 @@ class AuthController extends GetxController {
       final Map<String, dynamic> updates = {
         'nama': nama.trim(),
         'nomor_telepon': nomorTelepon.trim(),
+        if (bio != null) 'bio': bio.trim(),
+        if (jenisKelamin != null) 'jenis_kelamin': jenisKelamin,
+        if (tanggalLahir != null)
+          'tanggal_lahir': Timestamp.fromDate(tanggalLahir),
       };
 
       if (fotoFile != null) {
-        final ref = _storage.ref().child('users/$uid/foto_profil.jpg');
-        await ref.putFile(fotoFile);
-        updates['foto_url'] = await ref.getDownloadURL();
+        final enc = await ImageUtil.encode(fotoFile, maks: 60 * 1024);
+        if (enc == null) {
+          errorMessage.value = 'Foto terlalu besar, pilih foto lain.';
+          return false;
+        }
+        updates['foto_url'] = enc;
       }
 
       await _firestore.collection('users').doc(uid).update(updates);
       await _loadUserDataTanpaNavigasi(uid);
-
-      // Perbarui juga snapshot Login Cepat bila sedang aktif
-      if (LocalStore.rememberMe && currentUser.value != null) {
-        await LocalStore.saveProfileSnapshot(
-          uid: uid,
-          nama: currentUser.value!.nama,
-          email: currentUser.value!.email,
-          foto: currentUser.value!.fotoUrl,
-          role: currentUser.value!.role,
-        );
-      }
+      await _perbaruiSnapshotLoginCepat(uid);
       return true;
     } catch (e) {
       errorMessage.value = 'Gagal memperbarui profil: $e';
       return false;
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // UPDATE ALAMAT TEMPAT TINGGAL
+  // ─────────────────────────────────────────────────────────
+  Future<bool> updateAlamat({
+    required String alamatLengkap,
+    required String rt,
+    required String rw,
+    String dusun = '',
+    String patokan = '',
+  }) async {
+    try {
+      isLoading.value = true;
+      final String? uid = _auth.currentUser?.uid;
+      if (uid == null) return false;
+      await _firestore.collection('users').doc(uid).update({
+        'alamat_lengkap': alamatLengkap.trim(),
+        'alamat_rt': rt.trim(),
+        'alamat_rw': rw.trim(),
+        'alamat_dusun': dusun.trim(),
+        'alamat_patokan': patokan.trim(),
+      });
+      await _loadUserDataTanpaNavigasi(uid);
+      return true;
+    } catch (e) {
+      errorMessage.value = 'Gagal menyimpan alamat: $e';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // UBAH EMAIL — verifikasi password, lalu Firebase mengirim tautan
+  // konfirmasi ke email BARU. Email baru aktif setelah tautan diklik.
+  // ─────────────────────────────────────────────────────────
+  Future<bool> ubahEmail({
+    required String emailBaru,
+    required String passwordSaatIni,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null || user.email == null) {
+      errorMessage.value = 'Sesi tidak valid. Silakan login ulang.';
+      return false;
+    }
+    try {
+      isLoading.value = true;
+      errorMessage.value = '';
+      try {
+        await user.reauthenticateWithCredential(
+          EmailAuthProvider.credential(
+              email: user.email!, password: passwordSaatIni),
+        );
+      } on FirebaseAuthException {
+        rethrow;
+      } catch (_) {}
+      await user.verifyBeforeUpdateEmail(emailBaru.trim());
+      return true;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        errorMessage.value = 'Password yang Anda masukkan salah.';
+      } else if (e.code == 'email-already-in-use') {
+        errorMessage.value = 'Email tersebut sudah dipakai akun lain.';
+      } else {
+        errorMessage.value = _parseAuthError(e.code);
+      }
+      return false;
+    } catch (e) {
+      errorMessage.value = 'Gagal mengubah email. ($e)';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  /// Muat ulang profil + sinkronkan email Firestore bila email di Firebase
+  /// Auth sudah berganti (setelah tautan verifikasi email baru diklik).
+  Future<void> segarkanProfil() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+      try {
+        await user.reload();
+      } catch (_) {}
+      final String? emailAuth = _auth.currentUser?.email;
+      if (emailAuth != null &&
+          currentUser.value != null &&
+          emailAuth != currentUser.value!.email) {
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .update({'email': emailAuth});
+      }
+      await _loadUserDataTanpaNavigasi(user.uid);
+      await _perbaruiSnapshotLoginCepat(user.uid);
+    } catch (_) {}
+  }
+
+  /// Perbarui snapshot Login Cepat bila sedang aktif
+  Future<void> _perbaruiSnapshotLoginCepat(String uid) async {
+    if (LocalStore.rememberMe && currentUser.value != null) {
+      await LocalStore.saveProfileSnapshot(
+        uid: uid,
+        nama: currentUser.value!.nama,
+        email: currentUser.value!.email,
+        foto: currentUser.value!.fotoUrl,
+        role: currentUser.value!.role,
+      );
     }
   }
 
@@ -694,49 +799,6 @@ class AuthController extends GetxController {
   }
 
   // ─────────────────────────────────────────────────────────
-  // FIREBASE CLOUD MESSAGING — registrasi token perangkat
-  // ─────────────────────────────────────────────────────────
-  Future<void> _daftarFcmTokenDiam() async {
-    try {
-      final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(alert: true, badge: true, sound: true);
-      final token = await messaging.getToken();
-      final uid = _auth.currentUser?.uid;
-      if (token != null && uid != null) {
-        await _firestore.collection('users').doc(uid).update({
-          'fcm_token': token,
-        });
-      }
-      if (!_fcmListenerAktif) {
-        _fcmListenerAktif = true;
-        messaging.onTokenRefresh.listen((newToken) {
-          final u = _auth.currentUser?.uid;
-          if (u != null) {
-            _firestore.collection('users').doc(u).update({'fcm_token': newToken});
-          }
-        });
-        // Notifikasi saat aplikasi sedang dibuka (foreground) → banner dalam-app.
-        // Saat background/terminated, sistem Android menampilkannya otomatis.
-        FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
-          final n = msg.notification;
-          if (n == null) return;
-          Get.snackbar(
-            n.title ?? 'Talagasari Hub',
-            n.body ?? '',
-            snackPosition: SnackPosition.TOP,
-            margin: const EdgeInsets.all(12),
-            borderRadius: 12,
-            duration: const Duration(seconds: 4),
-            icon: const Icon(Icons.notifications_active_outlined),
-          );
-        });
-      }
-    } catch (_) {
-      // Push notification adalah fitur pelengkap, bukan blocking.
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────
   // HELPER: Parse Firebase Auth Error ke pesan Indonesia
   // ─────────────────────────────────────────────────────────
   String _parseAuthError(String code) {
@@ -771,9 +833,9 @@ class AuthController extends GetxController {
 // ============================================================
 // main_controller.dart
 // Logic: Dynamic Navbar berdasarkan Role Pengguna
-// Warga  → 5 tab (Beranda, Jasa, Chat, Pengajuan Saya, Pengaturan)
-// Admin  → 4 tab (Beranda, Kelola, Tertunda, Pengaturan)
-// Kades  → 4 tab (Beranda, Kelola, Tertunda, Pengaturan)
+// Warga  → 5 tab (Beranda, Jasa, Pengaduan, Notifikasi, Akun)
+// Admin  → 5 tab (Beranda, Kelola, Tertunda, Notifikasi, Akun)
+// Kades  → 5 tab (Beranda, Kelola, Tertunda, Notifikasi, Akun)
 // ============================================================
 
 class MainController extends GetxController {
@@ -790,27 +852,24 @@ class MainController extends GetxController {
   // Indeks tab untuk warga
   static const int idxBerandaWarga = 0;
   static const int idxJasa = 1;
-  static const int idxChat = 2;
-  static const int idxMyRequest = 3;
+  static const int idxMyRequest = 2; // tab Pengaduan
+  static const int idxNotifWarga = 3;
   static const int idxSettingsWarga = 4;
 
   // Indeks tab untuk staff (admin/kades)
   static const int idxBerandaStaff = 0;
   static const int idxManage = 1;
   static const int idxPending = 2;
-  static const int idxSettingsStaff = 3;
+  static const int idxNotifStaff = 3;
+  static const int idxSettingsStaff = 4;
+
+  int get idxNotif => isStaff ? idxNotifStaff : idxNotifWarga;
 
   // ─────────────────────────────────────────────────────────
   // Ganti tab aktif
   // ─────────────────────────────────────────────────────────
   void changeTab(int index) {
     currentIndex.value = index;
-    // Setiap kali warga membuka tab Chat, refresh daftar percakapan
-    if (!isStaff && index == idxChat) {
-      try {
-        Get.find<ChatController>().listenMyRooms();
-      } catch (_) {}
-    }
   }
 
   // ─────────────────────────────────────────────────────────
@@ -823,57 +882,62 @@ class MainController extends GetxController {
   // ─────────────────────────────────────────────────────────
   // KONFIGURASI NAVBAR WARGA (5 tab)
   // ─────────────────────────────────────────────────────────
-  List<BottomNavigationBarItem> get navItemsWarga => const [
+  List<BottomNavigationBarItem> get navItemsWarga => [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Beranda',
+          icon: const Icon(Icons.home_outlined),
+          activeIcon: const Icon(Icons.home),
+          label: 'nav_home'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.handyman_outlined),
-          activeIcon: Icon(Icons.handyman),
-          label: 'Jasa',
+          icon: const Icon(Icons.handyman_outlined),
+          activeIcon: const Icon(Icons.handyman),
+          label: 'nav_service'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.chat_bubble_outline),
-          activeIcon: Icon(Icons.chat_bubble),
-          label: 'Chat',
+          icon: const Icon(Icons.report_gmailerrorred_outlined),
+          activeIcon: const Icon(Icons.report_gmailerrorred),
+          label: 'nav_complaint'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.assignment_outlined),
-          activeIcon: Icon(Icons.assignment),
-          label: 'Pengajuan',
+          icon: const Icon(Icons.notifications_outlined),
+          activeIcon: const Icon(Icons.notifications),
+          label: 'nav_notif'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.settings_outlined),
-          activeIcon: Icon(Icons.settings),
-          label: 'Akun',
+          icon: const Icon(Icons.settings_outlined),
+          activeIcon: const Icon(Icons.settings),
+          label: 'nav_account'.tr,
         ),
       ];
 
   // ─────────────────────────────────────────────────────────
-  // KONFIGURASI NAVBAR ADMIN & KADES (4 tab)
+  // KONFIGURASI NAVBAR ADMIN & KADES (5 tab)
   // ─────────────────────────────────────────────────────────
-  List<BottomNavigationBarItem> get navItemsStaff => const [
+  List<BottomNavigationBarItem> get navItemsStaff => [
         BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
-          label: 'Beranda',
+          icon: const Icon(Icons.home_outlined),
+          activeIcon: const Icon(Icons.home),
+          label: 'nav_home'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.inbox_outlined),
-          activeIcon: Icon(Icons.inbox),
-          label: 'Kelola',
+          icon: const Icon(Icons.inbox_outlined),
+          activeIcon: const Icon(Icons.inbox),
+          label: 'nav_manage'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.pending_actions_outlined),
-          activeIcon: Icon(Icons.pending_actions),
-          label: 'Tertunda',
+          icon: const Icon(Icons.pending_actions_outlined),
+          activeIcon: const Icon(Icons.pending_actions),
+          label: 'nav_pending'.tr,
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.settings_outlined),
-          activeIcon: Icon(Icons.settings),
-          label: 'Akun',
+          icon: const Icon(Icons.notifications_outlined),
+          activeIcon: const Icon(Icons.notifications),
+          label: 'nav_notif'.tr,
+        ),
+        BottomNavigationBarItem(
+          icon: const Icon(Icons.settings_outlined),
+          activeIcon: const Icon(Icons.settings),
+          label: 'nav_account'.tr,
         ),
       ];
 
@@ -886,7 +950,7 @@ class MainController extends GetxController {
   // ─────────────────────────────────────────────────────────
   // Jumlah tab berdasarkan role
   // ─────────────────────────────────────────────────────────
-  int get tabCount => isStaff ? 4 : 5;
+  int get tabCount => 5;
 
   // ─────────────────────────────────────────────────────────
   // Label tab aktif (untuk AppBar title)
@@ -900,8 +964,10 @@ class MainController extends GetxController {
           return 'Kelola Pengajuan';
         case idxPending:
           return 'Draft & Tertunda';
+        case idxNotifStaff:
+          return 'notif_title'.tr;
         case idxSettingsStaff:
-          return 'Pengaturan';
+          return 'acc_settings_title'.tr;
         default:
           return 'Talagasari Hub';
       }
@@ -911,12 +977,12 @@ class MainController extends GetxController {
           return 'Talagasari Hub';
         case idxJasa:
           return 'Cari Jasa Lokal';
-        case idxChat:
-          return 'Obrolan';
         case idxMyRequest:
-          return 'Pengajuan Saya';
+          return 'cmp_title_tab'.tr;
+        case idxNotifWarga:
+          return 'notif_title'.tr;
         case idxSettingsWarga:
-          return 'Pengaturan';
+          return 'acc_settings_title'.tr;
         default:
           return 'Talagasari Hub';
       }
@@ -938,15 +1004,15 @@ class MainController extends GetxController {
     changeTab(isStaff ? idxSettingsStaff : idxSettingsWarga);
   }
 
+  void goToNotif() {
+    changeTab(idxNotif);
+  }
+
   void goToMyRequest() {
     if (!isStaff) changeTab(idxMyRequest);
   }
 
   void goToJasa() {
     if (!isStaff) changeTab(idxJasa);
-  }
-
-  void goToChat() {
-    if (!isStaff) changeTab(idxChat);
   }
 }
