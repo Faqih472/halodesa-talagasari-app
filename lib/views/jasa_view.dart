@@ -2703,8 +2703,10 @@ class _FormJasaViewState extends State<FormJasaView> {
       ),
       body: Form(
         key: _form,
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.only(top: 8, bottom: 40),
+          child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (baru)
               Container(
@@ -2956,6 +2958,7 @@ class _FormJasaViewState extends State<FormJasaView> {
                   )),
             ),
           ],
+        ),
         ),
       ),
     );
