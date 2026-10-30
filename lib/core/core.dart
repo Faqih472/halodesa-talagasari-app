@@ -2,11 +2,15 @@
 // core.dart — Inti: LocalStore, AppUtils, AppTheme, Widgets
 // ============================================================
 
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart'
     show FlutterSecureStorage, AndroidOptions;
+import 'package:get/get_rx/get_rx.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 
@@ -95,7 +99,13 @@ class AppTheme {
         secondary: primaryColorLight(role),
         background: background,
         surface: surface,
+        onSurface: textPrimary,
       ),
+      textTheme: ThemeData.light().textTheme.apply(
+            bodyColor: textPrimary,
+            displayColor: textPrimary,
+            fontFamily: 'Poppins',
+          ),
       scaffoldBackgroundColor: background,
 
       // AppBar
@@ -198,8 +208,40 @@ class AppTheme {
 
       // Chip
       chipTheme: ChipThemeData(
-        selectedColor: primary.withOpacity(0.2),
-        labelStyle: const TextStyle(fontSize: 12),
+        backgroundColor: Colors.white,
+        selectedColor: primary.withOpacity(0.18),
+        disabledColor: Colors.grey.shade200,
+        checkmarkColor: primary,
+        deleteIconColor: textSecondary,
+        surfaceTintColor: Colors.transparent,
+        side: BorderSide(color: Colors.grey.shade300),
+        labelStyle: const TextStyle(
+            fontSize: 12, color: textPrimary, fontWeight: FontWeight.w500),
+        secondaryLabelStyle: const TextStyle(
+            fontSize: 12, color: textPrimary, fontWeight: FontWeight.w600),
+      ),
+
+      // Dropdown & dialog: latar putih, teks gelap
+      canvasColor: surface,
+      dropdownMenuTheme: DropdownMenuThemeData(
+        textStyle: const TextStyle(color: textPrimary),
+        menuStyle: const MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(Colors.white),
+          surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+        ),
+      ),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        textStyle: TextStyle(color: textPrimary),
+      ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
       ),
 
       // Divider
@@ -278,6 +320,7 @@ class AppTheme {
       case 'pending':
         return statusPending;
       case 'ditolak':
+      case 'diblokir':
         return statusDitolak;
       default: // nonaktif
         return statusDraft;
@@ -292,6 +335,8 @@ class AppTheme {
         return 'Menunggu Verifikasi';
       case 'ditolak':
         return 'Ditolak';
+      case 'diblokir':
+        return 'Diblokir';
       default:
         return 'Nonaktif';
     }
@@ -1151,8 +1196,117 @@ class LocalStore {
     await _box.remove('app_locked');
   }
 
+  // ─── Bahasa aplikasi ('id' | 'en') ────────────────────────
+  static String get bahasa => _box.read('bahasa') ?? 'id';
+  static Future<void> setBahasa(String kode) async =>
+      await _box.write('bahasa', kode);
+
+  // ─── Ukuran huruf (0.9 kecil | 1.0 normal | 1.2 besar) ────
+  static double get fontScale => (_box.read('font_scale') ?? 1.0).toDouble();
+  static Future<void> setFontScale(double v) async =>
+      await _box.write('font_scale', v);
+
   // ─── Preferensi kecil lainnya ─────────────────────────────
   static bool get onboardingSeen => _box.read('onboarding_seen') ?? false;
   static Future<void> setOnboardingSeen() async =>
       await _box.write('onboarding_seen', true);
+}
+
+
+/// Pengaturan tampilan yang reaktif (dipakai main.dart & halaman Ukuran Huruf)
+class AppSettings {
+  static final RxDouble fontScale = LocalStore.fontScale.obs;
+
+  static Future<void> setFontScale(double v) async {
+    fontScale.value = v;
+    await LocalStore.setFontScale(v);
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// ImageUtil — foto disimpan sebagai teks (base64) langsung di
+// Firestore, jadi TIDAK memakai Firebase Storage (gratis).
+// Foto harus kecil: pilih foto dengan maxWidth + imageQuality rendah.
+// ─────────────────────────────────────────────────────────────
+class ImageUtil {
+  /// Batas ukuran satu foto (byte) sebelum di-encode
+  static const int maksByte = 180 * 1024;
+
+  static final Map<String, Uint8List> _cache = {};
+
+  /// File → "data:image/jpeg;base64,...". Null bila terlalu besar.
+  static Future<String?> encode(File f, {int maks = maksByte}) async {
+    final bytes = await f.readAsBytes();
+    if (bytes.length > maks) return null;
+    return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+  }
+
+  /// Dipakai untuk URL biasa (http) maupun data URL (base64)
+  static ImageProvider provider(String url) {
+    if (url.startsWith('data:')) {
+      final bytes = _cache.putIfAbsent(
+          url, () => base64Decode(url.substring(url.indexOf(',') + 1)));
+      return MemoryImage(bytes);
+    }
+    return NetworkImage(url);
+  }
+
+  static Widget image(String url,
+      {double? width, double? height, BoxFit fit = BoxFit.cover}) {
+    return Image(
+      image: provider(url),
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (_, __, ___) => Container(
+        width: width,
+        height: height,
+        color: Colors.grey.shade200,
+        child: const Icon(Icons.broken_image_outlined),
+      ),
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// Masa berlaku informasi: hitung bulan kalender, maksimal 12 bulan
+// dari hari ini (tidak bisa ditumpuk lebih dari 1 tahun).
+// ─────────────────────────────────────────────────────────────
+DateTime tambahBulan(DateTime d, int n) {
+  final total = d.month - 1 + n;
+  final y = d.year + total ~/ 12;
+  final m = total % 12 + 1;
+  final akhirBulan = DateTime(y, m + 1, 0).day;
+  return DateTime(y, m, d.day > akhirBulan ? akhirBulan : d.day, 23, 59);
+}
+
+/// Batas paling jauh: 12 bulan dari hari ini
+DateTime batasMaksBerlaku() => tambahBulan(DateTime.now(), 12);
+
+/// Perpanjangan = SISA masa berlaku + tambahan bulan, tapi total sisa
+/// tidak boleh lebih dari 12 bulan. Contoh: sisa 2 bulan, tambah 12 bulan
+/// -> hasilnya tetap 12 bulan dari sekarang.
+DateTime hitungPerpanjang(DateTime? sekarang, int bulan) {
+  final now = DateTime.now();
+  final dasar = (sekarang != null && sekarang.isAfter(now)) ? sekarang : now;
+  final baru = tambahBulan(dasar, bulan);
+  final maks = batasMaksBerlaku();
+  return baru.isAfter(maks) ? maks : baru;
+}
+
+/// "2 bulan 5 hari" / "12 hari" / "hari ini"
+String labelSisaWaktu(DateTime sampai) {
+  final now = DateTime.now();
+  if (!sampai.isAfter(now)) return 'sudah berakhir';
+  int bulan = 0;
+  var t = now;
+  while (!tambahBulan(t, 1).isAfter(sampai) && bulan < 24) {
+    t = tambahBulan(t, 1);
+    bulan++;
+  }
+  final hari = sampai.difference(t).inDays;
+  if (bulan == 0 && hari == 0) return 'berakhir hari ini';
+  return [if (bulan > 0) '$bulan bulan', if (hari > 0) '$hari hari'].join(' ');
 }
