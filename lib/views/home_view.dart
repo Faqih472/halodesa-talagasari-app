@@ -12,8 +12,18 @@ import '../core/core.dart';
 import '../core/models.dart';
 import 'admin_view.dart';
 import 'chat_view.dart';
+import 'complaint_view.dart' show TabPengaduanView;
+import 'verification_view.dart';
+import '../core/ui_helpers.dart';
 import 'jasa_view.dart';
+import 'account_view.dart';
 import 'profile_view.dart';
+import 'stats_view.dart';
+import 'village_view.dart';
+import 'letter_view.dart';
+import 'admin_tools_view.dart';
+import 'info_form_view.dart';
+import '../controllers/village_controller.dart' show RetensiService;
 
 // ============================================================
 // main_layout_view.dart — REWRITE
@@ -41,6 +51,9 @@ class _MainLayoutViewState extends State<MainLayoutView> {
       try {
         Get.find<ChatController>().listenMyRooms();
       } catch (_) {}
+      // Pembersihan data kedaluwarsa (hanya berjalan di perangkat Admin/Kades,
+      // maksimal sekali per ~20 jam untuk seluruh desa).
+      RetensiService.jalankan();
     });
   }
 
@@ -75,24 +88,25 @@ class _MainLayoutViewState extends State<MainLayoutView> {
   }
 
   // ─────────────────────────────────────────────────────────
-  // Halaman untuk Warga (5 tab)
+  // Halaman untuk Warga (5 tab). Chat ada di AppBar (ikon pesan).
   // ─────────────────────────────────────────────────────────
   List<Widget> _wargaPages() => const [
         TabHomeView(),      // 0: Beranda
         TabJasaView(),      // 1: Jasa
-        ChatListView(),     // 2: Chat
-        TabMyRequestView(), // 3: Pengajuan Saya
-        TabSettingsView(),  // 4: Pengaturan
+        TabPengaduanView(), // 2: Pengaduan
+        NotificationView(), // 3: Notifikasi
+        TabSettingsView(),  // 4: Akun (Pengaturan Akun)
       ];
 
   // ─────────────────────────────────────────────────────────
-  // Halaman untuk Admin & Kades (4 tab)
+  // Halaman untuk Admin & Kades (5 tab)
   // ─────────────────────────────────────────────────────────
   List<Widget> _staffPages() => const [
-        TabHomeView(),     // 0: Beranda
-        TabManageView(),   // 1: Kelola Pengajuan (+ Verifikasi Jasa utk Admin)
-        TabPendingView(),  // 2: Draft & Tertunda
-        TabSettingsView(), // 3: Pengaturan
+        TabHomeView(),      // 0: Beranda
+        TabManageView(),    // 1: Kelola Pengajuan (+ Verifikasi Jasa utk Admin)
+        TabPendingView(),   // 2: Draft & Tertunda
+        NotificationView(), // 3: Notifikasi
+        TabSettingsView(),  // 4: Akun (Pengaturan Akun)
       ];
 }
 
@@ -118,7 +132,7 @@ class _AnimatedBottomNav extends StatelessWidget {
 
     return Obx(() {
       final int active = mainCtrl.currentIndex.value;
-      final int totalUnread = _unreadChatBadge();
+      final int notifUnread = _unreadNotifBadge();
 
       return Container(
         decoration: BoxDecoration(
@@ -138,8 +152,13 @@ class _AnimatedBottomNav extends StatelessWidget {
             child: Row(
               children: List.generate(items.length, (i) {
                 final bool isActive = i == active;
-                final bool showChatBadge =
-                    !isStaff && i == MainController.idxChat && totalUnread > 0;
+                int badge = 0;
+                if (i == mainCtrl.idxNotif) {
+                  badge = notifUnread;
+                } else if (!isStaff && i == MainController.idxJasa) {
+                  badge = _orderBadge();
+                }
+                final bool showChatBadge = badge > 0;
 
                 return Expanded(
                   child: InkWell(
@@ -155,7 +174,7 @@ class _AnimatedBottomNav extends StatelessWidget {
                               duration: const Duration(milliseconds: 220),
                               curve: Curves.easeOut,
                               padding: EdgeInsets.symmetric(
-                                horizontal: isActive ? 18 : 10,
+                                horizontal: isActive ? (items.length > 5 ? 12 : 18) : 8,
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
@@ -196,7 +215,7 @@ class _AnimatedBottomNav extends StatelessWidget {
                                     minHeight: 14,
                                   ),
                                   child: Text(
-                                    totalUnread > 9 ? '9+' : '$totalUnread',
+                                    badge > 9 ? '9+' : '$badge',
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       color: Colors.white,
@@ -230,14 +249,23 @@ class _AnimatedBottomNav extends StatelessWidget {
     });
   }
 
-  int _unreadChatBadge() {
+  /// Pesanan jasa yang menunggu tindakan saya (sebagai penyedia / pemesan)
+  int _orderBadge() {
     try {
-      final chatCtrl = Get.find<ChatController>();
-      return chatCtrl.totalUnread;
+      return Get.find<OrderController>().badgeTotal;
     } catch (_) {
       return 0;
     }
   }
+
+  int _unreadNotifBadge() {
+    try {
+      return Get.find<NotificationController>().unreadCount.value;
+    } catch (_) {
+      return 0;
+    }
+  }
+
 }
 
 
@@ -274,23 +302,22 @@ class TabHomeView extends StatelessWidget {
           ),
           actions: [
             _buildBellIcon(),
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: () => dataCtrl.fetchPublishedNews(),
-            ),
+            const ChatAction(),
           ],
         ),
-        floatingActionButton: role == 'warga'
-            ? FloatingActionButton.extended(
+        // Warga: ajukan info. Admin/Kades: buat info (pindahan dari tab Tertunda
+        // — membuat informasi memang pekerjaan Beranda, bukan "Tertunda").
+        floatingActionButton: FloatingActionButton.extended(
           backgroundColor: primaryColor,
-          onPressed: () =>
-              _showFormPengajuan(context, dataCtrl, primaryColor),
+          onPressed: () async {
+            if (role == 'warga' && !await wajibVerifikasi()) return;
+            await showFormInformasi();
+          },
           icon: const Icon(Icons.add, color: Colors.white),
-          label: const Text('Ajukan Info',
-              style: TextStyle(
+          label: Text(role == 'warga' ? 'Ajukan Info' : 'Buat Info',
+              style: const TextStyle(
                   color: Colors.white, fontWeight: FontWeight.w600)),
-        )
-            : null,
+        ),
         body: RefreshIndicator(
           color: primaryColor,
           onRefresh: () => dataCtrl.fetchPublishedNews(),
@@ -299,6 +326,7 @@ class TabHomeView extends StatelessWidget {
               SliverToBoxAdapter(
                   child: _buildWelcomeBanner(
                       user?.nama ?? '', role, primaryColor)),
+              const SliverToBoxAdapter(child: LayananDesaSection()),
               SliverToBoxAdapter(
                   child: _buildFilterChips(dataCtrl, primaryColor)),
               Obx(() {
@@ -344,7 +372,7 @@ class TabHomeView extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () => Get.to(() => const NotificationView()),
+            onPressed: () => Get.find<MainController>().goToNotif(),
           ),
           if (unread > 0)
             Positioned(
@@ -398,19 +426,20 @@ class TabHomeView extends StatelessWidget {
           const SizedBox(height: 4),
           const Text('Informasi terkini Desa Talagasari',
               style: TextStyle(fontSize: 13, color: Colors.white70)),
-          if (role == 'warga') ...[
-            const SizedBox(height: 10),
-            Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text('💡 Tap tombol + untuk mengajukan informasi',
-                  style: TextStyle(fontSize: 11, color: Colors.white)),
+          const SizedBox(height: 10),
+          Container(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
             ),
-          ],
+            child: Text(
+                role == 'warga'
+                    ? '💡 Tap tombol + untuk mengajukan informasi'
+                    : '💡 Tap + untuk buat info. Tap ⋮ pada kartu untuk ubah/hapus.',
+                style: const TextStyle(fontSize: 11, color: Colors.white)),
+          ),
         ],
       ),
     );
@@ -465,10 +494,60 @@ class TabHomeView extends StatelessWidget {
     );
   }
 
+  Widget _menuStaff(NewsModel news) {
+    return PopupMenuButton<String>(
+      padding: EdgeInsets.zero,
+      iconSize: 20,
+      icon: const Icon(Icons.more_vert, color: AppTheme.textSecondary),
+      onSelected: (v) {
+        if (v == 'ubah') {
+          showFormInformasi(edit: news);
+        } else if (v == 'perpanjang') {
+          dialogPerpanjang(news);
+        } else {
+          konfirmasiHapusInformasi(news);
+        }
+      },
+      itemBuilder: (_) => const [
+        PopupMenuItem(
+            value: 'perpanjang',
+            child: Row(children: [
+              Icon(Icons.update, size: 18),
+              SizedBox(width: 10),
+              Text('Perpanjang masa berlaku')
+            ])),
+        PopupMenuItem(
+            value: 'ubah',
+            child: Row(children: [
+              Icon(Icons.edit_outlined, size: 18),
+              SizedBox(width: 10),
+              Text('Ubah')
+            ])),
+        PopupMenuItem(
+            value: 'hapus',
+            child: Row(children: [
+              Icon(Icons.delete_outline, size: 18, color: Colors.red),
+              SizedBox(width: 10),
+              Text('Hapus', style: TextStyle(color: Colors.red))
+            ])),
+      ],
+    );
+  }
+
+  String _labelBerlaku(NewsModel n) {
+    if (n.berlakuSampai == null) return '';
+    final h = n.sisaHari;
+    if (h <= 0) return 'Berakhir hari ini';
+    if (h == 1) return 'Berakhir besok';
+    if (h <= 7) return 'Berakhir $h hari lagi';
+    return 'Berlaku s/d ${AppUtils.formatTanggal(n.berlakuSampai!)}';
+  }
+
   Widget _buildNewsCard(
       NewsModel news, Color primaryColor, BuildContext context) {
     final kategoriColor = _kategoriColor(news.kategori);
     final kategoriIcon = _kategoriIcon(news.kategori);
+    final bool staf = Get.find<AuthController>().isStaff;
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
       elevation: 2,
@@ -508,15 +587,26 @@ class TabHomeView extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Text(
-                    news.publishedAt != null
-                        ? AppUtils.formatRelatif(news.publishedAt!)
-                        : AppUtils.formatRelatif(news.createdAt),
-                    style: const TextStyle(
-                        fontSize: 11, color: AppTheme.textSecondary),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        news.publishedAt != null
+                            ? AppUtils.formatRelatif(news.publishedAt!)
+                            : AppUtils.formatRelatif(news.createdAt),
+                        style: const TextStyle(
+                            fontSize: 11, color: AppTheme.textSecondary),
+                      ),
+                      if (staf)
+                        SizedBox(width: 32, height: 24, child: _menuStaff(news)),
+                    ],
                   ),
                 ],
               ),
+              if (news.fotoUrl.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                fotoBanner(news.fotoUrl, tinggi: 150),
+              ],
               const SizedBox(height: 10),
               Text(news.judul,
                   style: const TextStyle(
@@ -535,15 +625,33 @@ class TabHomeView extends StatelessWidget {
                   overflow: TextOverflow.ellipsis),
               const SizedBox(height: 10),
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Lihat selengkapnya',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: primaryColor,
-                          fontWeight: FontWeight.w600)),
-                  Icon(Icons.chevron_right,
-                      size: 16, color: primaryColor),
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule,
+                          size: 13, color: AppTheme.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(_labelBerlaku(news),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: news.sisaHari <= 2
+                                  ? Colors.red.shade700
+                                  : AppTheme.textSecondary)),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Lihat selengkapnya',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: primaryColor,
+                              fontWeight: FontWeight.w600)),
+                      Icon(Icons.chevron_right,
+                          size: 16, color: primaryColor),
+                    ],
+                  ),
                 ],
               ),
             ],
@@ -651,216 +759,78 @@ class TabHomeView extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (news.berlakuSampai != null) ...[
+                        const SizedBox(height: 4),
+                        Row(children: [
+                          const Icon(Icons.schedule,
+                              size: 14, color: AppTheme.textSecondary),
+                          const SizedBox(width: 4),
+                          Text(_labelBerlaku(news),
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppTheme.textSecondary)),
+                        ]),
+                      ],
                       const Divider(height: 24),
+                      if (news.fotoUrl.isNotEmpty) ...[
+                        fotoBanner(news.fotoUrl, tinggi: 200),
+                        const SizedBox(height: 14),
+                      ],
                       Text(news.isi,
                           style: const TextStyle(
                               fontSize: 15,
                               color: AppTheme.textPrimary,
                               height: 1.6)),
+                      if (Get.find<AuthController>().isStaff) ...[
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              dialogPerpanjang(news);
+                            },
+                            icon: const Icon(Icons.update, size: 18),
+                            label: const Text('Perpanjang masa berlaku'),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                konfirmasiHapusInformasi(news);
+                              },
+                              icon: const Icon(Icons.delete_outline,
+                                  size: 18, color: Colors.red),
+                              label: const Text('Hapus',
+                                  style: TextStyle(color: Colors.red)),
+                              style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.red)),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                showFormInformasi(edit: news);
+                              },
+                              icon: const Icon(Icons.edit_outlined,
+                                  size: 18, color: Colors.white),
+                              label: const Text('Ubah',
+                                  style: TextStyle(color: Colors.white)),
+                            ),
+                          ),
+                        ]),
+                      ],
                       const SizedBox(height: 24),
                     ],
                   ),
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showFormPengajuan(
-      BuildContext context, DataController dataCtrl, Color primaryColor) {
-    final formKey = GlobalKey<FormState>();
-    final judulCtrl = TextEditingController();
-    final isiCtrl = TextEditingController();
-    String selectedKategori = 'pengumuman';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => Padding(
-          padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Form(
-              key: formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    Text('Ajukan Informasi Desa',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: primaryColor)),
-                    const SizedBox(height: 4),
-                    const Text(
-                        'Informasi Anda akan diproses oleh aparatur desa.',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary)),
-                    const SizedBox(height: 20),
-                    DropdownButtonFormField<String>(
-                      value: selectedKategori,
-                      decoration: InputDecoration(
-                        labelText: 'Kategori Informasi',
-                        prefixIcon:
-                        const Icon(Icons.category_outlined),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      items: AppUtils.daftarKategoriInfo.map((k) {
-                        return DropdownMenuItem(
-                            value: k['value'],
-                            child: Text(k['label']!));
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() => selectedKategori = val);
-                        }
-                      },
-                    ),
-                    if (AppUtils.isKategoriSensitif(
-                        selectedKategori)) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: Colors.orange.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline,
-                                size: 16,
-                                color: Colors.orange.shade700),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Kategori ini memerlukan persetujuan Kepala Desa.',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.orange.shade800),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: judulCtrl,
-                      validator: (v) =>
-                          AppUtils.validateRequired(v, label: 'Judul'),
-                      decoration: InputDecoration(
-                        labelText: 'Judul',
-                        hintText: 'Contoh: Jadwal Kerja Bakti RT 03',
-                        prefixIcon: const Icon(Icons.title),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: isiCtrl,
-                      maxLines: 4,
-                      validator: (v) => AppUtils.validateRequired(v,
-                          label: 'Isi informasi'),
-                      decoration: InputDecoration(
-                        labelText: 'Isi Informasi',
-                        hintText:
-                        'Tuliskan detail informasi di sini...',
-                        prefixIcon:
-                        const Icon(Icons.description_outlined),
-                        alignLabelWithHint: true,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Obx(() => ElevatedButton.icon(
-                      onPressed: dataCtrl.isSubmitting.value
-                          ? null
-                          : () async {
-                        if (!formKey.currentState!
-                            .validate()) return;
-                        final ok =
-                        await dataCtrl.submitInformasi(
-                          judul: judulCtrl.text,
-                          isi: isiCtrl.text,
-                          kategori: selectedKategori,
-                        );
-                        if (ok) {
-                          Navigator.pop(ctx);
-                          Get.snackbar(
-                            'Berhasil! 🎉',
-                            AppUtils.isKategoriSensitif(
-                                selectedKategori)
-                                ? 'Pengajuan dikirim ke Kepala Desa.'
-                                : 'Pengajuan dikirim ke Admin.',
-                            snackPosition:
-                            SnackPosition.BOTTOM,
-                            backgroundColor:
-                            Colors.green.shade700,
-                            colorText: Colors.white,
-                            margin: const EdgeInsets.all(16),
-                            borderRadius: 12,
-                          );
-                        }
-                      },
-                      icon: dataCtrl.isSubmitting.value
-                          ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white))
-                          : const Icon(Icons.send,
-                          color: Colors.white),
-                      label: Text(
-                        dataCtrl.isSubmitting.value
-                            ? 'Mengirim...'
-                            : 'Kirim Pengajuan',
-                        style:
-                        const TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        minimumSize:
-                        const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(
-                            borderRadius:
-                            BorderRadius.circular(12)),
-                      ),
-                    )),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-            ),
           ),
         ),
       ),
@@ -918,13 +888,21 @@ class NotificationView extends StatelessWidget {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: primaryColor,
-        title: const Text('Notifikasi'),
+        title: Text('notif_title'.tr),
         actions: [
+          IconButton(
+            tooltip: 'Hapus yang sudah dibaca',
+            icon: const Icon(Icons.delete_sweep_outlined, color: Colors.white),
+            onPressed: () async {
+              final n = await notifCtrl.hapusYangDibaca();
+              showSnack(true, '$n notifikasi dibaca dihapus.', '');
+            },
+          ),
           Obx(() => notifCtrl.unreadCount.value > 0
               ? TextButton(
                   onPressed: notifCtrl.tandaiSemuaDibaca,
-                  child: const Text('Tandai semua',
-                      style: TextStyle(color: Colors.white)),
+                  child: Text('notif_mark_all'.tr,
+                      style: const TextStyle(color: Colors.white)),
                 )
               : const SizedBox.shrink()),
         ],
@@ -932,17 +910,26 @@ class NotificationView extends StatelessWidget {
       body: Obx(() {
         final list = notifCtrl.daftar;
         if (list.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
             icon: Icons.notifications_none,
-            title: 'Belum ada notifikasi',
-            subtitle:
-                'Pemberitahuan tentang pengajuan, verifikasi, ulasan, dan pesan akan muncul di sini.',
+            title: 'notif_empty_title'.tr,
+            subtitle: 'notif_empty_sub'.tr,
           );
         }
         return ListView.builder(
           padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: list.length,
+          itemCount: list.length + 1,
           itemBuilder: (context, i) {
+            if (i == list.length) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                    'Notifikasi dihapus otomatis: sudah dibaca > 14 hari, atau semua > 30 hari.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 11, color: AppTheme.textSecondary)),
+              );
+            }
             final n = list[i];
             return FadeSlideIn(
               key: ValueKey(n.id),
@@ -959,9 +946,12 @@ class NotificationView extends StatelessWidget {
   Color _warnaTipe(String tipe, Color primary) {
     switch (tipe) {
       case 'jasa':
+      case 'pesanan':
         return const Color(0xFFE65100);
       case 'chat':
         return const Color(0xFF1565C0);
+      case 'pengaduan':
+        return const Color(0xFFC62828);
       case 'sistem':
         return AppTheme.statusDraft;
       default:
@@ -992,14 +982,35 @@ class NotificationView extends StatelessWidget {
             notifCtrl.tandaiDibaca(n.id);
             // Navigasi ringan sesuai tipe
             if (n.tipe == 'chat') {
-              Get.back();
+              final c = Get.find<ChatController>();
+              c.listenMyRooms();
+              Get.to(() => const ChatListView());
+            } else if (n.tipe == 'pengaduan') {
               try {
-                Get.find<MainController>().goToChat();
+                final m = Get.find<MainController>();
+                authCtrl.isStaff ? m.goToManage() : m.goToMyRequest();
               } catch (_) {}
-            } else if (n.tipe == 'jasa' && !authCtrl.isStaff) {
-              Get.back();
+            } else if (n.tipe == 'sos') {
+              Get.to(() => const SosView());
+            } else if (n.tipe == 'surat') {
+              Get.to(() => const LetterHomeView());
+            } else if (n.tipe == 'agenda') {
+              Get.to(() => const AgendaListView());
+            } else if (n.tipe == 'pesanan') {
+              final id = n.targetId ?? '';
+              if (id.isEmpty) {
+                Get.to(() => const PesananSayaView());
+              } else {
+                Get.to(() => PesananDetailView(orderId: id));
+              }
+            } else if (n.tipe == 'jasa') {
               try {
-                Get.find<MainController>().goToJasa();
+                final m = Get.find<MainController>();
+                authCtrl.isStaff ? m.goToManage() : m.goToJasa();
+              } catch (_) {}
+            } else if (n.tipe == 'info' && authCtrl.isStaff) {
+              try {
+                Get.find<MainController>().goToPending();
               } catch (_) {}
             }
           },
