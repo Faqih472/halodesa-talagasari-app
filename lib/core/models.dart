@@ -512,6 +512,7 @@ class ServiceModel {
   final List<DateTime> tanggalLibur;
   final int kapasitasAktif; // 0 = tanpa batas
 
+  //UPDATE
   // ─── Tarif & layanan ────────────────────────────────────
   final int tarifMulai;
   final int tarifMaks;
