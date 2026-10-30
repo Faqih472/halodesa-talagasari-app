@@ -554,10 +554,29 @@ class AppUtils {
   static const List<Map<String, String>> daftarKategoriInfo = [
     {'value': 'pengumuman', 'label': 'Pengumuman'},
     {'value': 'kegiatan', 'label': 'Kegiatan Desa'},
-    {'value': 'kesehatan', 'label': 'Kesehatan ⚠️'},
-    {'value': 'ketenagakerjaan', 'label': 'Lowongan Kerja ⚠️'},
-    {'value': 'bantuan_sosial', 'label': 'Bantuan Sosial ⚠️'},
+    {'value': 'layanan_jasa', 'label': 'Layanan & Jasa (wifi, servis, dll.)'},
+    {'value': 'usaha_umkm', 'label': 'Usaha & UMKM'},
+    {'value': 'pendidikan', 'label': 'Pendidikan'},
+    {'value': 'keagamaan', 'label': 'Keagamaan'},
+    {'value': 'olahraga_pemuda', 'label': 'Olahraga & Pemuda'},
+    {'value': 'lingkungan', 'label': 'Lingkungan & Kebersihan'},
+    {'value': 'infrastruktur', 'label': 'Infrastruktur & Fasilitas'},
+    {'value': 'keamanan', 'label': 'Keamanan & Ketertiban'},
+    {'value': 'kehilangan', 'label': 'Kehilangan & Penemuan'},
+    {'value': 'kesehatan', 'label': 'Kesehatan'},
+    {'value': 'ketenagakerjaan', 'label': 'Lowongan Kerja'},
+    {'value': 'bantuan_sosial', 'label': 'Bantuan Sosial'},
+    {'value': 'lainnya', 'label': 'Lainnya (tulis kategori sendiri)'},
   ];
+
+  /// Label kategori di form. Tanda seru (⚠️) HANYA tampil untuk staf
+  /// (admin/kades); warga tidak melihat penanda ini.
+  static String labelKategoriForm(String value, String label, bool staf) {
+    return (staf && isKategoriSensitif(value)) ? '$label ⚠️' : label;
+  }
+
+  /// Nilai kategori kustom disimpan sebagai 'custom:<nama>'.
+  static String kategoriKustom(String nama) => 'custom:${nama.trim()}';
 
   // ─────────────────────────────────────────────────────────
   // DAFTAR KATEGORI JASA
