@@ -12,6 +12,7 @@ import 'package:flutter/material.dart' show Color, IconData, Icons;
 class UserModel {
   final String uid;
   final String nama;
+  final String namaPanggilan; // WAJIB salah satu kata dari nama asli
   final String email;
   final String role; // 'warga' | 'admin' | 'kades'
   final String nomorTelepon;
@@ -38,6 +39,7 @@ class UserModel {
   UserModel({
     required this.uid,
     required this.nama,
+    this.namaPanggilan = '',
     required this.email,
     required this.role,
     this.nomorTelepon = '',
@@ -64,6 +66,7 @@ class UserModel {
     return UserModel(
       uid: doc.id,
       nama: data['nama'] ?? '',
+      namaPanggilan: data['nama_panggilan'] ?? '',
       email: data['email'] ?? '',
       role: data['role'] ?? 'warga',
       nomorTelepon: data['nomor_telepon'] ?? '',
@@ -89,6 +92,7 @@ class UserModel {
   Map<String, dynamic> toMap() {
     return {
       'nama': nama,
+      'nama_panggilan': panggilan,
       'email': email,
       'role': role,
       'nomor_telepon': nomorTelepon,
@@ -108,6 +112,26 @@ class UserModel {
       'alamat_dusun': alamatDusun,
       'alamat_patokan': alamatPatokan,
     };
+  }
+
+  /// Kata-kata penyusun nama asli (pilihan nama panggilan).
+  List<String> get kataNama => kataDariNama(nama);
+
+  static List<String> kataDariNama(String nama) => nama
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((k) => k.isNotEmpty)
+      .toList();
+
+  /// Nama panggilan efektif: harus salah satu kata dari nama asli,
+  /// kalau tidak valid / kosong → kata pertama nama asli.
+  String get panggilan {
+    final kata = kataNama;
+    if (kata.isEmpty) return '';
+    for (final k in kata) {
+      if (k.toLowerCase() == namaPanggilan.trim().toLowerCase()) return k;
+    }
+    return kata.first;
   }
 
   /// Alamat sudah diisi?
@@ -146,6 +170,7 @@ class UserModel {
     return UserModel(
       uid: uid,
       nama: nama ?? this.nama,
+      namaPanggilan: namaPanggilan,
       email: email,
       role: role,
       nomorTelepon: nomorTelepon ?? this.nomorTelepon,
@@ -282,6 +307,10 @@ class NewsModel {
 
   /// Label tampilan untuk setiap kategori
   static String labelKategori(String kategori) {
+    if (kategori.startsWith('custom:')) {
+      final nama = kategori.substring(7).trim();
+      return nama.isEmpty ? 'Lainnya' : nama;
+    }
     switch (kategori) {
       case 'kesehatan':
         return 'Kesehatan';
@@ -291,6 +320,24 @@ class NewsModel {
         return 'Bantuan Sosial';
       case 'kegiatan':
         return 'Kegiatan Desa';
+      case 'layanan_jasa':
+        return 'Layanan & Jasa';
+      case 'usaha_umkm':
+        return 'Usaha & UMKM';
+      case 'pendidikan':
+        return 'Pendidikan';
+      case 'keagamaan':
+        return 'Keagamaan';
+      case 'olahraga_pemuda':
+        return 'Olahraga & Pemuda';
+      case 'lingkungan':
+        return 'Lingkungan & Kebersihan';
+      case 'infrastruktur':
+        return 'Infrastruktur & Fasilitas';
+      case 'keamanan':
+        return 'Keamanan & Ketertiban';
+      case 'kehilangan':
+        return 'Kehilangan & Penemuan';
       default:
         return 'Pengumuman';
     }
@@ -512,7 +559,6 @@ class ServiceModel {
   final List<DateTime> tanggalLibur;
   final int kapasitasAktif; // 0 = tanpa batas
 
-  //UPDATE
   // ─── Tarif & layanan ────────────────────────────────────
   final int tarifMulai;
   final int tarifMaks;
