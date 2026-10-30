@@ -14,8 +14,6 @@ dependencies:
   firebase_core: ^2.24.0
   firebase_auth: ^4.15.0
   cloud_firestore: ^4.13.0
-  firebase_storage: ^11.5.0
-  firebase_messaging: ^14.7.0
 
   # State Management
   get: ^4.6.6
@@ -28,7 +26,8 @@ dependencies:
 
   # Image
   image_picker: ^1.0.5
-  cached_network_image: ^3.3.0
+  camera: ^0.10.5+9        # kamera in-app (verifikasi identitas, dengan garis panduan)
+  image: ^4.1.7            # mengecilkan foto verifikasi
 
   # Local storage (remember-me / quick login / preferensi)
   get_storage: ^2.1.1
@@ -36,6 +35,9 @@ dependencies:
   flutter_secure_storage: ^9.2.2
 
   # Utilities
+  pdf: ^3.10.8           # membuat PDF surat
+  printing: ^5.12.0      # pratinjau / simpan / cetak PDF
+  url_launcher: ^6.2.5   # buka WhatsApp / telepon (Pusat Bantuan)
   intl: ^0.20.2
   flutter_localizations: # ← tambah ini
     sdk: flutter
