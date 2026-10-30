@@ -258,6 +258,26 @@ void tampilkanFoto(String url) {
   );
 }
 
+/// Foto penuh ala Facebook: seluruh gambar terlihat (tidak terpotong),
+/// lebar mengikuti kartu, tinggi menyesuaikan rasio asli (maks. 520).
+/// Mengetuk = zoom layar penuh.
+Widget fotoFull(String url, {double radius = 10, double maksTinggi = 520}) {
+  return GestureDetector(
+    onTap: () => tampilkanFoto(url),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Container(
+        width: double.infinity,
+        color: Colors.grey.shade100,
+        constraints: BoxConstraints(maxHeight: maksTinggi),
+        child: Center(
+          child: ImageUtil.image(url, fit: BoxFit.contain),
+        ),
+      ),
+    ),
+  );
+}
+
 /// Banner foto (untuk kartu/detail). Mengetuk = zoom.
 Widget fotoBanner(String url, {double tinggi = 160, double radius = 10}) {
   return GestureDetector(
