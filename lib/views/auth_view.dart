@@ -270,6 +270,7 @@ class _AuthViewState extends State<AuthView>
       ),
       child: Stack(
         clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
         children: [
           Positioned(
             top: -30,
@@ -295,7 +296,10 @@ class _AuthViewState extends State<AuthView>
               ),
             ),
           ),
-          Column(
+          SizedBox(
+            width: double.infinity,
+            child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.6, end: 1.0),
@@ -337,6 +341,7 @@ class _AuthViewState extends State<AuthView>
                 style: TextStyle(fontSize: 12.5, color: Colors.white70),
               ),
             ],
+          ),
           ),
         ],
       ),
