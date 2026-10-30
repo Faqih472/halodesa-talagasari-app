@@ -108,12 +108,13 @@ class DataController extends GetxController {
   Future<void> fetchPendingList() async {
     try {
       final role = _authCtrl.role;
-      final status = role == 'kades'
-          ? 'pending_kades'
-          : 'menunggu_review_admin';
+      // Admin juga melihat ajuan yang menunggu Kades (hanya lihat, tidak bisa ACC).
+      final statusList = role == 'kades'
+          ? ['pending_kades']
+          : ['menunggu_review_admin', 'pending_kades'];
       final snapshot = await _firestore
           .collection('announcements')
-          .where('status', isEqualTo: status)
+          .where('status', whereIn: statusList)
           .get();
       final list = snapshot.docs.map((d) => NewsModel.fromFirestore(d)).toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -587,6 +588,11 @@ class DataController extends GetxController {
   // ─── FILTER ───────────────────────────────────────────────
   List<NewsModel> get filteredNews {
     if (filterKategori.value == 'semua') return publishedNews;
+    if (filterKategori.value == 'lainnya') {
+      return publishedNews
+          .where((n) => n.kategori.startsWith('custom:'))
+          .toList();
+    }
     return publishedNews
         .where((n) => n.kategori == filterKategori.value)
         .toList();
