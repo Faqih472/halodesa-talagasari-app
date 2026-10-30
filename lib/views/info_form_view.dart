@@ -28,7 +28,13 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
   final formKey = GlobalKey<FormState>();
   final judulCtrl = TextEditingController(text: edit?.judul ?? '');
   final isiCtrl = TextEditingController(text: edit?.isi ?? '');
-  String kategori = edit?.kategori ?? 'pengumuman';
+  final bool awalKustom = (edit?.kategori ?? '').startsWith('custom:');
+  String kategori = awalKustom ? 'lainnya' : (edit?.kategori ?? 'pengumuman');
+  final kategoriKustomCtrl = TextEditingController(
+      text: awalKustom ? edit!.kategori.substring(7) : '');
+  String kategoriFinal() => kategori == 'lainnya'
+      ? AppUtils.kategoriKustom(kategoriKustomCtrl.text)
+      : kategori;
   DateTime? berlaku = edit?.berlakuSampai;
   bool simpanDraft = false;
   List<File> fotoBaru = [];
@@ -105,15 +111,35 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                       labelText: 'Kategori',
                       prefixIcon: Icon(Icons.category_outlined),
                     ),
+                    isExpanded: true,
                     items: AppUtils.daftarKategoriInfo
                         .map((k) => DropdownMenuItem(
-                            value: k['value'], child: Text(k['label']!)))
+                            value: k['value'],
+                            child: Text(
+                                AppUtils.labelKategoriForm(
+                                    k['value']!, k['label']!, staf),
+                                overflow: TextOverflow.ellipsis)))
                         .toList(),
                     onChanged: (v) {
                       if (v != null) setSheet(() => kategori = v);
                     },
                   ),
-                  if (sensitif && role != 'kades') ...[
+                  if (kategori == 'lainnya') ...[
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: kategoriKustomCtrl,
+                      maxLength: 30,
+                      validator: (v) => (v == null || v.trim().length < 3)
+                          ? 'Tulis nama kategori minimal 3 huruf'
+                          : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Nama kategori sendiri',
+                        hintText: 'Contoh: Pemasangan Wifi',
+                        prefixIcon: Icon(Icons.edit_outlined),
+                      ),
+                    ),
+                  ],
+                  if (staf && sensitif && role != 'kades') ...[
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -231,7 +257,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                       edit!,
                                       judul: judulCtrl.text,
                                       isi: isiCtrl.text,
-                                      kategori: kategori,
+                                      kategori: kategoriFinal(),
                                       berlakuSampai: berlaku!,
                                       fotoLama: fotoLama,
                                       fotoBaru: foto,
@@ -246,7 +272,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                     ok = await dataCtrl.submitInformasi(
                                       judul: judulCtrl.text,
                                       isi: isiCtrl.text,
-                                      kategori: kategori,
+                                      kategori: kategoriFinal(),
                                       berlakuSampai: berlaku,
                                       foto: foto,
                                     );
@@ -257,7 +283,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                     ok = await dataCtrl.buatKontenStaff(
                                       judul: judulCtrl.text,
                                       isi: isiCtrl.text,
-                                      kategori: kategori,
+                                      kategori: kategoriFinal(),
                                       role: role,
                                       simpanDraft: simpanDraft,
                                       berlakuSampai: berlaku,
