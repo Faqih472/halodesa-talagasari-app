@@ -11,6 +11,51 @@ import '../controllers/chat_controller.dart';
 import '../core/core.dart';
 import '../core/models.dart';
 
+/// Ikon Obrolan di AppBar (dengan badge pesan belum dibaca). Hanya warga.
+class ChatAction extends StatelessWidget {
+  const ChatAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Get.find<AuthController>();
+    if (auth.isStaff) return const SizedBox.shrink();
+    final chat = Get.find<ChatController>();
+    return Obx(() {
+      final int n = chat.totalUnread;
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          IconButton(
+            tooltip: 'Obrolan',
+            icon: const Icon(Icons.chat_bubble_outline, color: Colors.white),
+            onPressed: () {
+              chat.listenMyRooms();
+              Get.to(() => const ChatListView());
+            },
+          ),
+          if (n > 0)
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration:
+                    const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Text(n > 9 ? '9+' : '$n',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold)),
+              ),
+            ),
+        ],
+      );
+    });
+  }
+}
+
 // ============================================================
 // chat_list_view.dart
 // Daftar percakapan aktif (Elisitasi #25-26): pratinjau pesan
@@ -84,7 +129,7 @@ class ChatListView extends StatelessWidget {
             CircleAvatar(
               radius: 26,
               backgroundColor: primaryColor.withOpacity(0.12),
-              backgroundImage: foto.isNotEmpty ? NetworkImage(foto) : null,
+              backgroundImage: foto.isNotEmpty ? ImageUtil.provider(foto) : null,
               child: foto.isEmpty
                   ? Text(AppUtils.inisial(nama),
                       style: TextStyle(
@@ -242,7 +287,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
               radius: 18,
               backgroundColor: Colors.white24,
               backgroundImage: widget.fotoLawan.isNotEmpty
-                  ? NetworkImage(widget.fotoLawan)
+                  ? ImageUtil.provider(widget.fotoLawan)
                   : null,
               child: widget.fotoLawan.isEmpty
                   ? Text(AppUtils.inisial(widget.namaLawan),
