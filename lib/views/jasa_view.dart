@@ -2287,8 +2287,10 @@ class _FormJasaViewState extends State<FormJasaView> {
                 ),
                 TextField(
                   controller: cDesk,
-                  maxLines: 2,
-                  maxLength: 120,
+                  keyboardType: TextInputType.multiline,
+                  minLines: 2,
+                  maxLines: 8,
+                  maxLength: 1000,
                   decoration:
                       const InputDecoration(labelText: 'Keterangan (opsional)'),
                 ),
@@ -2779,8 +2781,10 @@ class _FormJasaViewState extends State<FormJasaView> {
               const SizedBox(height: 14),
               TextFormField(
                 controller: _cDesk,
-                maxLines: 5,
-                maxLength: 600,
+                keyboardType: TextInputType.multiline,
+                minLines: 5,
+                maxLines: 15,
+                maxLength: 3000,
                 decoration: const InputDecoration(
                   labelText: 'Deskripsi layanan',
                   hintText:
