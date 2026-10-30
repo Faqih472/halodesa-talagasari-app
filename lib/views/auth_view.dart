@@ -540,7 +540,7 @@ class _AuthViewState extends State<AuthView>
                 CircleAvatar(
                   radius: 24,
                   backgroundColor: warna,
-                  backgroundImage: foto.isNotEmpty ? NetworkImage(foto) : null,
+                  backgroundImage: foto.isNotEmpty ? ImageUtil.provider(foto) : null,
                   child: foto.isEmpty
                       ? Text(
                           AppUtils.inisial(nama),
@@ -1038,7 +1038,7 @@ class _LockViewState extends State<LockView> {
                         ],
                         image: foto.isNotEmpty
                             ? DecorationImage(
-                                image: NetworkImage(foto),
+                                image: ImageUtil.provider(foto),
                                 fit: BoxFit.cover,
                               )
                             : null,
