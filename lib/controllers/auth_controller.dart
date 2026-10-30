@@ -590,6 +590,7 @@ class AuthController extends GetxController {
   Future<bool> updateProfil({
     required String nama,
     required String nomorTelepon,
+    String? namaPanggilan,
     File? fotoFile,
     String? bio,
     String? jenisKelamin,
@@ -600,8 +601,18 @@ class AuthController extends GetxController {
       final String? uid = _auth.currentUser?.uid;
       if (uid == null) return false;
 
+      // Nama panggilan WAJIB salah satu kata dari nama asli.
+      final List<String> kata = UserModel.kataDariNama(nama);
+      String pilih = (namaPanggilan ?? currentUser.value?.panggilan ?? '').trim();
+      if (!kata.any((k) => k.toLowerCase() == pilih.toLowerCase())) {
+        pilih = kata.isEmpty ? '' : kata.first;
+      } else {
+        pilih = kata.firstWhere((k) => k.toLowerCase() == pilih.toLowerCase());
+      }
+
       final Map<String, dynamic> updates = {
         'nama': nama.trim(),
+        'nama_panggilan': pilih,
         'nomor_telepon': nomorTelepon.trim(),
         if (bio != null) 'bio': bio.trim(),
         if (jenisKelamin != null) 'jenis_kelamin': jenisKelamin,
