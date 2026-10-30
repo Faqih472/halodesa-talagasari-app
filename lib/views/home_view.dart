@@ -325,7 +325,7 @@ class TabHomeView extends StatelessWidget {
             slivers: [
               SliverToBoxAdapter(
                   child: _buildWelcomeBanner(
-                      user?.nama ?? '', role, primaryColor)),
+                      user?.panggilan ?? '', role, primaryColor)),
               const SliverToBoxAdapter(child: LayananDesaSection()),
               SliverToBoxAdapter(
                   child: _buildFilterChips(dataCtrl, primaryColor)),
@@ -417,7 +417,7 @@ class TabHomeView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Halo, ${nama.split(' ').first}! 👋',
+            'Halo, $nama! 👋',
             style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -453,6 +453,16 @@ class TabHomeView extends StatelessWidget {
       {'value': 'kesehatan', 'label': 'Kesehatan'},
       {'value': 'ketenagakerjaan', 'label': 'Loker'},
       {'value': 'bantuan_sosial', 'label': 'Bansos'},
+      {'value': 'layanan_jasa', 'label': 'Layanan & Jasa'},
+      {'value': 'usaha_umkm', 'label': 'UMKM'},
+      {'value': 'pendidikan', 'label': 'Pendidikan'},
+      {'value': 'keagamaan', 'label': 'Keagamaan'},
+      {'value': 'olahraga_pemuda', 'label': 'Olahraga'},
+      {'value': 'lingkungan', 'label': 'Lingkungan'},
+      {'value': 'infrastruktur', 'label': 'Infrastruktur'},
+      {'value': 'keamanan', 'label': 'Keamanan'},
+      {'value': 'kehilangan', 'label': 'Kehilangan'},
+      {'value': 'lainnya', 'label': 'Lainnya'},
     ];
     return Container(
       color: Colors.white,
@@ -605,7 +615,7 @@ class TabHomeView extends StatelessWidget {
               ),
               if (news.fotoUrl.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                fotoBanner(news.fotoUrl, tinggi: 150),
+                fotoFull(news.fotoUrl),
               ],
               const SizedBox(height: 10),
               Text(news.judul,
@@ -773,7 +783,7 @@ class TabHomeView extends StatelessWidget {
                       ],
                       const Divider(height: 24),
                       if (news.fotoUrl.isNotEmpty) ...[
-                        fotoBanner(news.fotoUrl, tinggi: 200),
+                        fotoFull(news.fotoUrl, maksTinggi: 600),
                         const SizedBox(height: 14),
                       ],
                       Text(news.isi,
@@ -847,6 +857,24 @@ class TabHomeView extends StatelessWidget {
         return Colors.purple.shade600;
       case 'kegiatan':
         return Colors.orange.shade600;
+      case 'layanan_jasa':
+        return Colors.indigo.shade500;
+      case 'usaha_umkm':
+        return Colors.amber.shade800;
+      case 'pendidikan':
+        return Colors.cyan.shade700;
+      case 'keagamaan':
+        return Colors.green.shade700;
+      case 'olahraga_pemuda':
+        return Colors.deepOrange.shade500;
+      case 'lingkungan':
+        return Colors.lightGreen.shade700;
+      case 'infrastruktur':
+        return Colors.brown.shade500;
+      case 'keamanan':
+        return Colors.blueGrey.shade600;
+      case 'kehilangan':
+        return Colors.pink.shade400;
       default:
         return Colors.teal.shade600;
     }
@@ -862,6 +890,24 @@ class TabHomeView extends StatelessWidget {
         return Icons.volunteer_activism_outlined;
       case 'kegiatan':
         return Icons.event_outlined;
+      case 'layanan_jasa':
+        return Icons.build_circle_outlined;
+      case 'usaha_umkm':
+        return Icons.storefront_outlined;
+      case 'pendidikan':
+        return Icons.school_outlined;
+      case 'keagamaan':
+        return Icons.mosque_outlined;
+      case 'olahraga_pemuda':
+        return Icons.sports_soccer_outlined;
+      case 'lingkungan':
+        return Icons.eco_outlined;
+      case 'infrastruktur':
+        return Icons.construction_outlined;
+      case 'keamanan':
+        return Icons.shield_outlined;
+      case 'kehilangan':
+        return Icons.search;
       default:
         return Icons.campaign_outlined;
     }
