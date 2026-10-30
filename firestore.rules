@@ -1,0 +1,227 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function login()   { return request.auth != null; }
+    function me()      { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isAdmin() { return login() && me().role == 'admin'; }
+    function isKades() { return login() && me().role == 'kades'; }
+    function isStaff() { return login() && me().role in ['admin', 'kades']; }
+
+    // ── Akun ──
+    match /users/{uid} {
+      allow read: if login();
+      allow create: if login() && request.auth.uid == uid
+                    && request.resource.data.role == 'warga';
+      // pemilik boleh ubah profil sendiri, tapi TIDAK boleh ubah peran
+      allow update: if login() && (
+        isAdmin() ||
+        (request.auth.uid == uid
+          && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['role', 'isVerified'])));
+      match /notifications/{nid} {
+        allow create: if login();
+        allow read, update, delete: if login() && request.auth.uid == uid;
+      }
+    }
+
+    // ── Fitur lama (tetap seperti sebelumnya: cukup login) ──
+    // Informasi desa: warga hanya boleh mengajukan (create). Ubah/hapus hanya
+    // Admin/Kades, atau pembuatnya sendiri untuk menghapus.
+    match /announcements/{id} {
+      allow read, create: if login();
+      allow update: if isStaff();
+      allow delete: if isStaff() || (login() && resource.data.authorId == request.auth.uid);
+    }
+    // ── Jasa lokal ──────────────────────────────────────────
+    // penyedia_jasa : pemilik mengelola profilnya, Admin memverifikasi/memoderasi,
+    //                 warga lain hanya boleh menaikkan penghitung (ulasan, dilihat, dll.)
+    // pesanan_jasa  : hanya pemesan, penyedia, dan Admin
+    function svcDoc(sid) { return get(/databases/$(database)/documents/penyedia_jasa/$(sid)).data; }
+    function pesananDoc(pid) { return get(/databases/$(database)/documents/pesanan_jasa/$(pid)).data; }
+    function ktpSah() {
+      return me().get('isVerified', false) == true
+        || (exists(/databases/$(database)/documents/verifikasi_ktp/$(request.auth.uid))
+            && get(/databases/$(database)/documents/verifikasi_ktp/$(request.auth.uid)).data.status == 'terverifikasi');
+    }
+
+    match /penyedia_jasa/{id} {
+      allow read: if login();
+
+      allow create: if login()
+        && request.resource.data.uid_penyedia == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.rating_count == 0
+        && request.resource.data.unggulan == false
+        && request.resource.data.dikunci == false
+        && (request.resource.data.ktp_ok == false || ktpSah());
+
+      allow update: if isAdmin()
+        // 1) pemilik: ubah profil sendiri (tidak boleh ubah rating/unggulan/kunci)
+        || (login() && resource.data.uid_penyedia == request.auth.uid
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+                 'uid_penyedia', 'rating_avg', 'rating_count', 'rating_dist',
+                 'aspek_sum', 'aspek_n', 'unggulan', 'peringatan', 'dikunci',
+                 'created_at', 'diverifikasi_at'])
+            && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['ktp_ok'])
+                || request.resource.data.ktp_ok == false || ktpSah())
+            && (request.resource.data.status == resource.data.status
+                || (resource.data.get('dikunci', false) == false
+                    && ((request.resource.data.status == 'pending'
+                         && resource.data.status in ['ditolak', 'aktif'])
+                        || (request.resource.data.status in ['aktif', 'nonaktif']
+                            && resource.data.status in ['aktif', 'nonaktif'])))))
+        // 2) warga lain: hanya penghitung
+        || (login() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+             'rating_avg', 'rating_count', 'rating_dist', 'aspek_sum', 'aspek_n',
+             'pesanan_total', 'pesanan_selesai', 'dilihat', 'dihubungi']));
+
+      allow delete: if isAdmin();
+
+      // Ulasan: id dokumen = id pesanan (1 ulasan per pesanan selesai)
+      match /reviews/{rid} {
+        allow read: if login();
+        allow create: if login()
+          && request.resource.data.id_pengguna == request.auth.uid
+          && request.resource.data.order_id == rid
+          && pesananDoc(rid).uid_pemesan == request.auth.uid
+          && pesananDoc(rid).service_id == id
+          && pesananDoc(rid).status == 'selesai';
+        allow update: if isAdmin()
+          || (login() && svcDoc(id).uid_penyedia == request.auth.uid
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['balasan', 'balasan_at']));
+        allow delete: if isAdmin();
+      }
+
+      // Foto portofolio (dipisah agar daftar jasa tetap ringan)
+      match /portofolio/{pid} {
+        allow read: if login();
+        allow create, update, delete: if login()
+          && (svcDoc(id).uid_penyedia == request.auth.uid || isAdmin());
+      }
+    }
+
+    match /pesanan_jasa/{id} {
+      allow create: if login()
+        && request.resource.data.uid_pemesan == request.auth.uid
+        && request.resource.data.uid_penyedia != request.auth.uid
+        && request.resource.data.status == 'menunggu';
+      allow read: if login() && (resource.data.uid_pemesan == request.auth.uid
+                              || resource.data.uid_penyedia == request.auth.uid
+                              || isAdmin());
+      allow update: if login()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['uid_pemesan', 'uid_penyedia', 'service_id', 'created_at'])
+        && (isAdmin()
+            || (resource.data.uid_pemesan == request.auth.uid
+                && request.resource.data.status in
+                   ['menunggu', 'nego', 'diterima', 'dikerjakan', 'selesai', 'dibatalkan'])
+            || (resource.data.uid_penyedia == request.auth.uid
+                && request.resource.data.status in
+                   ['menunggu', 'nego', 'diterima', 'ditolak', 'dikerjakan',
+                    'menunggu_konfirmasi', 'dibatalkan']));
+      allow delete: if isAdmin();
+    }
+    match /chat_rooms/{id} {
+      allow read, write: if login();
+      match /messages/{mid} { allow read, write: if login(); }
+    }
+
+    // ── Pengaduan: privat ──
+    match /pengaduan/{id} {
+      allow create: if login() && request.resource.data.uid_pelapor == request.auth.uid
+                    && request.resource.data.status == 'menunggu_review';
+      allow read: if login() && (resource.data.uid_pelapor == request.auth.uid || isStaff());
+      allow update: if login() && (isStaff() ||
+          (resource.data.uid_pelapor == request.auth.uid
+           && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['rating', 'ulasan_rating'])));
+      match /aktivitas/{aid} {
+        allow read, create: if login() &&
+          (get(/databases/$(database)/documents/pengaduan/$(id)).data.uid_pelapor == request.auth.uid || isStaff());
+      }
+    }
+
+    // ── Verifikasi identitas (data teks, tanpa foto) ──
+    // Berisi foto KTP sementara → hanya pemilik & Admin (Kades tidak perlu).
+    match /verifikasi_ktp/{uid} {
+      allow read: if login() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if login() && (isAdmin() ||
+          (request.auth.uid == uid && request.resource.data.status == 'menunggu'));
+    }
+
+    // ── Surat online ──
+    match /surat/{id} {
+      allow create: if login() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'menunggu_review';
+      allow read: if login() && (resource.data.uid == request.auth.uid || isStaff());
+      allow update: if isStaff();
+    }
+    match /surat_verifikasi/{kode} {
+      allow read: if isStaff();      // cek keaslian: hanya Admin/Kades
+      allow write: if isStaff();
+    }
+    match /counters/{id} { allow read, write: if isKades(); }
+
+    // ── Polling & agenda ──
+    match /polling/{id} {
+      allow read: if login();
+      allow create, update, delete: if isStaff();
+      match /suara/{uid} {
+        allow read: if login();
+        allow create: if login() && request.auth.uid == uid;
+      }
+    }
+    match /agenda/{id} {
+      allow read: if login();
+      allow create, update, delete: if isStaff();
+      match /hadir/{uid} {
+        allow read: if login();
+        allow write: if login() && request.auth.uid == uid;
+      }
+    }
+
+    // ── SOS, audit, laporan jasa ──
+    match /sos/{id} {
+      allow create: if login() && request.resource.data.uid == request.auth.uid;
+      allow read, update: if isStaff();
+      // Pembersihan otomatis: hanya riwayat lebih dari 90 hari
+      allow delete: if isStaff() && resource.data.created_at < request.time - duration.value(90, 'd');
+    }
+    match /audit_log/{id} {
+      allow read: if isStaff();
+      allow create: if login();
+      allow update: if false;
+      // Log tidak bisa dihapus sebelum 90 hari (anti-manipulasi)
+      allow delete: if isStaff() && resource.data.created_at < request.time - duration.value(90, 'd');
+    }
+    // Laporan jasa: id = idJasa_uidPelapor → satu pelapor satu laporan per jasa
+    match /laporan_jasa/{id} {
+      allow create: if login()
+        && request.resource.data.uid_pelapor == request.auth.uid
+        && id == request.resource.data.service_id + '_' + request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ── Penanda pembersihan otomatis ──
+    match /meta/{id} { allow read, write: if isStaff(); }
+
+    // ── Umpan balik / kritik & saran ──
+    //  aplikasi → Admin & Kades | admin → Kades | kades → Admin
+    match /umpan_balik/{id} {
+      allow create: if login() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'baru';
+      allow read: if login() && (
+          resource.data.uid == request.auth.uid ||
+          (isAdmin() && resource.data.target in ['kades', 'aplikasi']) ||
+          (isKades() && resource.data.target in ['admin', 'aplikasi']));
+      allow update: if login() && (
+          (isAdmin() && resource.data.target in ['kades', 'aplikasi']) ||
+          (isKades() && resource.data.target in ['admin', 'aplikasi']))
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'ditinjau_oleh', 'ditinjau_at']);
+      allow delete: if isStaff() && resource.data.created_at < request.time - duration.value(180, 'd');
+    }
+  }
+}
