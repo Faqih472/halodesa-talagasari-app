@@ -417,12 +417,27 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
   late final TextEditingController _telpCtrl;
   String? _gender;
   DateTime? _tglLahir;
+  String _panggilan = '';
+
+  List<String> get _kataNama => UserModel.kataDariNama(_namaCtrl.text);
+
+  void _selaraskanPanggilan() {
+    final kata = _kataNama;
+    if (kata.isEmpty) {
+      _panggilan = '';
+    } else if (!kata.contains(_panggilan)) {
+      _panggilan = kata.first;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     final u = _authCtrl.currentUser.value;
     _namaCtrl = TextEditingController(text: u?.nama ?? '');
+    _panggilan = u?.panggilan ?? '';
+    _selaraskanPanggilan();
+    _namaCtrl.addListener(() => setState(_selaraskanPanggilan));
     _bioCtrl = TextEditingController(text: u?.bio ?? '');
     _telpCtrl = TextEditingController(text: u?.nomorTelepon ?? '');
     _gender = (u?.jenisKelamin.isNotEmpty ?? false) ? u!.jenisKelamin : null;
@@ -475,6 +490,7 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
     if (!_formKey.currentState!.validate()) return;
     final ok = await _authCtrl.updateProfil(
       nama: _namaCtrl.text,
+      namaPanggilan: _panggilan,
       nomorTelepon: _telpCtrl.text,
       bio: _bioCtrl.text,
       jenisKelamin: _gender,
@@ -560,6 +576,23 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
                         decoration: InputDecoration(
                             labelText: 'profile_name'.tr,
                             prefixIcon: const Icon(Icons.person_outlined)),
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('panggilan_${_namaCtrl.text}'),
+                        value: _kataNama.contains(_panggilan) ? _panggilan : null,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Nama panggilan (wajib)',
+                          helperText: 'Pilih salah satu kata dari nama asli Anda',
+                          prefixIcon: Icon(Icons.badge_outlined),
+                        ),
+                        items: _kataNama
+                            .map((k) => DropdownMenuItem(value: k, child: Text(k)))
+                            .toList(),
+                        validator: (v) =>
+                            (v == null || v.isEmpty) ? 'Pilih nama panggilan' : null,
+                        onChanged: (v) => setState(() => _panggilan = v ?? _panggilan),
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
