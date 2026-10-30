@@ -30,7 +30,10 @@ service cloud.firestore {
     // Admin/Kades, atau pembuatnya sendiri untuk menghapus.
     match /announcements/{id} {
       allow read, create: if login();
-      allow update: if isStaff();
+      // Kategori sensitif hanya boleh diterbitkan (published) oleh Kepala Desa.
+      allow update: if isKades()
+        || (isAdmin() && !(request.resource.data.status == 'published'
+             && request.resource.data.kategori in ['kesehatan', 'ketenagakerjaan', 'bantuan_sosial']));
       allow delete: if isStaff() || (login() && resource.data.authorId == request.auth.uid);
     }
     // ── Jasa lokal ──────────────────────────────────────────
