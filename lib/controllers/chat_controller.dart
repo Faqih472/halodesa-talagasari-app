@@ -5,10 +5,12 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart' show Icon, Icons, EdgeInsets;
 import 'package:get/get.dart';
 
 import '../core/models.dart';
 import 'auth_controller.dart';
+import 'village_controller.dart' show RetensiService;
 
 // ============================================================
 // chat_controller.dart
@@ -131,6 +133,7 @@ class ChatController extends GetxController {
     String roomId,
     String isi, {
     required String otherUid,
+    bool notif = true,
   }) async {
     final teks = isi.trim();
     if (teks.isEmpty) return;
@@ -161,6 +164,7 @@ class ChatController extends GetxController {
       return;
     }
 
+    if (!notif) return;
     try {
       await Get.find<NotificationController>().kirimKe(
         uidTujuan: otherUid,
@@ -218,6 +222,7 @@ class NotificationController extends GetxController {
   final RxInt unreadCount = 0.obs;
 
   StreamSubscription? _sub;
+  bool _sudahMuat = false;
 
   @override
   void onInit() {
@@ -244,6 +249,9 @@ class NotificationController extends GetxController {
 
   void _listen(String uid) {
     _sub?.cancel();
+    _sudahMuat = false;
+    // Bersihkan notifikasi lama milik sendiri (dibaca > 14 hari / semua > 30 hari)
+    RetensiService.bersihkanNotifSaya(uid);
     _sub = _firestore
         .collection('users')
         .doc(uid)
@@ -254,6 +262,24 @@ class NotificationController extends GetxController {
         .listen((snap) {
       final list =
           snap.docs.map((d) => AppNotification.fromFirestore(d)).toList();
+      // Banner dalam-aplikasi untuk notifikasi baru (gratis, tanpa push)
+      if (_sudahMuat) {
+        for (final c in snap.docChanges) {
+          if (c.type == DocumentChangeType.added &&
+              !c.doc.metadata.hasPendingWrites) {
+            final n = AppNotification.fromFirestore(c.doc);
+            if (!n.dibaca) {
+              Get.snackbar(n.judul, n.isi,
+                  snackPosition: SnackPosition.TOP,
+                  margin: const EdgeInsets.all(12),
+                  borderRadius: 12,
+                  duration: const Duration(seconds: 4),
+                  icon: const Icon(Icons.notifications_active_outlined));
+            }
+          }
+        }
+      }
+      _sudahMuat = true;
       daftar.value = list;
       unreadCount.value = list.where((n) => !n.dibaca).length;
     }, onError: (_) {});
@@ -298,6 +324,13 @@ class NotificationController extends GetxController {
           .doc(id)
           .update({'dibaca': true});
     } catch (_) {}
+  }
+
+  /// Hapus semua notifikasi yang sudah dibaca (tombol manual di halaman Notifikasi)
+  Future<int> hapusYangDibaca() async {
+    final uid = _authCtrl.currentUser.value?.uid;
+    if (uid == null) return 0;
+    return RetensiService.hapusNotifDibaca(uid);
   }
 
   Future<void> tandaiSemuaDibaca() async {
