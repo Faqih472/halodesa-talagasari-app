@@ -260,7 +260,7 @@ class _TabManageViewState extends State<TabManageView> {
             const SizedBox(height: 6),
 
             if (news.fotoUrl.isNotEmpty) ...[
-              fotoBanner(news.fotoUrl, tinggi: 110),
+              fotoFull(news.fotoUrl, maksTinggi: 320),
               const SizedBox(height: 8),
             ],
             // Isi preview
@@ -285,6 +285,31 @@ class _TabManageViewState extends State<TabManageView> {
             const Divider(height: 20),
 
             // Tombol Aksi
+            if (role == 'admin' && news.status == 'pending_kades')
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.hourglass_top_outlined,
+                        size: 16, color: Colors.orange.shade800),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Menunggu keputusan Kepala Desa. Admin hanya dapat melihat.',
+                        style: TextStyle(
+                            fontSize: 11.5, color: Colors.orange.shade800),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
             Row(
               children: [
                 // Tombol Tolak
@@ -394,7 +419,7 @@ class _TabManageViewState extends State<TabManageView> {
                   ),
                 const Divider(height: 24),
                 if (news.fotoUrl.isNotEmpty) ...[
-                  fotoBanner(news.fotoUrl, tinggi: 200),
+                  fotoFull(news.fotoUrl, maksTinggi: 600),
                   const SizedBox(height: 14),
                 ],
                 Text(news.isi,
