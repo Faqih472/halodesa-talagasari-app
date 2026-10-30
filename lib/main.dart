@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'controllers/auth_controller.dart';
 import 'controllers/chat_controller.dart';
+import 'controllers/complaint_controller.dart';
 import 'controllers/data_controller.dart';
+import 'controllers/feedback_controller.dart';
+import 'controllers/village_controller.dart';
 import 'core/core.dart';
+import 'core/translations.dart';
 import 'firebase_options.dart';
 import 'views/auth_view.dart';
 import 'views/home_view.dart';
-
-/// Wajib berupa fungsi top-level (bukan method kelas) sesuai ketentuan
-/// firebase_messaging untuk menangani notifikasi saat aplikasi tertutup.
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,8 +25,6 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   runApp(const TalagasariHubApp());
 }
@@ -43,8 +37,17 @@ class TalagasariHubApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'Talagasari Hub',
       debugShowCheckedModeBanner: false,
+      // Ukuran huruf mengikuti pilihan di Pengaturan → Ukuran Huruf
+      builder: (context, child) => Obx(() => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(AppSettings.fontScale.value)),
+            child: child ?? const SizedBox.shrink(),
+          )),
       theme: AppTheme.buildTheme('warga'),
-      locale: const Locale('id', 'ID'),
+      translations: AppTranslations(),
+      locale: LocalStore.bahasa == 'en'
+          ? const Locale('en', 'US')
+          : const Locale('id', 'ID'),
       fallbackLocale: const Locale('id', 'ID'),
       initialBinding: BindingsBuilder(() {
         // Urutan penting: controller yang memakai Get.find() controller
@@ -53,7 +56,14 @@ class TalagasariHubApp extends StatelessWidget {
         Get.put<MainController>(MainController(), permanent: true);
         Get.put<NotificationController>(NotificationController(), permanent: true);
         Get.put<ServiceController>(ServiceController(), permanent: true);
+        Get.put<ComplaintController>(ComplaintController(), permanent: true);
         Get.put<ChatController>(ChatController(), permanent: true);
+        Get.put<OrderController>(OrderController(), permanent: true);
+        Get.put<SosController>(SosController(), permanent: true);
+        Get.put<PollController>(PollController(), permanent: true);
+        Get.put<AgendaController>(AgendaController(), permanent: true);
+        Get.put<LetterController>(LetterController(), permanent: true);
+        Get.put<FeedbackController>(FeedbackController(), permanent: true);
       }),
       initialRoute: '/login',
       getPages: [
