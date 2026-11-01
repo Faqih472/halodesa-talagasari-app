@@ -14,6 +14,9 @@ import 'package:get/get_rx/get_rx.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 
+import 'motif.dart';
+export 'motif.dart';
+
 // ============================================================
 // app_theme.dart
 // Dynamic Theme: warna aplikasi berubah sesuai role pengguna
@@ -22,24 +25,31 @@ import 'package:intl/intl.dart';
 
 class AppTheme {
   // ─── Palet Warna per Role ───────────────────────────────
-  static const Color warnaWarga = Color(0xFF00796B);       // Teal 700
-  static const Color warnaWargaLight = Color(0xFF48A999);
-  static const Color warnaWargaDark = Color(0xFF004C40);
+  // Palet "Sawah & Telaga"
+  static const Color warnaWarga = Color(0xFF2F6F4E);       // Hijau padi
+  static const Color warnaWargaLight = Color(0xFF5FA37B);
+  static const Color warnaWargaDark = Color(0xFF1B4A33);
 
-  static const Color warnaAdmin = Color(0xFF1565C0);       // Blue 800
-  static const Color warnaAdminLight = Color(0xFF5E92F3);
-  static const Color warnaAdminDark = Color(0xFF003C8F);
+  static const Color warnaAdmin = Color(0xFF1F6F8B);       // Biru telaga
+  static const Color warnaAdminLight = Color(0xFF58A3BD);
+  static const Color warnaAdminDark = Color(0xFF0F4A60);
 
-  static const Color warnaKades = Color(0xFF7B1FA2);       // Purple 700 (Maroon-ish)
-  static const Color warnaKadesLight = Color(0xFFAE52D4);
-  static const Color warnaKadesDark = Color(0xFF4A0072);
+  static const Color warnaKades = Color(0xFF6D3B7C);       // Ungu wulung (batik)
+  static const Color warnaKadesLight = Color(0xFFA46BB5);
+  static const Color warnaKadesDark = Color(0xFF45214F);
+
+  // ─── Aksen khas Talagasari ───────────────────────────────
+  static const Color emas = Color(0xFFD9A441);             // Emas padi
+  static const Color terakota = Color(0xFFC8553D);         // Terakota
+  static const Color kremTua = Color(0xFFF0E7CF);
+  static const String fontJudul = 'DMSerif';
 
   // ─── Warna Netral ────────────────────────────────────────
-  static const Color background = Color(0xFFF5F5F5);
+  static const Color background = Color(0xFFFAF6EC);       // Krem hangat
   static const Color surface = Colors.white;
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color divider = Color(0xFFE0E0E0);
+  static const Color textPrimary = Color(0xFF2B2A22);
+  static const Color textSecondary = Color(0xFF6E6A5C);
+  static const Color divider = Color(0xFFE8E0CB);
 
   // ─── Warna Status ────────────────────────────────────────
   static const Color statusPublished = Color(0xFF388E3C);
@@ -101,11 +111,7 @@ class AppTheme {
         surface: surface,
         onSurface: textPrimary,
       ),
-      textTheme: ThemeData.light().textTheme.apply(
-            bodyColor: textPrimary,
-            displayColor: textPrimary,
-            fontFamily: 'Poppins',
-          ),
+      textTheme: _teksTema(),
       scaffoldBackgroundColor: background,
 
       // AppBar
@@ -113,11 +119,13 @@ class AppTheme {
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
         titleTextStyle: const TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontFamily: fontJudul,
+          fontSize: 21,
+          fontWeight: FontWeight.w400,
           color: Colors.white,
         ),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -141,9 +149,12 @@ class AppTheme {
       // Card
       cardTheme: CardThemeData( // <--- Ubah CardTheme menjadi CardThemeData di sini
         color: surface,
-        elevation: 2,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: const Color(0xFF8A7A4A).withOpacity(0.25),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: kremTua),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       ),
@@ -153,12 +164,11 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          minimumSize: const Size(double.infinity, 50),
+          elevation: 0,
+          shape: const StadiumBorder(),
           textStyle: const TextStyle(
-            fontSize: 16,
+            fontSize: 15.5,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -169,10 +179,8 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: primary,
           side: BorderSide(color: primary, width: 1.5),
-          minimumSize: const Size(double.infinity, 48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          minimumSize: const Size(double.infinity, 50),
+          shape: const StadiumBorder(),
         ),
       ),
 
@@ -184,22 +192,22 @@ class AppTheme {
       // Input Fields
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.grey.shade100,
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE3D9BF)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE3D9BF)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: Colors.red),
         ),
         labelStyle: TextStyle(color: textSecondary),
@@ -214,7 +222,8 @@ class AppTheme {
         checkmarkColor: primary,
         deleteIconColor: textSecondary,
         surfaceTintColor: Colors.transparent,
-        side: BorderSide(color: Colors.grey.shade300),
+        side: const BorderSide(color: Color(0xFFE3D9BF)),
+        shape: const StadiumBorder(),
         labelStyle: const TextStyle(
             fontSize: 12, color: textPrimary, fontWeight: FontWeight.w500),
         secondaryLabelStyle: const TextStyle(
@@ -235,13 +244,36 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         textStyle: TextStyle(color: textPrimary),
       ),
-      dialogTheme: const DialogThemeData(
+      dialogTheme: DialogThemeData(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF2B2A22),
+        contentTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        elevation: 3,
+        shape: const StadiumBorder(),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: primary),
+      tabBarTheme: TabBarThemeData(
+        labelColor: primary,
+        unselectedLabelColor: textSecondary,
+        indicatorColor: emas,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
       ),
 
       // Divider
@@ -251,6 +283,23 @@ class AppTheme {
       ),
 
       fontFamily: 'Poppins',
+    );
+  }
+
+  // Teks: Poppins untuk isi, DM Serif untuk judul (ciri khas Talagasari)
+  static TextTheme _teksTema() {
+    final TextTheme dasar = ThemeData.light().textTheme.apply(
+          bodyColor: textPrimary,
+          displayColor: textPrimary,
+          fontFamily: 'Poppins',
+        );
+    TextStyle? judul(TextStyle? t) =>
+        t?.copyWith(fontFamily: fontJudul, fontWeight: FontWeight.w400);
+    return dasar.copyWith(
+      headlineLarge: judul(dasar.headlineLarge),
+      headlineMedium: judul(dasar.headlineMedium),
+      headlineSmall: judul(dasar.headlineSmall),
+      titleLarge: judul(dasar.titleLarge),
     );
   }
 
@@ -944,14 +993,46 @@ class EmptyState extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 72, color: color.withOpacity(0.35)),
-              const SizedBox(height: 16),
+              SizedBox(
+                width: 190,
+                height: 130,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CustomPaint(
+                      size: const Size(190, 130),
+                      painter: IlustrasiKosongPainter(
+                          warna: color == AppTheme.textSecondary
+                              ? AppTheme.warnaWarga
+                              : color),
+                    ),
+                    Positioned(
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.kremTua),
+                        ),
+                        child: Icon(icon,
+                            size: 22,
+                            color: color == AppTheme.textSecondary
+                                ? AppTheme.warnaWarga
+                                : color),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontFamily: AppTheme.fontJudul,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w400,
                   color: AppTheme.textPrimary,
                 ),
               ),
@@ -1057,18 +1138,33 @@ class SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textSecondary,
-            letterSpacing: 0.8,
+      padding: const EdgeInsets.fromLTRB(20, 18, 16, 6),
+      child: Row(
+        children: [
+          Transform.rotate(
+            angle: 0.785398,
+            child: Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: AppTheme.emas,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 9),
+          Flexible(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontFamily: AppTheme.fontJudul,
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
