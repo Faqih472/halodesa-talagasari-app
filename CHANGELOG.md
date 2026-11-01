@@ -1,5 +1,9 @@
 # CHANGELOG — Pembaruan Talagasari Hub
 
+## Terbaru: Surat lengkap + foto profil ACC Admin
+- Surat: form data tambahan (agama, status kawin, pekerjaan, tanda per jenis), PDF lengkap siap tanda tangan Kades, kolom tanda tangan pemohon, pas foto, chip contoh CPNS/TNI/Polri.
+- Foto profil: wajib disetujui Admin (tab Foto). Rules diperbarui.
+
 ## 1. Kelola informasi di Beranda + masa berlaku wajib
 - Admin & Kades: tombol **Buat Info** (+) di Beranda; menu ⋮ pada kartu / tombol di detail untuk **Ubah** dan **Hapus**.
 - Admin yang mengubah info kategori sensitif yang sudah tayang -> kembali ke Kades untuk ACC ulang.

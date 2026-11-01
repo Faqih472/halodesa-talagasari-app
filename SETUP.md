@@ -68,6 +68,12 @@
 
 Semua notifikasi pesanan muncul di dalam aplikasi. Chat otomatis berisi ringkasan saat pesanan dibuat.
 
+## 8c. Pembaruan: surat lengkap + foto profil disetujui Admin
+- **Wajib publish ulang `firestore.rules`** (ada koleksi baru `foto_profil_antri` dan larangan warga mengubah `foto_url` sendiri).
+- Surat online: warga mengisi agama, status perkawinan, pekerjaan, dan data sesuai jenis surat. PDF berisi kop, data lengkap, isi surat, keperluan, kolom tanda tangan pemohon + pas foto 3x4, kolom tanda tangan & stempel Kades, kode keaslian.
+- Foto profil: foto baru masuk antrian. Admin membuka tab **Foto** → Setujui / Tolak (pilih alasan). Foto Admin sendiri langsung tayang. Foto lama tetap tampil sampai foto baru disetujui.
+- Pengguna lama: tidak perlu migrasi. Surat lama tanpa data tambahan tetap bisa dicetak (kolom tersebut tertulis "-").
+
 ## 9. Daftar tes cepat
 1. Daftar warga baru, login. Coba buka jasa → terkunci, muncul ajakan verifikasi.
 2. Akun → Verifikasi Identitas → isi data. Login Admin → Kelola → tab KTP → ACC. Warga kini bertanda Terverifikasi.

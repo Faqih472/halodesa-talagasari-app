@@ -18,7 +18,7 @@ service cloud.firestore {
         isAdmin() ||
         (request.auth.uid == uid
           && !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['role', 'isVerified'])));
+              .hasAny(['role', 'isVerified', 'foto_url'])));
       match /notifications/{nid} {
         allow create: if login();
         allow read, update, delete: if login() && request.auth.uid == uid;
@@ -160,6 +160,14 @@ service cloud.firestore {
                     && request.resource.data.status == 'menunggu_review';
       allow read: if login() && (resource.data.uid == request.auth.uid || isStaff());
       allow update: if isStaff();
+    }
+    // Foto profil baru menunggu persetujuan Admin
+    match /foto_profil_antri/{uid} {
+      allow read: if login() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if login() && (
+        (request.auth.uid == uid && request.resource.data.status == 'menunggu')
+        || isAdmin());
+      allow delete: if login() && (request.auth.uid == uid || isAdmin());
     }
     match /surat_verifikasi/{kode} {
       allow read: if isStaff();      // cek keaslian: hanya Admin/Kades
