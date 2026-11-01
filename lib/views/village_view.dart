@@ -62,45 +62,65 @@ class LayananDesaSection extends StatelessWidget {
       ];
 
       return Container(
-        color: Colors.white,
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.fromLTRB(8, 4, 8, 12),
+        decoration: kartuTalagasari(radius: 24),
+        margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+        padding: const EdgeInsets.fromLTRB(6, 2, 6, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionTitle('hub_title'.tr),
-            GridView.count(
-              crossAxisCount: menu.length > 4 ? 5 : 4,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 0.82,
-              children: menu
-                  .map((m) => InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: m.onTap,
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircleAvatar(
-                                radius: 24,
-                                backgroundColor: m.warna.withOpacity(0.12),
-                                child: Icon(m.icon, color: m.warna, size: 24),
+            JudulBagian('hub_title'.tr,
+                padding: const EdgeInsets.fromLTRB(10, 12, 10, 4)),
+            LayoutBuilder(builder: (context, box) {
+              final int kolom = menu.length > 4 ? 5 : 4;
+              final double lebar = box.maxWidth / kolom;
+              return Wrap(
+                runSpacing: 4,
+                children: menu
+                    .map((m) => SizedBox(
+                          width: lebar,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: m.onTap,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 2, vertical: 6),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 52,
+                                    height: 52,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          m.warna.withOpacity(0.16),
+                                          m.warna.withOpacity(0.07),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(18),
+                                      border: Border.all(
+                                          color: m.warna.withOpacity(0.22)),
+                                    ),
+                                    child: Icon(m.icon,
+                                        color: m.warna, size: 25),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(m.label,
+                                      maxLines: 2,
+                                      textAlign: TextAlign.center,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: 11, height: 1.2)),
+                                ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(m.label,
-                                  maxLines: 2,
-                                  textAlign: TextAlign.center,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: 11, height: 1.2)),
-                            ],
+                            ),
                           ),
-                        ),
-                      ))
-                  .toList(),
-            ),
+                        ))
+                    .toList(),
+              );
+            }),
           ],
         ),
       );
@@ -200,7 +220,9 @@ class _SosWargaState extends State<_SosWarga>
                   height: 220,
                   child: Stack(
                     alignment: Alignment.center,
+                    clipBehavior: Clip.none,
                     children: [
+                      if (!kirim) const DenyutRing(warna: Color(0xFFD32F2F), ukuran: 190),
                       SizedBox(
                         width: 220,
                         height: 220,

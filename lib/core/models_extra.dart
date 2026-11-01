@@ -167,6 +167,27 @@ class AgendaModel {
   bool get lewat => waktu.isBefore(DateTime.now());
 }
 
+/// Panduan singkat satu jenis surat (teks untuk warga awam)
+class PanduanSurat {
+  final IconData ikon;
+  final String singkat;
+  final List<String> untuk;
+  final List<String> siapkan;
+  final List<String> contohKeperluan;
+  final String contohIsian;
+  final String tips;
+
+  const PanduanSurat({
+    required this.ikon,
+    required this.singkat,
+    required this.untuk,
+    required this.siapkan,
+    required this.contohKeperluan,
+    required this.contohIsian,
+    required this.tips,
+  });
+}
+
 // ─────────────────────────────────────────────
 // SURAT ONLINE — surat/{id}
 // Alur: menunggu_review (Admin) → pending_kades → terbit
@@ -192,6 +213,7 @@ class LetterModel {
   final String tempatLahir;
   final DateTime? ttdAt;
   final DateTime? berlakuSampai;
+  final Map<String, String> tambahan;
 
   LetterModel({
     required this.id,
@@ -213,6 +235,7 @@ class LetterModel {
     this.tempatLahir = '',
     this.ttdAt,
     this.berlakuSampai,
+    this.tambahan = const {},
   });
 
   factory LetterModel.fromFirestore(DocumentSnapshot doc) {
@@ -237,7 +260,72 @@ class LetterModel {
       tempatLahir: d['tempat_lahir'] ?? '',
       ttdAt: _ts(d['ttd_at']),
       berlakuSampai: _ts(d['berlaku_sampai']),
+      tambahan: {
+        for (final e in ((d['tambahan'] as Map?) ?? const {}).entries)
+          e.key.toString(): (e.value ?? '').toString(),
+      },
     );
+  }
+
+  String t(String k) => (tambahan[k] ?? '').trim();
+
+  /// Label tampilan data tambahan
+  static const Map<String, String> labelTambahan = {
+    'agama': 'Agama',
+    'status_kawin': 'Status Perkawinan',
+    'pekerjaan': 'Pekerjaan',
+    'tinggal_sejak': 'Tinggal sejak',
+    'penghasilan': 'Penghasilan/bulan',
+    'tanggungan': 'Jumlah tanggungan',
+    'nama_usaha': 'Nama usaha',
+    'jenis_usaha': 'Jenis usaha',
+    'alamat_usaha': 'Alamat usaha',
+    'lama_usaha': 'Lama usaha',
+    'instansi': 'Instansi tujuan',
+  };
+
+  static String rupiah(String digit) {
+    final d = digit.replaceAll(RegExp(r'[^0-9]'), '');
+    if (d.isEmpty) return '-';
+    final b = StringBuffer();
+    for (int i = 0; i < d.length; i++) {
+      if (i > 0 && (d.length - i) % 3 == 0) b.write('.');
+      b.write(d[i]);
+    }
+    return 'Rp $b';
+  }
+
+  /// Isi surat per jenis (dipakai PDF dan pratinjau di form).
+  static String isiSurat(String jenis, Map<String, String> t) {
+    String v(String k) => (t[k] ?? '').trim();
+    switch (jenis) {
+      case 'tidak_mampu':
+        return 'Orang tersebut di atas adalah benar warga Desa Talagasari, '
+            'Kecamatan Cikupa, Kabupaten Tangerang. Berdasarkan keterangan yang '
+            'bersangkutan dan data yang ada pada kami, yang bersangkutan tergolong '
+            'keluarga kurang mampu secara ekonomi, dengan penghasilan kurang lebih '
+            '${rupiah(v('penghasilan'))} per bulan dan jumlah tanggungan keluarga '
+            '${v('tanggungan').isEmpty ? '-' : v('tanggungan')} orang.';
+      case 'usaha':
+        final lama = v('lama_usaha').isEmpty
+            ? ''
+            : ' Usaha tersebut telah berjalan kurang lebih ${v('lama_usaha')}.';
+        return 'Orang tersebut di atas adalah benar warga Desa Talagasari, '
+            'Kecamatan Cikupa, Kabupaten Tangerang, yang memiliki dan menjalankan '
+            'usaha ${v('jenis_usaha')} dengan nama "${v('nama_usaha')}"'
+            '${v('alamat_usaha').isEmpty ? '' : ', beralamat di ${v('alamat_usaha')}'}.$lama';
+      case 'pengantar':
+        return 'Orang tersebut di atas adalah benar warga Desa Talagasari, '
+            'Kecamatan Cikupa, Kabupaten Tangerang. Surat ini diberikan sebagai '
+            'pengantar kepada ${v('instansi')}.';
+      default:
+        final sejak = v('tinggal_sejak').isEmpty
+            ? ''
+            : ', dan bertempat tinggal di alamat tersebut sejak tahun ${v('tinggal_sejak')}';
+        return 'Orang tersebut di atas adalah benar warga yang berdomisili di '
+            'Desa Talagasari, Kecamatan Cikupa, Kabupaten Tangerang, sesuai alamat '
+            'tersebut di atas$sejak.';
+    }
   }
 
   /// Disetujui Kades, menunggu tanda tangan basah di kantor desa
@@ -272,6 +360,125 @@ class LetterModel {
   static String kodeJenis(String v) => daftarJenis.firstWhere(
       (j) => j['value'] == v,
       orElse: () => {'kode': 'SK'})['kode']!;
+
+  /// Kalimat inti surat (dipakai PDF dan pratinjau di form pengajuan)
+  static String kalimatUtama(String jenis) {
+    switch (jenis) {
+      case 'tidak_mampu':
+        return 'adalah benar warga Desa Talagasari yang berdasarkan data kami tergolong kurang mampu secara ekonomi.';
+      case 'usaha':
+        return 'adalah benar warga Desa Talagasari yang memiliki usaha di wilayah desa kami.';
+      case 'pengantar':
+        return 'adalah benar warga Desa Talagasari. Surat ini diberikan sebagai pengantar.';
+      default:
+        return 'adalah benar warga yang berdomisili di wilayah Desa Talagasari.';
+    }
+  }
+
+  /// Panduan untuk warga awam: surat ini untuk apa, contoh pemakaian, contoh isian.
+  static PanduanSurat panduan(String jenis) {
+    switch (jenis) {
+      case 'tidak_mampu':
+        return const PanduanSurat(
+          ikon: Icons.volunteer_activism_outlined,
+          singkat: 'Menerangkan bahwa keluarga Anda kurang mampu secara ekonomi.',
+          untuk: [
+            'Mengajukan keringanan biaya atau beasiswa sekolah',
+            'Meminta keringanan biaya berobat',
+            'Mengajukan bantuan sosial',
+          ],
+          siapkan: [
+            'Identitas sudah terverifikasi di menu Akun',
+            'Data Anda harus sesuai kenyataan; petugas desa dapat mengecek',
+            'Saat tanda tangan di kantor desa, bawa KTP asli',
+          ],
+          contohKeperluan: [
+            'Keringanan biaya sekolah anak',
+            'Mengajukan beasiswa',
+            'Keringanan biaya berobat',
+            'Mengajukan bantuan sosial',
+          ],
+          contohIsian:
+              'Untuk mengajukan keringanan biaya sekolah anak saya di SMP Contoh.',
+          tips: 'Sebutkan siapa yang membutuhkan (Anda atau anak) dan di instansi mana surat dipakai.',
+        );
+      case 'usaha':
+        return const PanduanSurat(
+          ikon: Icons.storefront_outlined,
+          singkat: 'Menerangkan bahwa Anda memiliki usaha di Desa Talagasari.',
+          untuk: [
+            'Mengajukan pinjaman atau modal usaha ke bank/koperasi',
+            'Mengurus izin atau NIB usaha',
+            'Mengajukan bantuan untuk pelaku usaha kecil',
+          ],
+          siapkan: [
+            'Identitas sudah terverifikasi di menu Akun',
+            'Usaha benar-benar berjalan di wilayah desa',
+            'Tulis jenis, nama, dan alamat usaha di kolom keperluan',
+            'Saat tanda tangan di kantor desa, bawa KTP asli',
+          ],
+          contohKeperluan: [
+            'Pengajuan pinjaman modal usaha',
+            'Mengurus NIB usaha',
+            'Mengajukan bantuan pelaku usaha kecil',
+          ],
+          contohIsian:
+              'Usaha warung makan "Warung Contoh" di Kp. Contoh RT 02/RW 03, untuk pengajuan pinjaman modal ke bank.',
+          tips: 'Tulis jenis usaha, nama usaha, dan alamat usahanya.',
+        );
+      case 'pengantar':
+        return const PanduanSurat(
+          ikon: Icons.mail_outline,
+          singkat: 'Surat pengantar dari desa untuk mengurus dokumen di instansi lain.',
+          untuk: [
+            'Mengurus surat di kantor kecamatan',
+            'Mengurus SKCK di kepolisian',
+            'Mengurus dokumen kependudukan (KTP, KK, akta)',
+            'Urusan lain yang meminta pengantar dari desa',
+          ],
+          siapkan: [
+            'Identitas sudah terverifikasi di menu Akun',
+            'Tahu instansi tujuan dan urusannya',
+            'Saat tanda tangan di kantor desa, bawa KTP asli',
+          ],
+          contohKeperluan: [
+            'Pengantar mengurus SKCK',
+            'Pengantar membuat Kartu Keluarga baru',
+            'Pengantar mengurus surat di kecamatan',
+          ],
+          contohIsian: 'Pengantar untuk mengurus SKCK di kantor polisi setempat.',
+          tips: 'Sebutkan instansi tujuan dan urusan yang akan Anda urus.',
+        );
+      default:
+        return const PanduanSurat(
+          ikon: Icons.home_work_outlined,
+          singkat: 'Menerangkan bahwa Anda benar tinggal di Desa Talagasari.',
+          untuk: [
+            'Melamar kerja atau mendaftar sekolah/kuliah',
+            'Membuka rekening bank atau mengurus BPJS',
+            'Bukti tempat tinggal bagi yang mengontrak atau baru pindah',
+            'Melengkapi syarat di instansi lain',
+          ],
+          siapkan: [
+            'Identitas sudah terverifikasi di menu Akun',
+            'Alamat pada identitas sesuai tempat tinggal Anda sekarang',
+            'Saat tanda tangan di kantor desa, bawa KTP asli',
+          ],
+          contohKeperluan: [
+            'Mendaftar CPNS / PPPK',
+            'Mendaftar calon Tamtama TNI',
+            'Mendaftar calon anggota Polri',
+            'Melamar pekerjaan',
+            'Membuka rekening bank',
+            'Mendaftar sekolah anak',
+            'Mengurus BPJS Kesehatan',
+          ],
+          contohIsian:
+              'Untuk melengkapi syarat melamar pekerjaan di PT Contoh Sejahtera.',
+          tips: 'Tulis tujuan surat dan nama tempat yang memintanya.',
+        );
+    }
+  }
 
   static String labelStatus(String s) {
     switch (s) {
@@ -796,4 +1003,41 @@ class OrderModel {
         return Icons.circle_outlined;
     }
   }
+}
+
+
+// ─────────────────────────────────────────────
+// FOTO PROFIL MENUNGGU PERSETUJUAN — foto_profil_antri/{uid}
+// ─────────────────────────────────────────────
+class FotoAntri {
+  final String uid;
+  final String nama;
+  final String foto; // data URL base64 (kosong bila ditolak)
+  final String status; // menunggu | ditolak
+  final String alasan;
+  final DateTime createdAt;
+
+  FotoAntri({
+    required this.uid,
+    required this.nama,
+    this.foto = '',
+    this.status = 'menunggu',
+    this.alasan = '',
+    required this.createdAt,
+  });
+
+  factory FotoAntri.fromFirestore(DocumentSnapshot doc) {
+    final d = doc.data() as Map<String, dynamic>;
+    return FotoAntri(
+      uid: doc.id,
+      nama: d['nama'] ?? '',
+      foto: d['foto'] ?? '',
+      status: d['status'] ?? 'menunggu',
+      alasan: d['alasan'] ?? '',
+      createdAt: _ts(d['created_at']) ?? DateTime.now(),
+    );
+  }
+
+  bool get menunggu => status == 'menunggu';
+  bool get ditolak => status == 'ditolak';
 }

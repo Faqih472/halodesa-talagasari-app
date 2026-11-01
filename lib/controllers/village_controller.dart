@@ -499,7 +499,11 @@ class LetterController extends GetxController {
     }
   }
 
-  Future<bool> ajukan({required String jenis, required String keperluan}) async {
+  Future<bool> ajukan({
+    required String jenis,
+    required String keperluan,
+    Map<String, String> tambahan = const {},
+  }) async {
     final u = _authCtrl.currentUser.value;
     if (u == null) return false;
     final cmp = Get.find<ComplaintController>();
@@ -535,6 +539,10 @@ class LetterController extends GetxController {
         'nomor': '',
         'kode': '',
         'penandatangan': '',
+        'tambahan': {
+          for (final e in tambahan.entries)
+            if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
+        },
         'created_at': Timestamp.fromDate(DateTime.now()),
       });
       await fetchMine();
@@ -896,6 +904,113 @@ class RetensiService {
           .where('dibaca', isEqualTo: true));
     } catch (_) {
       return 0;
+    }
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// FOTO PROFIL — wajib disetujui Admin (kecuali foto milik Admin)
+// ─────────────────────────────────────────────────────────────
+class FotoProfilController extends GetxController {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AuthController _auth = Get.find<AuthController>();
+
+  final Rxn<FotoAntri> saya = Rxn<FotoAntri>();
+  final RxList<FotoAntri> antrian = <FotoAntri>[].obs;
+  final RxBool isLoading = false.obs;
+  final RxString errorMsg = ''.obs;
+
+  Future<void> fetchSaya() async {
+    final u = _auth.currentUser.value;
+    if (u == null) return;
+    try {
+      final d = await _firestore.collection('foto_profil_antri').doc(u.uid).get();
+      saya.value = d.exists ? FotoAntri.fromFirestore(d) : null;
+    } catch (_) {}
+  }
+
+  /// 'langsung' (Admin), 'antri' (menunggu persetujuan), '' (gagal)
+  Future<String> kirim(File file) async {
+    final u = _auth.currentUser.value;
+    if (u == null) return '';
+    try {
+      errorMsg.value = '';
+      final enc = await ImageUtil.encode(file, maks: 60 * 1024);
+      if (enc == null) {
+        errorMsg.value = 'Foto terlalu besar, pilih foto lain.';
+        return '';
+      }
+      if (u.isAdmin) {
+        await _firestore.collection('users').doc(u.uid).update({'foto_url': enc});
+        await _auth.segarkanProfil();
+        return 'langsung';
+      }
+      await _firestore.collection('foto_profil_antri').doc(u.uid).set({
+        'uid': u.uid,
+        'nama': u.nama,
+        'foto': enc,
+        'status': 'menunggu',
+        'alasan': '',
+        'created_at': Timestamp.fromDate(DateTime.now()),
+      });
+      await fetchSaya();
+      await notifPeran(['admin'],
+          judul: 'Foto Profil Menunggu Persetujuan',
+          isi: u.nama,
+          tipe: 'sistem',
+          targetId: u.uid);
+      return 'antri';
+    } catch (e) {
+      errorMsg.value = 'Gagal mengirim foto. Coba lagi.';
+      return '';
+    }
+  }
+
+  Future<void> fetchAntrian() async {
+    try {
+      isLoading.value = true;
+      final snap = await _firestore
+          .collection('foto_profil_antri')
+          .where('status', isEqualTo: 'menunggu')
+          .get();
+      final list = snap.docs.map(FotoAntri.fromFirestore).toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      antrian.assignAll(list);
+    } catch (_) {
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> putuskan(FotoAntri f, {required bool setuju, String alasan = ''}) async {
+    try {
+      errorMsg.value = '';
+      final ref = _firestore.collection('foto_profil_antri').doc(f.uid);
+      if (setuju) {
+        await _firestore.collection('users').doc(f.uid).update({'foto_url': f.foto});
+        await ref.delete();
+      } else {
+        await ref.update({'status': 'ditolak', 'alasan': alasan, 'foto': ''});
+      }
+      await Get.find<NotificationController>().kirimKe(
+        uidTujuan: f.uid,
+        judul: setuju ? 'Foto Profil Disetujui' : 'Foto Profil Ditolak',
+        isi: setuju ? 'Foto profil baru Anda sudah tampil.' : 'Alasan: $alasan',
+        tipe: 'sistem',
+      );
+      await AuditLog.catat(
+        aksi: setuju ? 'foto_setuju' : 'foto_tolak',
+        targetTipe: 'foto_profil',
+        targetId: f.uid,
+        detail: f.nama,
+        alasan: setuju ? '' : alasan,
+      );
+      antrian.removeWhere((x) => x.uid == f.uid);
+      return true;
+    } catch (_) {
+      errorMsg.value = 'Gagal memproses foto. Coba lagi.';
+      return false;
     }
   }
 }
