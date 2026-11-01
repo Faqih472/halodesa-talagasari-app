@@ -9,6 +9,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
@@ -30,36 +31,24 @@ import 'verification_view.dart' show wajibVerifikasi;
 // ─────────────────────────────────────────────────────────────
 Future<Uint8List> buatPdfSurat(LetterModel l) async {
   final doc = pw.Document();
-  final String ttl =
-      '${l.tempatLahir.isNotEmpty ? '${l.tempatLahir}, ' : ''}${l.tanggalLahir != null ? AppUtils.formatTanggal(l.tanggalLahir!) : '-'}';
-  final String jk = l.jenisKelamin == 'laki-laki'
-      ? 'Laki-laki'
-      : (l.jenisKelamin == 'perempuan' ? 'Perempuan' : '-');
-  String isi(String v) => v.trim().isEmpty ? '-' : v.trim();
-
-  pw.Widget baris(String no, String k, String v) => pw.Padding(
-        padding: const pw.EdgeInsets.symmetric(vertical: 2),
-        child: pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.SizedBox(width: 18, child: pw.Text(no)),
-            pw.SizedBox(width: 118, child: pw.Text(k)),
-            pw.Text(': '),
-            pw.Expanded(child: pw.Text(v)),
-          ],
-        ),
-      );
+  final pw.Font biasa = pw.Font.times();
+  final pw.Font tebalF = pw.Font.timesBold();
+  pw.MemoryImage? logo;
+  try {
+    final bd = await rootBundle.load('assets/logo_desa.png');
+    logo = pw.MemoryImage(bd.buffer.asUint8List());
+  } catch (_) {}
 
   final pw.TextStyle tebal = pw.TextStyle(fontWeight: pw.FontWeight.bold);
   const pw.TextStyle kecil = pw.TextStyle(fontSize: 8);
+  const String titik = '.................................';
 
   doc.addPage(
     pw.MultiPage(
       pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.fromLTRB(54, 40, 54, 44),
-      theme: pw.ThemeData.withFont(),
+      margin: const pw.EdgeInsets.fromLTRB(56, 40, 56, 44),
+      theme: pw.ThemeData.withFont(base: biasa, bold: tebalF),
       footer: (ctx) => pw.Container(
-        alignment: pw.Alignment.centerLeft,
         padding: const pw.EdgeInsets.only(top: 6),
         decoration: const pw.BoxDecoration(
             border: pw.Border(top: pw.BorderSide(width: 0.5))),
@@ -68,8 +57,9 @@ Future<Uint8List> buatPdfSurat(LetterModel l) async {
           children: [
             pw.Expanded(
               child: pw.Text(
-                  'Kode surat: ${l.kode}  |  Dibuat lewat aplikasi Halodesa Talagasari. '
-                  'Keaslian dapat dicek petugas desa dengan memasukkan kode surat.',
+                  l.kode.isEmpty
+                      ? 'Dibuat lewat aplikasi Halodesa Talagasari.'
+                      : 'Kode surat: ${l.kode}  |  Dibuat lewat aplikasi Halodesa Talagasari. Keaslian dapat dicek petugas desa dengan kode surat.',
                   style: kecil),
             ),
             pw.Text('Hal. ${ctx.pageNumber}/${ctx.pagesCount}', style: kecil),
@@ -77,98 +67,107 @@ Future<Uint8List> buatPdfSurat(LetterModel l) async {
         ),
       ),
       build: (_) => [
-        pw.Center(
-          child: pw.Column(children: [
-            pw.Text(AppContact.kopPemerintah.toUpperCase(),
-                style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
-            pw.Text(AppContact.kopKecamatan.toUpperCase(),
-                style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
-            pw.Text(AppContact.kopDesa.toUpperCase(),
-                style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-            pw.Text(AppContact.kopAlamat, style: const pw.TextStyle(fontSize: 9)),
-          ]),
+        pw.Row(
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            pw.SizedBox(
+              width: 64,
+              height: 76,
+              child: logo == null ? pw.SizedBox() : pw.Image(logo, fit: pw.BoxFit.contain),
+            ),
+            pw.Expanded(
+              child: pw.Column(children: [
+                pw.Text(AppContact.kopPemerintah.toUpperCase(),
+                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                pw.Text(AppContact.kopKecamatan.toUpperCase(),
+                    style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                pw.Text(AppContact.kopDesa.toUpperCase(),
+                    style: pw.TextStyle(fontSize: 17, fontWeight: pw.FontWeight.bold)),
+                pw.Text(AppContact.kopAlamat, style: const pw.TextStyle(fontSize: 10)),
+              ]),
+            ),
+            pw.SizedBox(width: 64),
+          ],
         ),
         pw.SizedBox(height: 6),
-        pw.Divider(thickness: 2.2, height: 3),
-        pw.Divider(thickness: 0.6, height: 3),
+        pw.Divider(thickness: 2.5, height: 4),
         pw.SizedBox(height: 14),
         pw.Center(
           child: pw.Text(LetterModel.labelJenis(l.jenis).toUpperCase(),
               style: pw.TextStyle(
-                  fontSize: 14,
-                  fontWeight: pw.FontWeight.bold,
-                  decoration: pw.TextDecoration.underline)),
+                  fontSize: 13, decoration: pw.TextDecoration.underline)),
         ),
-        pw.Center(child: pw.Text('Nomor: ${l.nomor}')),
+        pw.Center(
+            child: pw.Text('Nomor: ${l.nomor.isEmpty ? '.....................................' : l.nomor}',
+                style: const pw.TextStyle(fontSize: 12))),
         pw.SizedBox(height: 16),
         pw.Text(
             'Yang bertanda tangan di bawah ini, Kepala Desa Talagasari, Kecamatan Cikupa, '
             'Kabupaten Tangerang, menerangkan dengan sebenarnya bahwa:',
-            textAlign: pw.TextAlign.justify),
-        pw.SizedBox(height: 8),
-        baris('1.', 'Nama Lengkap', l.nama),
-        baris('2.', 'NIK', isi(l.nik)),
-        baris('3.', 'Tempat/Tgl Lahir', ttl),
-        baris('4.', 'Jenis Kelamin', jk),
-        baris('5.', 'Kewarganegaraan', 'Indonesia (WNI)'),
-        baris('6.', 'Agama', isi(l.t('agama'))),
-        baris('7.', 'Status Perkawinan', isi(l.t('status_kawin'))),
-        baris('8.', 'Pekerjaan', isi(l.t('pekerjaan'))),
-        baris('9.', 'Alamat', isi(l.alamat)),
+            style: const pw.TextStyle(fontSize: 12)),
         pw.SizedBox(height: 10),
-        pw.Text(LetterModel.isiSurat(l.jenis, l.tambahan),
-            textAlign: pw.TextAlign.justify),
+        for (int i = 0; i < l.butirData.length; i++)
+          pw.Padding(
+            padding: const pw.EdgeInsets.fromLTRB(26, 2, 0, 2),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.SizedBox(width: 18, child: pw.Text('${i + 1}.')),
+                pw.SizedBox(width: 128, child: pw.Text(l.butirData[i][0])),
+                pw.Text(': '),
+                pw.Expanded(child: pw.Text(l.butirData[i][1])),
+              ],
+            ),
+          ),
         pw.SizedBox(height: 8),
-        pw.Text('Surat keterangan ini dibuat untuk keperluan:'),
-        pw.SizedBox(height: 2),
-        pw.Text(l.keperluan, style: tebal, textAlign: pw.TextAlign.justify),
-        pw.SizedBox(height: 10),
-        pw.Text(
-            'Demikian surat keterangan ini dibuat dengan sebenarnya untuk dipergunakan '
-            'sebagaimana mestinya. Pemohon menyatakan bahwa data dalam surat ini benar '
-            'dan bersedia mempertanggungjawabkannya sesuai ketentuan yang berlaku.',
-            textAlign: pw.TextAlign.justify),
+        pw.Padding(
+          padding: const pw.EdgeInsets.fromLTRB(26, 2, 0, 2),
+          child: pw.Row(children: [
+            pw.SizedBox(width: 146, child: pw.Text('10. Keterangan Lain')),
+            pw.Text(':'),
+          ]),
+        ),
+        for (final k in l.keteranganLain)
+          pw.Padding(
+            padding: const pw.EdgeInsets.fromLTRB(44, 3, 0, 3),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.SizedBox(width: 14, child: pw.Text('•')),
+                pw.Expanded(child: pw.Text(k, textAlign: pw.TextAlign.justify)),
+              ],
+            ),
+          ),
+        pw.SizedBox(height: 12),
+        pw.Padding(
+          padding: const pw.EdgeInsets.only(left: 12),
+          child: pw.Text(
+              'Demikian surat keterangan ini dibuat dengan sebenar-benarnya untuk dapat '
+              'digunakan sebagaimana mestinya.'),
+        ),
+        pw.SizedBox(height: 22),
+        pw.Align(
+          alignment: pw.Alignment.centerRight,
+          child: pw.Text('Talagasari, .............................. 20....'),
+        ),
         pw.SizedBox(height: 6),
-        pw.Text(
-            'Surat ini berlaku ${LetterModel.masaBulan(l.jenis)} bulan sejak tanggal ditandatangani.',
-            style: const pw.TextStyle(fontSize: 10)),
-        pw.SizedBox(height: 20),
         pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
-            pw.Expanded(
-              flex: 5,
-              child: pw.Column(children: [
-                pw.Text(''),
-                pw.Text('Pemohon,'),
-                pw.SizedBox(height: 62),
-                pw.Text('( ${l.nama} )', style: tebal, textAlign: pw.TextAlign.center),
-                pw.Text('Tanda tangan pemohon', style: kecil),
-              ]),
-            ),
-            pw.Expanded(
-              flex: 3,
-              child: pw.Center(
-                child: pw.Container(
-                  width: 57,
-                  height: 76,
-                  alignment: pw.Alignment.center,
-                  decoration: pw.BoxDecoration(border: pw.Border.all(width: 0.6)),
-                  child: pw.Text('Pas foto\n3 x 4',
-                      textAlign: pw.TextAlign.center, style: kecil),
-                ),
-              ),
-            ),
-            pw.Expanded(
-              flex: 5,
-              child: pw.Column(children: [
-                pw.Text('Talagasari, ............................'),
-                pw.Text('Kepala Desa Talagasari,'),
-                pw.SizedBox(height: 62), // ruang tanda tangan basah + stempel
-                pw.Text('( ${l.penandatangan} )', style: tebal),
-                pw.Text('Tanda tangan dan stempel', style: kecil),
-              ]),
-            ),
+            pw.SizedBox(
+                width: 190,
+                child: pw.Column(children: [
+                  pw.Text('Pemohon'),
+                  pw.SizedBox(height: 66),
+                  pw.Text('($titik)'),
+                ])),
+            pw.SizedBox(
+                width: 190,
+                child: pw.Column(children: [
+                  pw.Text('Kepala Desa'),
+                  pw.SizedBox(height: 66),
+                  pw.Text('($titik)'),
+                ])),
           ],
         ),
       ],
@@ -784,17 +783,24 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
               ),
 
             _judul('5', 'Begini bunyi surat Anda nanti', primary),
-            kartu(
-              child: Text(
-                'Yang bertanda tangan di bawah ini, Kepala Desa Talagasari, menerangkan bahwa '
-                '${u?.nama ?? '(nama Anda)'} (${_agama.isEmpty ? 'agama' : _agama}, '
-                '${_kawin.isEmpty ? 'status kawin' : _kawin}, '
-                '${_c('pekerjaan').text.trim().isEmpty ? 'pekerjaan' : _c('pekerjaan').text.trim()}).\n\n'
-                '${LetterModel.isiSurat(_jenis, _tambahan())}\n\n'
-                'Dibuat untuk keperluan: ${keperluan.isEmpty ? '(belum diisi)' : keperluan}',
-                style: const TextStyle(fontSize: 13, height: 1.5),
-              ),
-            ),
+            const Text('Nama, tanggal, dan tanda tangan ditulis tangan saat surat dicetak.',
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            const SizedBox(height: 8),
+            _kertas(LetterModel(
+              id: '',
+              uid: '',
+              nama: ktp.nama.isNotEmpty ? ktp.nama : (u?.nama ?? ''),
+              nik: ktp.nik,
+              jenis: _jenis,
+              keperluan: keperluan,
+              alamat: u?.alamatLengkap ?? '',
+              jenisKelamin: ktp.jenisKelamin,
+              tanggalLahir: ktp.tanggalLahir,
+              tempatLahir: ktp.tempatLahir,
+              status: 'menunggu_review',
+              createdAt: DateTime.now(),
+              tambahan: _tambahan(),
+            )),
             const Text('Surat ini baru sah setelah ditandatangani Kepala Desa di kantor desa.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
 
@@ -809,6 +815,115 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
                         : Text('cmp_send'.tr),
                   ),
                 )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Pratinjau berbentuk kertas — sama dengan hasil cetak PDF.
+  Widget _kertas(LetterModel l) {
+    const TextStyle st = TextStyle(
+        fontFamily: 'Times New Roman',
+        fontFamilyFallback: ['serif'],
+        color: Colors.black,
+        fontSize: 10.5,
+        height: 1.35);
+    TextStyle tb(double z) => st.copyWith(fontSize: z, fontWeight: FontWeight.bold);
+    final butir = l.butirData;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade400),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6)],
+      ),
+      child: DefaultTextStyle(
+        style: st,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Image.asset('assets/logo_desa.png',
+                  width: 38, height: 46, errorBuilder: (_, __, ___) => const SizedBox(width: 38)),
+              Expanded(
+                child: Column(children: [
+                  Text(AppContact.kopPemerintah.toUpperCase(), style: tb(11.5), textAlign: TextAlign.center),
+                  Text(AppContact.kopKecamatan.toUpperCase(), style: tb(11.5), textAlign: TextAlign.center),
+                  Text(AppContact.kopDesa.toUpperCase(), style: tb(13.5), textAlign: TextAlign.center),
+                  Text(AppContact.kopAlamat, style: st.copyWith(fontSize: 8.5), textAlign: TextAlign.center),
+                ]),
+              ),
+              const SizedBox(width: 38),
+            ]),
+            const SizedBox(height: 4),
+            Container(height: 2.2, color: Colors.black),
+            const SizedBox(height: 10),
+            Center(
+                child: Text(LetterModel.labelJenis(l.jenis).toUpperCase(),
+                    style: st.copyWith(
+                        fontSize: 11.5, decoration: TextDecoration.underline))),
+            const Center(child: Text('Nomor: .....................................')),
+            const SizedBox(height: 10),
+            const Text(
+                'Yang bertanda tangan di bawah ini, Kepala Desa Talagasari, Kecamatan Cikupa, Kabupaten Tangerang, menerangkan dengan sebenarnya bahwa:'),
+            const SizedBox(height: 8),
+            for (int i = 0; i < butir.length; i++)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 1.5, 0, 1.5),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(width: 16, child: Text('${i + 1}.')),
+                    SizedBox(width: 92, child: Text(butir[i][0])),
+                    const Text(': '),
+                    Expanded(child: Text(butir[i][1])),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 6),
+            const Padding(
+              padding: EdgeInsets.only(left: 14),
+              child: Text('10. Keterangan Lain :'),
+            ),
+            for (final k in l.keteranganLain)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(26, 2, 0, 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(width: 10, child: Text('•')),
+                    Expanded(child: Text(k)),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: Text(
+                  'Demikian surat keterangan ini dibuat dengan sebenar-benarnya untuk dapat digunakan sebagaimana mestinya.'),
+            ),
+            const SizedBox(height: 12),
+            const Align(
+                alignment: Alignment.centerRight,
+                child: Text('Talagasari, ................... 20....')),
+            const SizedBox(height: 4),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(children: [
+                  Text('Pemohon'),
+                  SizedBox(height: 34),
+                  Text('(...........................)'),
+                ]),
+                Column(children: [
+                  Text('Kepala Desa'),
+                  SizedBox(height: 34),
+                  Text('(...........................)'),
+                ]),
+              ],
+            ),
           ],
         ),
       ),

@@ -5,6 +5,7 @@
 // ============================================================
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'core.dart' show AppUtils;
 import 'package:flutter/material.dart' show Color, IconData, Icons;
 
 DateTime? _ts(dynamic v) => (v as Timestamp?)?.toDate();
@@ -300,7 +301,7 @@ class LetterModel {
     String v(String k) => (t[k] ?? '').trim();
     switch (jenis) {
       case 'tidak_mampu':
-        return 'Orang tersebut di atas adalah benar warga Desa Talagasari, '
+        return 'Nama tersebut adalah benar warga Desa Talagasari, '
             'Kecamatan Cikupa, Kabupaten Tangerang. Berdasarkan keterangan yang '
             'bersangkutan dan data yang ada pada kami, yang bersangkutan tergolong '
             'keluarga kurang mampu secara ekonomi, dengan penghasilan kurang lebih '
@@ -310,23 +311,52 @@ class LetterModel {
         final lama = v('lama_usaha').isEmpty
             ? ''
             : ' Usaha tersebut telah berjalan kurang lebih ${v('lama_usaha')}.';
-        return 'Orang tersebut di atas adalah benar warga Desa Talagasari, '
+        return 'Nama tersebut adalah benar warga Desa Talagasari, '
             'Kecamatan Cikupa, Kabupaten Tangerang, yang memiliki dan menjalankan '
             'usaha ${v('jenis_usaha')} dengan nama "${v('nama_usaha')}"'
             '${v('alamat_usaha').isEmpty ? '' : ', beralamat di ${v('alamat_usaha')}'}.$lama';
       case 'pengantar':
-        return 'Orang tersebut di atas adalah benar warga Desa Talagasari, '
+        return 'Nama tersebut adalah benar warga Desa Talagasari, '
             'Kecamatan Cikupa, Kabupaten Tangerang. Surat ini diberikan sebagai '
             'pengantar kepada ${v('instansi')}.';
       default:
         final sejak = v('tinggal_sejak').isEmpty
             ? ''
             : ', dan bertempat tinggal di alamat tersebut sejak tahun ${v('tinggal_sejak')}';
-        return 'Orang tersebut di atas adalah benar warga yang berdomisili di '
+        return 'Nama tersebut adalah benar warga yang berdomisili di '
             'Desa Talagasari, Kecamatan Cikupa, Kabupaten Tangerang, sesuai alamat '
             'tersebut di atas$sejak.';
     }
   }
+
+  /// Butir data di badan surat (nomor, label, isi) — dipakai PDF dan pratinjau.
+  List<List<String>> get butirData {
+    String isi(String v) => v.trim().isEmpty ? '-' : v.trim();
+    final String ttl =
+        '${tempatLahir.isNotEmpty ? '$tempatLahir, ' : ''}${tanggalLahir != null ? AppUtils.formatTanggal(tanggalLahir!) : '-'}';
+    final String jk = jenisKelamin == 'laki-laki'
+        ? 'Laki-laki'
+        : (jenisKelamin == 'perempuan' ? 'Perempuan' : '-');
+    return [
+      ['Nama Lengkap', isi(nama)],
+      ['No KTP/NIK', isi(nik)],
+      ['Jenis Kelamin', jk],
+      ['Tempat Tanggal Lahir', ttl],
+      ['Agama', isi(t('agama'))],
+      ['Pekerjaan', isi(t('pekerjaan'))],
+      ['Status Perkawinan', isi(t('status_kawin'))],
+      ['Kewarganegaraan', 'Indonesia (WNI)'],
+      ['Alamat', isi(alamat)],
+    ];
+  }
+
+  /// Butir "Keterangan Lain" (bertitik/bullet).
+  List<String> get keteranganLain => [
+        isiSurat(jenis, tambahan),
+        'Surat keterangan ini dibuat untuk keperluan: ${keperluan.isEmpty ? '........................' : keperluan}.',
+        'Pemohon menyatakan bahwa data di atas benar dan bersedia mempertanggungjawabkannya sesuai ketentuan yang berlaku.',
+        'Surat ini berlaku ${masaBulan(jenis)} bulan sejak tanggal ditandatangani.',
+      ];
 
   /// Disetujui Kades, menunggu tanda tangan basah di kantor desa
   bool get menungguTtd => status == 'terbit';
