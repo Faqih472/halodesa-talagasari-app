@@ -89,10 +89,12 @@ Widget _kartuPengaduan(ComplaintModel c, VoidCallback onTap,
     {String? subtitle}) {
   return Card(
     margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppTheme.kremTua)),
     child: InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(20),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -232,22 +234,13 @@ class PengaduanWargaTabState extends State<PengaduanWargaTab> {
                 child: Center(child: CircularProgressIndicator(color: primary)),
               )
             else if (list.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(40),
-                child: Column(
-                  children: [
-                    Icon(Icons.report_gmailerrorred_outlined,
-                        size: 72, color: primary.withOpacity(0.3)),
-                    const SizedBox(height: 16),
-                    Text('cmp_empty_title'.tr,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text('cmp_empty_sub'.tr,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 13, color: AppTheme.textSecondary)),
-                  ],
+              SizedBox(
+                height: 340,
+                child: EmptyState(
+                  icon: Icons.campaign_outlined,
+                  title: 'cmp_empty_title'.tr,
+                  subtitle: 'cmp_empty_sub'.tr,
+                  color: primary,
                 ),
               )
             else
@@ -264,17 +257,26 @@ class PengaduanWargaTabState extends State<PengaduanWargaTab> {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: warna.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(10),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [warna.withOpacity(0.16), warna.withOpacity(0.06)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: warna.withOpacity(0.2)),
         ),
         child: Column(
           children: [
-            Text('$n',
+            AngkaHitung(n,
+                gaya: TextStyle(
+                    fontFamily: AppTheme.fontJudul,
+                    fontSize: 26,
+                    color: warna)),
+            Text(label,
                 style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold, color: warna)),
-            Text(label, style: TextStyle(fontSize: 11, color: warna)),
+                    fontSize: 11, color: warna, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
