@@ -272,3 +272,15 @@ Aturan wajib dipasang ulang setiap kali `firestore.rules` berubah.
 ---
 
 Dikembangkan untuk Desa Talagasari, Kecamatan Cikupa, Kabupaten Tangerang, Banten.
+
+## Desain Visual: "Sawah & Telaga"
+
+Identitas visual khas Desa Talagasari, digambar dengan kode (`lib/core/motif.dart`), tanpa file gambar:
+
+- **Kawung**: pola batik halus pada header.
+- **Matahari, bukit, dan padi**: pemandangan sawah pada header Beranda dan Login.
+- **Gelombang telaga**: tepi bawah header (arti "talaga").
+- **Pita batik**: hiasan di atas bilah navigasi bawah.
+- **Palet**: hijau padi (warga), biru telaga (admin), ungu wulung (kades), aksen emas padi dan terakota, latar krem hangat.
+- **Font**: Poppins (isi) dan DM Serif Display (judul), keduanya berlisensi OFL, ada di `assets/fonts/`.
+- **Salam Sunda** sesuai waktu: Wilujeng enjing, siang, sonten, wengi.
