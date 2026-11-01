@@ -3,6 +3,7 @@
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
@@ -137,15 +138,22 @@ class _AnimatedBottomNav extends StatelessWidget {
       return Container(
         decoration: BoxDecoration(
           color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 14,
-              offset: const Offset(0, -3),
+              color: const Color(0xFF8A7A4A).withOpacity(0.18),
+              blurRadius: 18,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
-        child: SafeArea(
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const PitaBatik(tinggi: 6),
+              SafeArea(
           top: false,
           child: SizedBox(
             height: 62,
@@ -179,7 +187,7 @@ class _AnimatedBottomNav extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: isActive
-                                    ? primaryColor.withOpacity(0.12)
+                                    ? primaryColor.withOpacity(0.13)
                                     : Colors.transparent,
                                 borderRadius: BorderRadius.circular(20),
                               ),
@@ -245,6 +253,9 @@ class _AnimatedBottomNav extends StatelessWidget {
             ),
           ),
         ),
+            ],
+          ),
+        ),
       );
     });
   }
@@ -293,11 +304,22 @@ class TabHomeView extends StatelessWidget {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: primaryColor,
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.location_city, color: Colors.white, size: 22),
-              SizedBox(width: 8),
-              Text('Talagasari Hub'),
+              LogoTalagasari(ukuran: 34, warna: primaryColor),
+              const SizedBox(width: 10),
+              const Text('Talagasari'),
+              const SizedBox(width: 5),
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('HUB',
+                    style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 10.5,
+                        letterSpacing: 2,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.emas)),
+              ),
             ],
           ),
           actions: [
@@ -403,42 +425,63 @@ class TabHomeView extends StatelessWidget {
 
   Widget _buildWelcomeBanner(
       String nama, String role, Color primaryColor) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [primaryColor, primaryColor.withOpacity(0.75)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+    final String tanggal =
+        DateFormat('EEEE, d MMMM y', 'id').format(DateTime.now());
+    return MotifHeader(
+      role: role,
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 54),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Halo, $nama! 👋',
+            salamSunda(),
+            style: TextStyle(
+              fontSize: 13,
+              letterSpacing: 0.4,
+              color: AppTheme.emas.withOpacity(0.95),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            nama.isEmpty ? 'Warga Talagasari' : nama,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white),
+              fontFamily: AppTheme.fontJudul,
+              fontSize: 30,
+              height: 1.15,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 4),
-          const Text('Informasi terkini Desa Talagasari',
-              style: TextStyle(fontSize: 13, color: Colors.white70)),
-          const SizedBox(height: 10),
+          Text(tanggal,
+              style: const TextStyle(fontSize: 12, color: Colors.white70)),
+          const SizedBox(height: 14),
           Container(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.16),
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.25)),
             ),
-            child: Text(
-                role == 'warga'
-                    ? '💡 Tap tombol + untuk mengajukan informasi'
-                    : '💡 Tap + untuk buat info. Tap ⋮ pada kartu untuk ubah/hapus.',
-                style: const TextStyle(fontSize: 11, color: Colors.white)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.eco_outlined, size: 14, color: Colors.white),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                      role == 'warga'
+                          ? 'Kabar terkini Desa Talagasari • tekan + untuk mengajukan info'
+                          : 'Kabar terkini Desa Talagasari • tekan + untuk membuat info',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.white)),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -558,114 +601,137 @@ class TabHomeView extends StatelessWidget {
     final kategoriColor = _kategoriColor(news.kategori);
     final kategoriIcon = _kategoriIcon(news.kategori);
     final bool staf = Get.find<AuthController>().isStaff;
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-      elevation: 2,
-      shape:
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showDetailBerita(context, news, primaryColor),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: kategoriColor.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
+      decoration: kartuTalagasari(),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // garis warna kategori di tepi atas
+            Container(height: 4, color: kategoriColor),
+            InkWell(
+              onTap: () => _showDetailBerita(context, news, primaryColor),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Icon(kategoriIcon,
-                            size: 12, color: kategoriColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          NewsModel.labelKategori(news.kategori),
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: kategoriColor,
-                              fontWeight: FontWeight.w600),
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: kategoriColor.withOpacity(0.14),
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                          child: Icon(kategoriIcon,
+                              size: 20, color: kategoriColor),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                NewsModel.labelKategori(news.kategori),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: kategoriColor,
+                                    fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                news.publishedAt != null
+                                    ? AppUtils.formatRelatif(news.publishedAt!)
+                                    : AppUtils.formatRelatif(news.createdAt),
+                                style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (staf)
+                          SizedBox(
+                              width: 32, height: 28, child: _menuStaff(news)),
+                      ],
+                    ),
+                    if (news.fotoUrl.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      fotoFull(news.fotoUrl, radius: 14),
+                    ],
+                    const SizedBox(height: 12),
+                    Text(news.judul,
+                        style: const TextStyle(
+                            fontFamily: AppTheme.fontJudul,
+                            fontSize: 18,
+                            height: 1.25,
+                            fontWeight: FontWeight.w400,
+                            color: AppTheme.textPrimary),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 6),
+                    Text(news.isi,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                            height: 1.5),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: news.sisaHari <= 2
+                                ? Colors.red.shade50
+                                : AppTheme.kremTua.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.schedule,
+                                  size: 12,
+                                  color: news.sisaHari <= 2
+                                      ? Colors.red.shade700
+                                      : AppTheme.textSecondary),
+                              const SizedBox(width: 4),
+                              Text(_labelBerlaku(news),
+                                  style: TextStyle(
+                                      fontSize: 10.5,
+                                      color: news.sisaHari <= 2
+                                          ? Colors.red.shade700
+                                          : AppTheme.textSecondary)),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Baca selengkapnya',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: primaryColor,
+                                    fontWeight: FontWeight.w600)),
+                            Icon(Icons.arrow_forward_rounded,
+                                size: 15, color: primaryColor),
+                          ],
                         ),
                       ],
                     ),
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        news.publishedAt != null
-                            ? AppUtils.formatRelatif(news.publishedAt!)
-                            : AppUtils.formatRelatif(news.createdAt),
-                        style: const TextStyle(
-                            fontSize: 11, color: AppTheme.textSecondary),
-                      ),
-                      if (staf)
-                        SizedBox(width: 32, height: 24, child: _menuStaff(news)),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
-              if (news.fotoUrl.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                fotoFull(news.fotoUrl),
-              ],
-              const SizedBox(height: 10),
-              Text(news.judul,
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 6),
-              Text(news.isi,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textSecondary,
-                      height: 1.4),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.schedule,
-                          size: 13, color: AppTheme.textSecondary),
-                      const SizedBox(width: 4),
-                      Text(_labelBerlaku(news),
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: news.sisaHari <= 2
-                                  ? Colors.red.shade700
-                                  : AppTheme.textSecondary)),
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Lihat selengkapnya',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: primaryColor,
-                              fontWeight: FontWeight.w600)),
-                      Icon(Icons.chevron_right,
-                          size: 16, color: primaryColor),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
