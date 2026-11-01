@@ -258,92 +258,62 @@ class _AuthViewState extends State<AuthView>
   // WIDGET: Header dengan lingkaran dekoratif + logo animasi
   // ─────────────────────────────────────────────────────────
   Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTheme.warnaWarga, AppTheme.warnaWargaDark],
+    return MotifHeader(
+      role: 'warga',
+      padding: const EdgeInsets.fromLTRB(24, 34, 24, 56),
+      child: SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.6, end: 1.0),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.elasticOut,
+              builder: (context, scale, child) =>
+                  Transform.scale(scale: scale, child: child),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.22),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const LogoTalagasari(ukuran: 86),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              salamSunda(),
+              style: TextStyle(
+                fontSize: 13,
+                letterSpacing: 0.5,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.emas.withOpacity(0.95),
+              ),
+            ),
+            const SizedBox(height: 2),
+            const Text(
+              'Talagasari Hub',
+              style: TextStyle(
+                fontFamily: AppTheme.fontJudul,
+                fontSize: 30,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Satu aplikasi untuk seluruh urusan desa',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12.5, color: Colors.white70),
+            ),
+          ],
         ),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          Positioned(
-            top: -30,
-            right: -30,
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -40,
-            left: -20,
-            child: Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
-              ),
-            ),
-          ),
-          SizedBox(
-            width: double.infinity,
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.6, end: 1.0),
-                duration: const Duration(milliseconds: 650),
-                curve: Curves.elasticOut,
-                builder: (context, scale, child) =>
-                    Transform.scale(scale: scale, child: child),
-                child: Container(
-                  width: 76,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.location_city,
-                      size: 40, color: AppTheme.warnaWarga),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Talagasari Hub',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Platform Komunitas Terpadu Desa Talagasari',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12.5, color: Colors.white70),
-              ),
-            ],
-          ),
-          ),
-        ],
       ),
     );
   }
