@@ -6,12 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/village_controller.dart' show FotoProfilController;
 import '../controllers/complaint_controller.dart';
 import '../controllers/data_controller.dart';
 import '../core/core.dart';
 import '../core/models.dart';
 import '../core/ui_helpers.dart';
-import 'admin_tools_view.dart' show LaporanJasaTab;
+import 'admin_tools_view.dart' show LaporanJasaTab, FotoStaffTab;
 import 'complaint_view.dart';
 import 'info_form_view.dart';
 import 'jasa_view.dart' show AdminJasaTab;
@@ -88,6 +89,7 @@ class _TabManageViewState extends State<TabManageView> {
               tabBadge('tab_complaint'.tr, cmpCtrl.antrian.length),
               tabBadge('KTP', cmpCtrl.ktpMenunggu.length),
               const Tab(text: 'Laporan Jasa'),
+              tabBadge('Foto', Get.find<FotoProfilController>().antrian.length),
             ]
           : [
               const Tab(text: 'Informasi'),
@@ -100,6 +102,7 @@ class _TabManageViewState extends State<TabManageView> {
               const PengaduanStaffTab(),
               const KtpStaffTab(),
               const LaporanJasaTab(),
+              const FotoStaffTab(),
             ]
           : [
               infoList,

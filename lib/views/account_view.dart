@@ -24,6 +24,8 @@ import '../controllers/complaint_controller.dart';
 import '../controllers/data_controller.dart';
 import '../core/app_contact.dart';
 import '../core/core.dart';
+import '../controllers/village_controller.dart' show FotoProfilController;
+import '../core/ui_helpers.dart';
 import 'chat_view.dart' show ChatAction;
 import '../core/models.dart';
 import 'jasa_view.dart';
@@ -64,30 +66,55 @@ Widget _sheetContainer(BuildContext ctx, {required Widget child}) {
   );
 }
 
+Widget _kotakIkon(IconData icon, Color warna) {
+  return Container(
+    width: 42,
+    height: 42,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [warna.withOpacity(0.18), warna.withOpacity(0.07)],
+      ),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: warna.withOpacity(0.2)),
+    ),
+    child: Icon(icon, color: warna, size: 21),
+  );
+}
+
 Widget _actionTile(IconData icon, String title, String subtitle, Color primary,
     {required VoidCallback onTap, Widget? trailing}) {
   return Container(
-    color: Colors.white,
-    child: ListTile(
-      onTap: onTap,
-      leading: CircleAvatar(
-        radius: 19,
-        backgroundColor: primary.withOpacity(0.1),
-        child: Icon(icon, color: primary, size: 20),
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    decoration: kartuTalagasari(radius: 18),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          onTap: onTap,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          leading: _kotakIkon(icon, primary),
+          title: Text(title,
+              style: const TextStyle(
+                  fontSize: 14.5, fontWeight: FontWeight.w600)),
+          subtitle: Text(subtitle,
+              style: const TextStyle(
+                  fontSize: 12, color: AppTheme.textSecondary)),
+          trailing: trailing ??
+              const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+        ),
       ),
-      title: Text(title,
-          style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-      trailing: trailing ??
-          const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
     ),
   );
 }
 
 Widget _infoTile(IconData icon, String label, String value, Color primary) {
   return Container(
-    color: Colors.white,
+    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+    decoration: kartuTalagasari(radius: 16),
     child: ListTile(
       dense: true,
       leading: Icon(icon, color: primary, size: 22),
@@ -285,17 +312,34 @@ class TabSettingsView extends StatelessWidget {
   Widget _header(
       String nama, String email, String fotoUrl, String role, Color primary,
       {bool verified = false}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-      decoration: BoxDecoration(gradient: AppTheme.gradient(role)),
+    return MotifHeader(
+      role: role,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 54),
       child: Column(
         children: [
           BouncyTap(
             onTap: () => Get.to(() => const ProfilSayaView()),
             child: Stack(
               children: [
-                _avatar(fotoUrl, nama, primary, 46),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: SweepGradient(colors: [
+                      AppTheme.emas,
+                      AppTheme.terakota,
+                      AppTheme.emas,
+                      AppTheme.terakota,
+                      AppTheme.emas,
+                    ]),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                        color: Colors.white, shape: BoxShape.circle),
+                    child: _avatar(fotoUrl, nama, primary, 44),
+                  ),
+                ),
                 Positioned(
                   bottom: 0,
                   right: 0,
@@ -317,22 +361,26 @@ class TabSettingsView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(nama,
+              textAlign: TextAlign.center,
               style: const TextStyle(
-                  fontSize: 19, fontWeight: FontWeight.bold, color: Colors.white)),
+                  fontFamily: AppTheme.fontJudul,
+                  fontSize: 24,
+                  color: Colors.white)),
           const SizedBox(height: 2),
           Text(email,
               style: const TextStyle(fontSize: 12.5, color: Colors.white70)),
           const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withOpacity(0.18),
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.emas.withOpacity(0.7)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(AppTheme.iconRole(role), size: 14, color: Colors.white),
+                Icon(AppTheme.iconRole(role), size: 14, color: AppTheme.emas),
                 const SizedBox(width: 5),
                 Text(AppTheme.labelRole(role),
                     style: const TextStyle(
@@ -354,16 +402,13 @@ class TabSettingsView extends StatelessWidget {
 
   Widget _switchTile(AuthController authCtrl, Color primary) {
     return Obx(() => Container(
-          color: Colors.white,
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: kartuTalagasari(radius: 18),
           child: SwitchListTile(
             value: authCtrl.rememberMeEnabled.value,
             onChanged: (v) => authCtrl.toggleRememberMe(v),
             activeColor: primary,
-            secondary: CircleAvatar(
-              radius: 19,
-              backgroundColor: primary.withOpacity(0.1),
-              child: Icon(Icons.bolt, color: primary, size: 20),
-            ),
+            secondary: _kotakIkon(Icons.bolt, primary),
             title: Text('acc_quick_login'.tr,
                 style: const TextStyle(
                     fontSize: 14.5, fontWeight: FontWeight.w600)),
@@ -433,6 +478,7 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
   @override
   void initState() {
     super.initState();
+    Get.find<FotoProfilController>().fetchSaya();
     final u = _authCtrl.currentUser.value;
     _namaCtrl = TextEditingController(text: u?.nama ?? '');
     _panggilan = u?.panggilan ?? '';
@@ -455,24 +501,50 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
   }
 
   Future<void> _gantiFoto() async {
+    final ImageSource? sumber = await Get.bottomSheet<ImageSource>(
+      SafeArea(
+        child: Container(
+          color: Colors.white,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Pilih dari galeri'),
+                onTap: () => Get.back(result: ImageSource.gallery),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Ambil dengan kamera'),
+                onTap: () => Get.back(result: ImageSource.camera),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (sumber == null) return;
     final picked = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, imageQuality: 60, maxWidth: 320);
+        .pickImage(source: sumber, imageQuality: 85, maxWidth: 1200);
     if (picked == null) return;
-    final u = _authCtrl.currentUser.value;
-    if (u == null) return;
-
+    // Atur sendiri bagian foto yang masuk lingkaran (geser + zoom)
+    final File? dipotong = await potongFotoBulat(File(picked.path));
+    if (dipotong == null) return;
+    final fc = Get.find<FotoProfilController>();
     Get.snackbar('profile_uploading_title'.tr, 'profile_uploading'.tr,
         snackPosition: SnackPosition.BOTTOM,
         margin: const EdgeInsets.all(16),
         borderRadius: 12,
         duration: const Duration(seconds: 2));
 
-    final ok = await _authCtrl.updateProfil(
-      nama: u.nama,
-      nomorTelepon: u.nomorTelepon,
-      fotoFile: File(picked.path),
-    );
-    _snack(ok, 'profile_photo_saved'.tr, _authCtrl.errorMessage.value);
+    final hasil = await fc.kirim(dipotong);
+    if (hasil == 'langsung') {
+      _snack(true, 'profile_photo_saved'.tr, '');
+    } else if (hasil == 'antri') {
+      _snack(true, 'Foto terkirim. Akan tampil setelah disetujui Admin.', '');
+    } else {
+      _snack(false, '', fc.errorMsg.value);
+    }
   }
 
   Future<void> _pilihTanggal() async {
@@ -555,6 +627,31 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
                       child: Text('profile_change_photo'.tr,
                           style: const TextStyle(color: Colors.white)),
                     ),
+                    Obx(() {
+                      final f = Get.find<FotoProfilController>().saya.value;
+                      if (f == null) return const SizedBox.shrink();
+                      final bool tolak = f.ditolak;
+                      return Container(
+                        margin: const EdgeInsets.only(top: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                            color: tolak
+                                ? Colors.red.shade50
+                                : Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(20)),
+                        child: Text(
+                            tolak
+                                ? 'Foto ditolak: ${f.alasan}'
+                                : 'Foto baru menunggu persetujuan Admin',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: tolak
+                                    ? Colors.red.shade800
+                                    : Colors.orange.shade900)),
+                      );
+                    }),
                   ],
                 ),
               ),

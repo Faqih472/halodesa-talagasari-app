@@ -616,3 +616,105 @@ class LaporanJasaView extends StatelessWidget {
     );
   }
 }
+
+
+// ─────────────────────────────────────────────────────────────
+// Antrian foto profil — Admin setujui / tolak
+// ─────────────────────────────────────────────────────────────
+class FotoStaffTab extends StatefulWidget {
+  const FotoStaffTab({super.key});
+
+  @override
+  State<FotoStaffTab> createState() => _FotoStaffTabState();
+}
+
+class _FotoStaffTabState extends State<FotoStaffTab> {
+  final FotoProfilController _c = Get.find<FotoProfilController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _c.fetchAntrian();
+  }
+
+  Future<void> _tolak(FotoAntri f) async {
+    final a = await pilihAlasanTolak('foto', judul: 'Tolak foto profil');
+    if (a == null) return;
+    final ok = await _c.putuskan(f, setuju: false, alasan: a);
+    showSnack(ok, 'Foto ditolak.', _c.errorMsg.value);
+  }
+
+  Future<void> _setuju(FotoAntri f) async {
+    final ok = await _c.putuskan(f, setuju: true);
+    showSnack(ok, 'Foto disetujui.', _c.errorMsg.value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _c.fetchAntrian,
+      child: Obx(() {
+        final list = _c.antrian;
+        if (_c.isLoading.value && list.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (list.isEmpty) {
+          return ListView(children: [
+            const SizedBox(height: 80),
+            EmptyState(
+                icon: Icons.account_circle_outlined,
+                title: 'Tidak ada foto yang menunggu',
+                subtitle: ''),
+          ]);
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: list.length,
+          itemBuilder: (_, i) {
+            final f = list[i];
+            return kartu(
+              child: Column(
+                children: [
+                  Text(f.nama,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold)),
+                  Text(AppUtils.formatRelatif(f.createdAt),
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 10),
+                  ClipOval(
+                    child: SizedBox(
+                      width: 180,
+                      height: 180,
+                      child: ImageUtil.image(f.foto, fit: BoxFit.cover),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _tolak(f),
+                        style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red)),
+                        child: const Text('Tolak',
+                            style: TextStyle(color: Colors.red)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _setuju(f),
+                        child: const Text('Setujui',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            );
+          },
+        );
+      }),
+    );
+  }
+}

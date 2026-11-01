@@ -620,14 +620,7 @@ class AuthController extends GetxController {
           'tanggal_lahir': Timestamp.fromDate(tanggalLahir),
       };
 
-      if (fotoFile != null) {
-        final enc = await ImageUtil.encode(fotoFile, maks: 60 * 1024);
-        if (enc == null) {
-          errorMessage.value = 'Foto terlalu besar, pilih foto lain.';
-          return false;
-        }
-        updates['foto_url'] = enc;
-      }
+      // Foto profil tidak ditulis di sini: harus lewat persetujuan Admin (FotoProfilController).
 
       await _firestore.collection('users').doc(uid).update(updates);
       await _loadUserDataTanpaNavigasi(uid);

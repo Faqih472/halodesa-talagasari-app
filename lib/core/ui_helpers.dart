@@ -3,12 +3,17 @@
 // ============================================================
 
 import 'dart:io';
+import 'dart:typed_data' show ByteData;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:get/get.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'motif.dart' show kartuTalagasari;
 import 'core.dart'
     show AppUtils, AppTheme, ImageUtil, tambahBulan, batasMaksBerlaku, labelSisaWaktu;
 
@@ -76,13 +81,7 @@ Widget kartu({required Widget child, EdgeInsets? margin, EdgeInsets? padding}) {
   return Container(
     margin: margin ?? const EdgeInsets.fromLTRB(16, 6, 16, 6),
     padding: padding ?? const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: [
-        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 6, offset: const Offset(0, 2)),
-      ],
-    ),
+    decoration: kartuTalagasari(radius: 18),
     child: child,
   );
 }
@@ -506,6 +505,13 @@ class AlasanTolak {
       'Bukan penduduk Desa Talagasari',
       'Data belum lengkap',
     ],
+    'foto': [
+      'Foto tidak pantas / mengandung unsur dewasa',
+      'Bukan foto wajah',
+      'Foto buram / tidak jelas',
+      'Mengandung SARA / kekerasan',
+      'Menggunakan foto orang lain / tokoh terkenal',
+    ],
     'surat': [
       'Data tidak sesuai data kependudukan',
       'Keperluan surat tidak jelas',
@@ -624,4 +630,266 @@ class Retensi {
   static const int infoKadaluarsaHari = 7; // info lewat masa berlaku → dihapus
   static const int infoDitolakHari = 30;   // pengajuan info yang ditolak
   static const int umpanBalikHari = 180;   // kritik & saran warga
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// Atur foto profil bulat: geser + cubit/slider zoom, lingkaran = bagian
+// yang akan tampil. Hasil: file JPG persegi kecil (siap simpan).
+// ─────────────────────────────────────────────────────────────
+Future<File?> potongFotoBulat(File sumber) async {
+  final hasil = await Get.to<File>(() => _PotongBulatView(sumber: sumber));
+  return hasil;
+}
+
+class _PotongBulatView extends StatefulWidget {
+  final File sumber;
+  const _PotongBulatView({required this.sumber});
+
+  @override
+  State<_PotongBulatView> createState() => _PotongBulatViewState();
+}
+
+class _PotongBulatViewState extends State<_PotongBulatView> {
+  static const double _u = 300;
+  final GlobalKey _kunci = GlobalKey();
+  final TransformationController _tc = TransformationController();
+  Size? _ukuran;
+  double _skala = 1;
+  bool _menyimpan = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _muat();
+  }
+
+  @override
+  void dispose() {
+    _tc.dispose();
+    super.dispose();
+  }
+
+  Future<void> _muat() async {
+    try {
+      final bytes = await widget.sumber.readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      final double w = frame.image.width.toDouble();
+      final double h = frame.image.height.toDouble();
+      frame.image.dispose();
+      final double k = _u / (w < h ? w : h);
+      final Size ukr = Size(w * k, h * k);
+      _tc.value = Matrix4.translationValues(
+          -(ukr.width - _u) / 2, -(ukr.height - _u) / 2, 0);
+      if (mounted) setState(() => _ukuran = ukr);
+    } catch (_) {
+      Get.back();
+      showSnack(false, '', 'Foto tidak bisa dibuka. Pilih foto lain.');
+    }
+  }
+
+  void _setSkala(double s) {
+    final Size? ukr = _ukuran;
+    if (ukr == null) return;
+    final Offset pusat = _tc.toScene(const Offset(_u / 2, _u / 2));
+    final double tx = (_u / 2 - pusat.dx * s)
+        .clamp(_u - ukr.width * s, 0.0)
+        .toDouble();
+    final double ty = (_u / 2 - pusat.dy * s)
+        .clamp(_u - ukr.height * s, 0.0)
+        .toDouble();
+    _tc.value = Matrix4.identity()
+      ..setEntry(0, 0, s)
+      ..setEntry(1, 1, s)
+      ..setEntry(0, 3, tx)
+      ..setEntry(1, 3, ty);
+    setState(() => _skala = s);
+  }
+
+  Future<void> _simpan() async {
+    if (_menyimpan) return;
+    setState(() => _menyimpan = true);
+    try {
+      final RenderRepaintBoundary b = _kunci.currentContext!
+          .findRenderObject() as RenderRepaintBoundary;
+      final ui.Image gambar = await b.toImage(pixelRatio: 1.2);
+      final ByteData? data =
+          await gambar.toByteData(format: ui.ImageByteFormat.png);
+      final img.Image? dec = img.decodePng(data!.buffer.asUint8List());
+      if (dec == null) throw 'decode';
+      int mutu = 80;
+      List<int> out = img.encodeJpg(dec, quality: mutu);
+      while (out.length > 55 * 1024 && mutu > 40) {
+        mutu -= 10;
+        out = img.encodeJpg(dec, quality: mutu);
+      }
+      final Directory dir = await Directory.systemTemp.createTemp('foto');
+      final File f = File('${dir.path}/profil.jpg');
+      await f.writeAsBytes(out);
+      Get.back(result: f);
+    } catch (_) {
+      if (mounted) setState(() => _menyimpan = false);
+      showSnack(false, '', 'Gagal memotong foto. Coba lagi.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Size? ukr = _ukuran;
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text('Atur Foto Profil'),
+      ),
+      body: ukr == null
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                const SizedBox(height: 16),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                      'Geser dan cubit foto agar wajah pas di dalam lingkaran. Bagian di luar lingkaran tidak akan tampil.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white70, fontSize: 13)),
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: SizedBox(
+                    width: _u,
+                    height: _u,
+                    child: Stack(
+                      children: [
+                        RepaintBoundary(
+                          key: _kunci,
+                          child: ClipRect(
+                            child: SizedBox(
+                              width: _u,
+                              height: _u,
+                              child: InteractiveViewer(
+                                transformationController: _tc,
+                                constrained: false,
+                                minScale: 1,
+                                maxScale: 5,
+                                boundaryMargin: EdgeInsets.zero,
+                                onInteractionUpdate: (_) {
+                                  final double s = _tc.value
+                                      .getMaxScaleOnAxis()
+                                      .clamp(1.0, 5.0)
+                                      .toDouble();
+                                  if ((s - _skala).abs() > 0.01) {
+                                    setState(() => _skala = s);
+                                  }
+                                },
+                                child: SizedBox(
+                                  width: ukr.width,
+                                  height: ukr.height,
+                                  child: Image.file(widget.sumber,
+                                      fit: BoxFit.fill),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const IgnorePointer(
+                          child: SizedBox(
+                            width: _u,
+                            height: _u,
+                            child: CustomPaint(painter: _LubangBulatPainter()),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.zoom_out, color: Colors.white70),
+                      Expanded(
+                        child: Slider(
+                          value: _skala.clamp(1.0, 5.0).toDouble(),
+                          min: 1,
+                          max: 5,
+                          onChanged: _setSkala,
+                        ),
+                      ),
+                      const Icon(Icons.zoom_in, color: Colors.white70),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Get.back(),
+                            style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(color: Colors.white54),
+                                minimumSize: const Size.fromHeight(48)),
+                            child: const Text('Batal'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _menyimpan ? null : _simpan,
+                            style: ElevatedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(48)),
+                            child: _menyimpan
+                                ? loadingChild()
+                                : const Text('Simpan Foto'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+/// Lapisan gelap dengan lubang lingkaran + garis bantu
+class _LubangBulatPainter extends CustomPainter {
+  const _LubangBulatPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Offset c = Offset(size.width / 2, size.height / 2);
+    final double r = size.width / 2 - 2;
+    final Path gelap = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(Offset.zero & size),
+      Path()..addOval(Rect.fromCircle(center: c, radius: r)),
+    );
+    canvas.drawPath(gelap, Paint()..color = Colors.black.withOpacity(0.6));
+    canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = Colors.white);
+    final Paint garis = Paint()
+      ..strokeWidth = 0.8
+      ..color = Colors.white.withOpacity(0.35);
+    canvas.drawLine(Offset(size.width / 3, 0), Offset(size.width / 3, size.height), garis);
+    canvas.drawLine(Offset(size.width * 2 / 3, 0), Offset(size.width * 2 / 3, size.height), garis);
+    canvas.drawLine(Offset(0, size.height / 3), Offset(size.width, size.height / 3), garis);
+    canvas.drawLine(Offset(0, size.height * 2 / 3), Offset(size.width, size.height * 2 / 3), garis);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

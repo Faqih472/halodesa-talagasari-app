@@ -64,7 +64,10 @@ class TalagasariHubApp extends StatelessWidget {
         Get.put<AgendaController>(AgendaController(), permanent: true);
         Get.put<LetterController>(LetterController(), permanent: true);
         Get.put<FeedbackController>(FeedbackController(), permanent: true);
+        Get.put<FotoProfilController>(FotoProfilController(), permanent: true);
       }),
+      defaultTransition: Transition.cupertino,
+      transitionDuration: const Duration(milliseconds: 320),
       initialRoute: '/login',
       getPages: [
         GetPage(
