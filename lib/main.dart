@@ -59,6 +59,7 @@ class TalagasariHubApp extends StatelessWidget {
         Get.put<ComplaintController>(ComplaintController(), permanent: true);
         Get.put<ChatController>(ChatController(), permanent: true);
         Get.put<OrderController>(OrderController(), permanent: true);
+        Get.put<LowonganController>(LowonganController(), permanent: true);
         Get.put<SosController>(SosController(), permanent: true);
         Get.put<PollController>(PollController(), permanent: true);
         Get.put<AgendaController>(AgendaController(), permanent: true);

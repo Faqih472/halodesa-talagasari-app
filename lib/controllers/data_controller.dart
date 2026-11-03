@@ -13,6 +13,7 @@ import 'package:image/image.dart' as img;
 import '../core/core.dart';
 import '../core/models.dart';
 import 'auth_controller.dart';
+import '../views/info_sosial.dart' show InfoSimpan;
 import 'complaint_controller.dart';
 import 'village_controller.dart';
 import '../core/models_extra.dart';
@@ -176,6 +177,20 @@ class DataController extends GetxController {
   }
 
   // ─── Foto informasi: base64 di Firestore (gratis) ────────
+  /// Encode banyak foto (maks 3). null = ada yang terlalu besar.
+  Future<List<String>?> _encodeBanyak(List<File> fs) async {
+    final out = <String>[];
+    for (final f in fs.take(3)) {
+      final enc = await ImageUtil.encode(f);
+      if (enc == null) {
+        errorMsg.value = 'Foto terlalu besar, pilih foto lain.';
+        return null;
+      }
+      out.add(enc);
+    }
+    return out;
+  }
+
   Future<String?> _encodeFoto(File? f) async {
     if (f == null) return '';
     final enc = await ImageUtil.encode(f);
@@ -193,6 +208,7 @@ class DataController extends GetxController {
     required String kategori,
     DateTime? berlakuSampai,
     File? foto,
+    List<File> fotos = const [],
   }) async {
     try {
       isSubmitting.value = true;
@@ -207,8 +223,9 @@ class DataController extends GetxController {
         errorMsg.value = 'expiry_required'.tr;
         return false;
       }
-      final fotoUrl = await _encodeFoto(foto);
-      if (fotoUrl == null) return false;
+      final daftarFoto = await _encodeBanyak(fotos.isNotEmpty ? fotos : [if (foto != null) foto]);
+      if (daftarFoto == null) return false;
+      final fotoUrl = daftarFoto.isEmpty ? '' : daftarFoto.first;
 
       // Rule-based: kategori sensitif → pending_kades, lainnya → menunggu_review_admin
       final statusAwal = AppUtils.tentukanStatusAwal(kategori);
@@ -221,6 +238,7 @@ class DataController extends GetxController {
         'berlaku_sampai': Timestamp.fromDate(berlakuSampai),
         'authorId': uid,
         'foto_url': fotoUrl,
+        'foto_list': daftarFoto,
         'alasan_penolakan': null,
         'created_at': Timestamp.fromDate(DateTime.now()),
         'published_at': null,
@@ -245,6 +263,7 @@ class DataController extends GetxController {
     bool simpanDraft = false,
     DateTime? berlakuSampai,
     File? foto,
+    List<File> fotos = const [],
   }) async {
     try {
       isSubmitting.value = true;
@@ -255,8 +274,9 @@ class DataController extends GetxController {
         errorMsg.value = 'expiry_required'.tr;
         return false;
       }
-      final fotoUrl = await _encodeFoto(foto);
-      if (fotoUrl == null) return false;
+      final daftarFoto = await _encodeBanyak(fotos.isNotEmpty ? fotos : [if (foto != null) foto]);
+      if (daftarFoto == null) return false;
+      final fotoUrl = daftarFoto.isEmpty ? '' : daftarFoto.first;
 
       String status;
       DateTime? publishedAt;
@@ -284,6 +304,7 @@ class DataController extends GetxController {
         'berlaku_sampai': Timestamp.fromDate(berlakuSampai),
         'authorId': uid,
         'foto_url': fotoUrl,
+        'foto_list': daftarFoto,
         'alasan_penolakan': null,
         'created_at': Timestamp.fromDate(DateTime.now()),
         'published_at':
@@ -526,6 +547,7 @@ class DataController extends GetxController {
     required DateTime berlakuSampai,
     List<String> fotoLama = const [],
     File? fotoBaru,
+    List<File> fotoBaruList = const [],
   }) async {
     try {
       isSubmitting.value = true;
@@ -535,12 +557,10 @@ class DataController extends GetxController {
         errorMsg.value = 'Hanya Admin dan Kepala Desa yang dapat mengubah informasi.';
         return false;
       }
-      String foto = fotoLama.isNotEmpty ? fotoLama.first : '';
-      if (fotoBaru != null) {
-        final enc = await _encodeFoto(fotoBaru);
-        if (enc == null) return false;
-        foto = enc;
-      }
+      final baruEnc = await _encodeBanyak(fotoBaruList.isNotEmpty ? fotoBaruList : [if (fotoBaru != null) fotoBaru]);
+      if (baruEnc == null) return false;
+      final semua = [...fotoLama, ...baruEnc].take(3).toList();
+      final String foto = semua.isEmpty ? '' : semua.first;
 
       final bool butuhAccUlang = u.role == 'admin' &&
           n.status == 'published' &&
@@ -552,6 +572,7 @@ class DataController extends GetxController {
         'kategori': kategori,
         'berlaku_sampai': Timestamp.fromDate(berlakuSampai),
         'foto_url': foto,
+        'foto_list': semua,
         if (butuhAccUlang) 'status': 'pending_kades',
         if (butuhAccUlang) 'published_at': null,
         'edited_at': Timestamp.fromDate(DateTime.now()),
@@ -588,6 +609,16 @@ class DataController extends GetxController {
   // ─── FILTER ───────────────────────────────────────────────
   List<NewsModel> get filteredNews {
     if (filterKategori.value == 'semua') return publishedNews;
+    if (filterKategori.value == 'tersimpan') {
+      final ids = InfoSimpan.daftar.toList();
+      return publishedNews.where((n) => ids.contains(n.id)).toList();
+    }
+    if (filterKategori.value.startsWith('grp:')) {
+      final g = filterKategori.value.substring(4);
+      return publishedNews
+          .where((n) => NewsModel.idKelompok(n.kategori) == g)
+          .toList();
+    }
     if (filterKategori.value == 'lainnya') {
       return publishedNews
           .where((n) => n.kategori.startsWith('custom:'))
@@ -623,7 +654,11 @@ class ServiceController extends GetxController {
   final RxList<ServiceModel> daftarAktif = <ServiceModel>[].obs;
   final RxList<ServiceModel> pendingVerifikasi = <ServiceModel>[].obs;
   final RxList<ServiceModel> semuaAdmin = <ServiceModel>[].obs;
-  final Rx<ServiceModel?> punyaSaya = Rx<ServiceModel?>(null);
+  final Rx<ServiceModel?> punyaSaya = Rx<ServiceModel?>(null); // jasa yang sedang dikelola
+  final RxList<ServiceModel> jasaSaya = <ServiceModel>[].obs; // semua jasa milik saya
+  final RxString idDipilih = ''.obs;
+  static const int maksJasa = 3;
+  bool get bisaTambahJasa => jasaSaya.length < maksJasa;
   final RxSet<String> favorit = <String>{}.obs;
 
   // ─── Pencarian & filter ──────────────────────────────────
@@ -670,6 +705,8 @@ class ServiceController extends GetxController {
       _subSaya?.cancel();
       _subSaya = null;
       punyaSaya.value = null;
+      jasaSaya.clear();
+      idDipilih.value = '';
       pendingVerifikasi.clear();
       semuaAdmin.clear();
       favorit.clear();
@@ -683,14 +720,36 @@ class ServiceController extends GetxController {
     _subSaya = _firestore
         .collection('penyedia_jasa')
         .where('uid_penyedia', isEqualTo: uid)
-        .limit(1)
         .snapshots()
         .listen((snap) {
-      punyaSaya.value =
-          snap.docs.isNotEmpty ? ServiceModel.fromFirestore(snap.docs.first) : null;
+      _terapkanDaftarSaya(snap.docs);
     }, onError: (e) {
       errorMsg.value = 'Gagal memuat profil jasa: $e';
     });
+  }
+
+  void _terapkanDaftarSaya(Iterable<DocumentSnapshot> docs) {
+    final list = docs
+        .map((d) => ServiceModel.fromFirestore(d))
+        .where((s) => s.status != 'dihapus')
+        .toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    jasaSaya.assignAll(list);
+    ServiceModel? pilih;
+    for (final s in list) {
+      if (s.id == idDipilih.value) pilih = s;
+    }
+    pilih ??= list.isNotEmpty ? list.first : null;
+    idDipilih.value = pilih?.id ?? '';
+    punyaSaya.value = pilih;
+  }
+
+  /// Pindah jasa yang sedang dikelola (bila punya lebih dari satu).
+  void pilihJasa(String id) {
+    idDipilih.value = id;
+    for (final s in jasaSaya) {
+      if (s.id == id) punyaSaya.value = s;
+    }
   }
 
   Future<void> fetchPunyaSaya() async {
@@ -700,12 +759,54 @@ class ServiceController extends GetxController {
       final snap = await _firestore
           .collection('penyedia_jasa')
           .where('uid_penyedia', isEqualTo: uid)
-          .limit(1)
           .get();
-      punyaSaya.value =
-          snap.docs.isNotEmpty ? ServiceModel.fromFirestore(snap.docs.first) : null;
+      _terapkanDaftarSaya(snap.docs);
     } catch (e) {
       errorMsg.value = 'Gagal memuat profil jasa: $e';
+    }
+  }
+
+  /// Hapus jasa oleh pemiliknya (disembunyikan permanen, riwayat pesanan tetap ada).
+  Future<bool> hapusJasa(ServiceModel s, {String alasan = ''}) async {
+    try {
+      errorMsg.value = '';
+      if (s.diblokir || s.dikunci) {
+        errorMsg.value = 'Jasa yang dikunci atau diblokir Admin tidak bisa dihapus sendiri. Hubungi Admin.';
+        return false;
+      }
+      final n = Get.find<OrderController>()
+          .masuk
+          .where((o) => o.serviceId == s.id && o.berjalan)
+          .length;
+      if (n > 0) {
+        errorMsg.value =
+            'Masih ada $n pesanan yang berjalan. Selesaikan atau batalkan dulu sebelum menghapus jasa.';
+        return false;
+      }
+      await _firestore.collection('penyedia_jasa').doc(s.id).update({
+        'status': 'dihapus',
+        'alasan_hapus': alasan,
+        'dihapus_at': Timestamp.fromDate(DateTime.now()),
+        'diperbarui_at': Timestamp.fromDate(DateTime.now()),
+      });
+      if (jasaSaya.length <= 1) {
+        final uid = _authCtrl.currentUser.value?.uid;
+        if (uid != null) {
+          await _firestore.collection('users').doc(uid).update({'isPenyediaJasa': false});
+        }
+      }
+      await AuditLog.catat(
+          aksi: 'jasa_hapus_pemilik',
+          targetTipe: 'jasa',
+          targetId: s.id,
+          detail: s.nama,
+          alasan: alasan);
+      await fetchPunyaSaya();
+      await fetchAktif();
+      return true;
+    } catch (e) {
+      errorMsg.value = 'Gagal menghapus jasa. Coba lagi.';
+      return false;
     }
   }
 
@@ -761,7 +862,7 @@ class ServiceController extends GetxController {
 
     Iterable<ServiceModel> list = daftarAktif;
     final kat = filterKategori.value;
-    if (kat != 'semua') list = list.where((s) => s.kategori == kat);
+    if (kat != 'semua') list = list.where((s) => AppUtils.cocokKategori(kat, s.kategori));
     final q = kataKunci.value;
     if (q.trim().isNotEmpty) list = list.where((s) => s.cocokKata(q));
     if (hanyaBuka.value) list = list.where((s) => s.sedangBuka);
@@ -969,8 +1070,8 @@ class ServiceController extends GetxController {
         errorMsg.value = 'Profil jasa Anda diblokir Admin dan tidak dapat diubah.';
         return false;
       }
-      if (existing == null && punyaSaya.value != null) {
-        errorMsg.value = 'Anda sudah memiliki profil jasa.';
+      if (existing == null && jasaSaya.length >= maksJasa) {
+        errorMsg.value = 'Satu akun maksimal $maksJasa jasa. Hapus jasa yang sudah tidak dipakai bila ingin menambah.';
         return false;
       }
 
@@ -1019,6 +1120,7 @@ class ServiceController extends GetxController {
         final ref = _firestore.collection('penyedia_jasa').doc();
         await ref.set(data);
         await _tulisPortofolio(ref.id, encoded, const []);
+        idDipilih.value = ref.id;
         await _firestore
             .collection('users')
             .doc(user.uid)
@@ -2109,8 +2211,10 @@ class OrderController extends GetxController {
     if (_sinkronBerjalan) return;
     final svc = Get.find<ServiceController>().punyaSaya.value;
     if (svc == null || svc.status != 'aktif') return;
-    final int berjalan =
-        masuk.where((o) => o.status == 'diterima' || o.status == 'dikerjakan').length;
+    final int berjalan = masuk
+        .where((o) =>
+            o.serviceId == svc.id && (o.status == 'diterima' || o.status == 'dikerjakan'))
+        .length;
     final bool penuh = svc.kapasitasAktif > 0 && berjalan >= svc.kapasitasAktif;
     try {
       _sinkronBerjalan = true;
@@ -2133,6 +2237,368 @@ class OrderController extends GetxController {
       // pelengkap — kegagalan tidak boleh mengganggu alur utama
     } finally {
       _sinkronBerjalan = false;
+    }
+  }
+}
+
+
+// ═════════════════════════════════════════════════════════════
+// BUTUH PEKERJA — lowongan dari warga + lamaran
+// ═════════════════════════════════════════════════════════════
+class LowonganController extends GetxController {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AuthController _auth = Get.find<AuthController>();
+
+  final RxList<LowonganModel> daftar = <LowonganModel>[].obs; // semua yang aktif
+  final RxList<LowonganModel> milik = <LowonganModel>[].obs;
+  final RxList<LamaranModel> lamaranSaya = <LamaranModel>[].obs;
+  final RxList<LamaranModel> lamaranMasuk = <LamaranModel>[].obs;
+  final RxList<LowonganModel> antrian = <LowonganModel>[].obs; // menunggu ACC Admin
+  final RxBool isLoading = false.obs;
+  final RxBool isSubmitting = false.obs;
+  final RxString errorMsg = ''.obs;
+
+  final RxString kataKunci = ''.obs;
+  final RxString filterKategori = 'semua'.obs;
+  final RxString filterJenis = 'semua'.obs;
+
+  List<LowonganModel> get hasil {
+    final k = kataKunci.value.trim().toLowerCase();
+    final list = daftar.where((l) {
+      if (!l.buka) return false;
+      if (!AppUtils.cocokKategori(filterKategori.value, l.kategori)) {
+        return false;
+      }
+      if (filterJenis.value != 'semua' && l.jenis != filterJenis.value) {
+        return false;
+      }
+      if (k.isEmpty) return true;
+      return l.judul.toLowerCase().contains(k) ||
+          l.deskripsi.toLowerCase().contains(k) ||
+          l.alamat.toLowerCase().contains(k);
+    }).toList();
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
+  /// Lamaran baru yang belum dijawab pemilik lowongan (untuk lencana)
+  int get badge => lamaranMasuk.where((x) => x.status == 'baru').length;
+
+  int jumlahPelamar(String lowonganId) =>
+      lamaranMasuk.where((x) => x.lowonganId == lowonganId).length;
+
+  LamaranModel? lamaranUntuk(String lowonganId) {
+    final uid = _auth.currentUser.value?.uid;
+    for (final x in lamaranSaya) {
+      if (x.lowonganId == lowonganId && x.uid == uid) return x;
+    }
+    return null;
+  }
+
+  Future<void> fetchAktif() async {
+    try {
+      isLoading.value = true;
+      final snap = await _firestore
+          .collection('lowongan_warga')
+          .where('status', isEqualTo: 'aktif')
+          .get();
+      daftar.assignAll(snap.docs.map(LowonganModel.fromFirestore));
+    } catch (_) {
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> fetchMilik() async {
+    final u = _auth.currentUser.value;
+    if (u == null) return;
+    try {
+      final a = await _firestore
+          .collection('lowongan_warga')
+          .where('uid', isEqualTo: u.uid)
+          .get();
+      final list = a.docs.map(LowonganModel.fromFirestore).toList()
+        ..sort((x, y) => y.createdAt.compareTo(x.createdAt));
+      milik.assignAll(list);
+      final b = await _firestore
+          .collection('lamaran_kerja')
+          .where('pemberi_uid', isEqualTo: u.uid)
+          .get();
+      final lam = b.docs.map(LamaranModel.fromFirestore).toList()
+        ..sort((x, y) => y.createdAt.compareTo(x.createdAt));
+      lamaranMasuk.assignAll(lam);
+    } catch (_) {}
+  }
+
+  Future<void> fetchLamaranSaya() async {
+    final u = _auth.currentUser.value;
+    if (u == null) return;
+    try {
+      final snap = await _firestore
+          .collection('lamaran_kerja')
+          .where('uid', isEqualTo: u.uid)
+          .get();
+      final lam = snap.docs.map(LamaranModel.fromFirestore).toList()
+        ..sort((x, y) => y.createdAt.compareTo(x.createdAt));
+      lamaranSaya.assignAll(lam);
+    } catch (_) {}
+  }
+
+  Future<void> segarkanSemua() async {
+    await Future.wait([fetchAktif(), fetchMilik(), fetchLamaranSaya()]);
+  }
+
+  /// Simpan lowongan baru / ubah. Kembalikan true bila berhasil.
+  Future<bool> simpan({
+    String? id,
+    required String judul,
+    required String kategori,
+    required String deskripsi,
+    required String syarat,
+    required String jenis,
+    required int jumlahOrang,
+    required int upah,
+    required String satuanUpah,
+    required bool upahNego,
+    required String alamat,
+    required String whatsapp,
+    DateTime? mulai,
+    required DateTime batas,
+  }) async {
+    final u = _auth.currentUser.value;
+    if (u == null) return false;
+    try {
+      isSubmitting.value = true;
+      errorMsg.value = '';
+      final data = <String, dynamic>{
+        'judul': judul.trim(),
+        'kategori': kategori,
+        'deskripsi': deskripsi.trim(),
+        'syarat': syarat.trim(),
+        'jenis': jenis,
+        'jumlah_orang': jumlahOrang,
+        'upah': upah,
+        'satuan_upah': satuanUpah,
+        'upah_nego': upahNego,
+        'alamat': alamat.trim(),
+        'whatsapp': whatsapp.trim(),
+        'mulai': mulai != null ? Timestamp.fromDate(mulai) : null,
+        'batas': Timestamp.fromDate(batas),
+      };
+      if (id == null) {
+        data.addAll({
+          'uid': u.uid,
+          'nama_pemberi': u.nama,
+          'foto_pemberi': u.fotoUrl,
+          'diterima': 0,
+          'status': 'pending', // tayang setelah disetujui Admin
+          'disetujui': false,
+          'alasan': '',
+          'created_at': Timestamp.fromDate(DateTime.now()),
+        });
+        final ref = await _firestore.collection('lowongan_warga').add(data);
+        await notifPeran(['admin'],
+            judul: 'Lowongan Menunggu Persetujuan',
+            isi: '${u.nama}: ${judul.trim()}',
+            tipe: 'jasa',
+            targetId: ref.id);
+      } else {
+        // ubah isi lowongan = wajib disetujui ulang Admin
+        data['status'] = 'pending';
+        data['alasan'] = '';
+        await _firestore.collection('lowongan_warga').doc(id).update(data);
+        await notifPeran(['admin'],
+            judul: 'Lowongan Diubah, Perlu Disetujui Ulang',
+            isi: '${u.nama}: ${judul.trim()}',
+            tipe: 'jasa',
+            targetId: id);
+      }
+      await segarkanSemua();
+      return true;
+    } catch (_) {
+      errorMsg.value = 'Gagal menyimpan lowongan. Coba lagi.';
+      return false;
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  Future<void> fetchAntrian() async {
+    try {
+      final snap = await _firestore
+          .collection('lowongan_warga')
+          .where('status', isEqualTo: 'pending')
+          .get();
+      final list = snap.docs.map(LowonganModel.fromFirestore).toList()
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      antrian.assignAll(list);
+    } catch (_) {}
+  }
+
+  /// Admin: setujui atau tolak lowongan yang menunggu.
+  Future<bool> putuskanAdmin(LowonganModel l,
+      {required bool setuju, String alasan = ''}) async {
+    try {
+      errorMsg.value = '';
+      await _firestore.collection('lowongan_warga').doc(l.id).update(setuju
+          ? {'status': 'aktif', 'disetujui': true, 'alasan': ''}
+          : {'status': 'ditolak', 'alasan': alasan});
+      await Get.find<NotificationController>().kirimKe(
+          uidTujuan: l.uid,
+          judul: setuju ? 'Lowongan Disetujui' : 'Lowongan Ditolak',
+          isi: setuju
+              ? '"${l.judul}" sekarang tayang di Butuh Pekerja.'
+              : '"${l.judul}" ditolak. Alasan: $alasan. Ubah lowongan lalu kirim ulang.',
+          tipe: 'jasa',
+          targetId: l.id);
+      await AuditLog.catat(
+          aksi: setuju ? 'lowongan_setuju' : 'lowongan_tolak',
+          targetTipe: 'lowongan',
+          targetId: l.id,
+          detail: l.judul,
+          alasan: setuju ? '' : alasan);
+      antrian.removeWhere((x) => x.id == l.id);
+      await fetchAktif();
+      return true;
+    } catch (_) {
+      errorMsg.value = 'Gagal memproses lowongan. Coba lagi.';
+      return false;
+    }
+  }
+
+  Future<bool> ubahStatus(LowonganModel l, String status, {String alasan = ''}) async {
+    try {
+      errorMsg.value = '';
+      await _firestore.collection('lowongan_warga').doc(l.id).update({
+        'status': status,
+        'alasan': alasan,
+      });
+      if (status == 'blokir') {
+        await Get.find<NotificationController>().kirimKe(
+            uidTujuan: l.uid,
+            judul: 'Lowongan Ditutup Admin',
+            isi: '${l.judul}. Alasan: $alasan',
+            tipe: 'sistem',
+            targetId: l.id);
+        await AuditLog.catat(
+            aksi: 'lowongan_blokir',
+            targetTipe: 'lowongan',
+            targetId: l.id,
+            detail: l.judul,
+            alasan: alasan);
+      }
+      await segarkanSemua();
+      return true;
+    } catch (_) {
+      errorMsg.value = 'Gagal mengubah status. Coba lagi.';
+      return false;
+    }
+  }
+
+  Future<bool> hapus(LowonganModel l) async {
+    try {
+      errorMsg.value = '';
+      final lam = await _firestore
+          .collection('lamaran_kerja')
+          .where('lowongan_id', isEqualTo: l.id)
+          .get();
+      for (final d in lam.docs) {
+        await d.reference.delete();
+      }
+      await _firestore.collection('lowongan_warga').doc(l.id).delete();
+      await segarkanSemua();
+      return true;
+    } catch (_) {
+      errorMsg.value = 'Gagal menghapus lowongan. Coba lagi.';
+      return false;
+    }
+  }
+
+  Future<bool> lamar(
+    LowonganModel l, {
+    required String pesan,
+    required String telepon,
+    int tawaran = 0,
+  }) async {
+    final u = _auth.currentUser.value;
+    if (u == null) return false;
+    if (l.uid == u.uid) {
+      errorMsg.value = 'Anda tidak bisa melamar lowongan sendiri.';
+      return false;
+    }
+    try {
+      isSubmitting.value = true;
+      errorMsg.value = '';
+      await _firestore.collection('lamaran_kerja').doc('${l.id}_${u.uid}').set({
+        'lowongan_id': l.id,
+        'judul_lowongan': l.judul,
+        'pemberi_uid': l.uid,
+        'uid': u.uid,
+        'nama': u.nama,
+        'foto': u.fotoUrl,
+        'telepon': telepon.trim(),
+        'pesan': pesan.trim(),
+        'tawaran': tawaran,
+        'status': 'baru',
+        'created_at': Timestamp.fromDate(DateTime.now()),
+      });
+      await Get.find<NotificationController>().kirimKe(
+          uidTujuan: l.uid,
+          judul: 'Lamaran Baru',
+          isi: '${u.nama} melamar: ${l.judul}',
+          tipe: 'jasa',
+          targetId: l.id);
+      await fetchLamaranSaya();
+      return true;
+    } catch (_) {
+      errorMsg.value = 'Gagal mengirim lamaran. Coba lagi.';
+      return false;
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  Future<bool> tarikLamaran(LamaranModel x) async {
+    try {
+      await _firestore.collection('lamaran_kerja').doc(x.id).delete();
+      await fetchLamaranSaya();
+      return true;
+    } catch (_) {
+      errorMsg.value = 'Gagal menarik lamaran. Coba lagi.';
+      return false;
+    }
+  }
+
+  Future<bool> putuskan(LamaranModel x, LowonganModel l, {required bool terima}) async {
+    try {
+      errorMsg.value = '';
+      if (terima && l.penuh) {
+        errorMsg.value = 'Kuota pekerja sudah penuh.';
+        return false;
+      }
+      await _firestore
+          .collection('lamaran_kerja')
+          .doc(x.id)
+          .update({'status': terima ? 'diterima' : 'ditolak'});
+      if (terima) {
+        await _firestore
+            .collection('lowongan_warga')
+            .doc(l.id)
+            .update({'diterima': l.diterima + 1});
+      }
+      await Get.find<NotificationController>().kirimKe(
+          uidTujuan: x.uid,
+          judul: terima ? 'Lamaran Diterima' : 'Lamaran Belum Cocok',
+          isi: terima
+              ? 'Selamat! Lamaran Anda untuk "${l.judul}" diterima. Hubungi pemberi kerja untuk detailnya.'
+              : 'Lamaran Anda untuk "${l.judul}" belum cocok kali ini. Jangan menyerah, coba lowongan lain.',
+          tipe: 'jasa',
+          targetId: l.id);
+      await fetchMilik();
+      return true;
+    } catch (_) {
+      errorMsg.value = 'Gagal memproses lamaran. Coba lagi.';
+      return false;
     }
   }
 }

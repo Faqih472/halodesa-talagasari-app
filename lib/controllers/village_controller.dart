@@ -103,7 +103,25 @@ class SosController extends GetxController {
   final RxBool sending = false.obs;
   final RxString errorMsg = ''.obs;
 
-  /// Kirim SOS: ambil GPS terbaru (cadangan: lokasi terakhir akun).
+  final RxnString sosAktifId = RxnString();
+  final RxString sumber = ''.obs; // 'gps' | 'terakhir' | 'profil'
+  StreamSubscription<Position>? _langgan;
+  DateTime _terakhirKirim = DateTime.fromMillisecondsSinceEpoch(0);
+  Timer? _batas;
+
+  /// Minta izin lokasi lebih awal (dipanggil saat halaman SOS dibuka).
+  Future<void> siapkanLokasi() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return;
+      var izin = await Geolocator.checkPermission();
+      if (izin == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+    } catch (_) {}
+  }
+
+  /// Kirim SOS: langsung terkirim dengan lokasi terakhir yang ada,
+  /// lalu diperbarui dengan GPS akurat dan dilacak terus sampai "sudah aman".
   Future<bool> kirimSos() async {
     final user = _authCtrl.currentUser.value;
     if (user == null) return false;
@@ -113,22 +131,32 @@ class SosController extends GetxController {
 
       double lat = user.lokasiLat;
       double lng = user.lokasiLng;
+      double akurasi = 0;
+      String src = 'profil';
+      bool gpsOk = false;
       try {
-        LocationPermission izin = await Geolocator.checkPermission();
+        if (!await Geolocator.isLocationServiceEnabled()) {
+          // Aplikasi tidak boleh menyalakan GPS sendiri; buka pengaturan.
+          Geolocator.openLocationSettings();
+        }
+        var izin = await Geolocator.checkPermission();
         if (izin == LocationPermission.denied) {
           izin = await Geolocator.requestPermission();
         }
-        if (izin == LocationPermission.always ||
-            izin == LocationPermission.whileInUse) {
-          final pos = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
-            timeLimit: const Duration(seconds: 8),
-          );
-          lat = pos.latitude;
-          lng = pos.longitude;
+        gpsOk = izin == LocationPermission.always ||
+            izin == LocationPermission.whileInUse;
+        if (gpsOk) {
+          final last = await Geolocator.getLastKnownPosition();
+          if (last != null) {
+            lat = last.latitude;
+            lng = last.longitude;
+            akurasi = last.accuracy;
+            src = 'terakhir';
+          }
         }
       } catch (_) {}
 
+      final now = Timestamp.fromDate(DateTime.now());
       final ref = await _firestore.collection('sos').add({
         'uid': user.uid,
         'nama': user.nama,
@@ -136,12 +164,15 @@ class SosController extends GetxController {
         'telepon': user.nomorTelepon,
         'lat': lat,
         'lng': lng,
+        'akurasi': akurasi,
+        'sumber': src,
         'status': 'baru',
-        'created_at': Timestamp.fromDate(DateTime.now()),
+        'created_at': now,
+        'updated_at': now,
       });
+      sosAktifId.value = ref.id;
+      sumber.value = src;
 
-      // Penerima: Admin & Kades. Bila pengirimnya sendiri Admin/Kades,
-      // petugas lain tetap menerima (pengirim dikecualikan).
       await notifPeran(
         ['admin', 'kades'],
         judul: '🚨 SOS DARURAT',
@@ -151,6 +182,8 @@ class SosController extends GetxController {
         targetId: ref.id,
         kecualiUid: user.uid,
       );
+
+      if (gpsOk) _lacak(ref.id);
       return true;
     } catch (e) {
       errorMsg.value = 'Gagal mengirim SOS: $e';
@@ -158,6 +191,65 @@ class SosController extends GetxController {
     } finally {
       sending.value = false;
     }
+  }
+
+  void _lacak(String id) {
+    _langgan?.cancel();
+    LocationSettings set;
+    if (Platform.isAndroid) {
+      set = AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+        intervalDuration: const Duration(seconds: 10),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'SOS aktif',
+          notificationText: 'Lokasi Anda dibagikan ke petugas desa.',
+          enableWakeLock: true,
+        ),
+      );
+    } else {
+      set = const LocationSettings(
+          accuracy: LocationAccuracy.high, distanceFilter: 5);
+    }
+    _langgan = Geolocator.getPositionStream(locationSettings: set).listen(
+      (p) async {
+        if (DateTime.now().difference(_terakhirKirim).inSeconds < 8) return;
+        _terakhirKirim = DateTime.now();
+        sumber.value = 'gps';
+        try {
+          await _firestore.collection('sos').doc(id).update({
+            'lat': p.latitude,
+            'lng': p.longitude,
+            'akurasi': p.accuracy,
+            'sumber': 'gps',
+            'updated_at': Timestamp.fromDate(DateTime.now()),
+          });
+        } catch (_) {}
+      },
+      onError: (_) {},
+    );
+    _batas?.cancel();
+    _batas = Timer(const Duration(hours: 2), berhentiLacak);
+  }
+
+  void berhentiLacak() {
+    _langgan?.cancel();
+    _langgan = null;
+    _batas?.cancel();
+  }
+
+  /// Warga menandai dirinya sudah aman: pelacakan berhenti.
+  Future<void> sudahAman() async {
+    final id = sosAktifId.value;
+    berhentiLacak();
+    sosAktifId.value = null;
+    if (id == null) return;
+    try {
+      await _firestore.collection('sos').doc(id).update({
+        'status': 'aman',
+        'updated_at': Timestamp.fromDate(DateTime.now()),
+      });
+    } catch (_) {}
   }
 
   Stream<List<SosModel>> stream() {

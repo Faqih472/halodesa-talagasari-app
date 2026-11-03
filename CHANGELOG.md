@@ -1,5 +1,8 @@
 # CHANGELOG — Pembaruan Talagasari Hub
 
+## Terbaru: Jasa + Butuh Pekerja
+- Tab Butuh Pekerja (lowongan warga, lamaran, terima/tolak, notifikasi), panduan lengkap dan kotak contoh di form jasa, pesanan, lowongan, dan lamaran.
+
 ## Terbaru: Surat lengkap + foto profil ACC Admin
 - Surat: form data tambahan (agama, status kawin, pekerjaan, tanda per jenis), PDF lengkap siap tanda tangan Kades, kolom tanda tangan pemohon, pas foto, chip contoh CPNS/TNI/Polri.
 - Foto profil: wajib disetujui Admin (tab Foto). Rules diperbarui.
@@ -39,3 +42,8 @@ Admin & Kades membaca di Akun -> Umpan Balik Warga (ringkasan + distribusi binta
 
 ## 9. Saklar ketersediaan jasa
 Buka / Penuh / Tutup + catatan + buka otomatis pada tanggal tertentu. Profil tetap tampil (diberi label & diurutkan paling bawah), tombol chat dinonaktifkan.
+
+## Pin peta, SOS real, Info sosial
+- Widget `PemilihPeta` (Lokasi saya + Cari alamat) di pengaduan, jasa, pesanan.
+- SOS: terkirim instan, lokasi diperbarui live, tombol "sudah aman", Admin lihat waktu & sumber posisi.
+- Info desa: 7 kelompok/30 kategori dengan contoh, sampai 3 foto, suka, komentar, simpan, bagikan, dilihat.

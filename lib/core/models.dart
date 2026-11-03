@@ -234,6 +234,11 @@ class NewsModel {
   final DateTime createdAt;
   final DateTime? publishedAt;
   final DateTime? berlakuSampai; // WAJIB untuk informasi baru; null = data lama (akan dihapus otomatis)
+  final List<String> fotoList; // sampai 3 foto (base64)
+
+  /// Semua foto: memakai foto_list, atau foto_url lama bila foto_list kosong.
+  List<String> get semuaFoto =>
+      fotoList.isNotEmpty ? fotoList : (fotoUrl.isNotEmpty ? [fotoUrl] : const []);
 
   NewsModel({
     required this.id,
@@ -247,6 +252,7 @@ class NewsModel {
     required this.createdAt,
     this.publishedAt,
     this.berlakuSampai,
+    this.fotoList = const [],
   });
 
   factory NewsModel.fromFirestore(DocumentSnapshot doc) {
@@ -259,6 +265,7 @@ class NewsModel {
       status: data['status'] ?? 'draft',
       authorId: data['authorId'] ?? '',
       fotoUrl: data['foto_url'] ?? '',
+      fotoList: List<String>.from(data['foto_list'] ?? const []),
       alasanPenolakan: data['alasan_penolakan'],
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       publishedAt: (data['published_at'] as Timestamp?)?.toDate(),
@@ -305,6 +312,62 @@ class NewsModel {
         kategori == 'bantuan_sosial';
   }
 
+  /// Kategori informasi desa, dikelompokkan agar warga awam mudah memilih.
+  static const List<Map<String, dynamic>> kelompokInfo = [
+    {'id': 'kabar', 'label': '📢 Kabar Resmi Desa', 'isi': [
+      {'value': 'pengumuman', 'label': 'Pengumuman', 'contoh': 'Contoh: surat edaran, perubahan jam pelayanan kantor desa'},
+      {'value': 'rapat', 'label': 'Rapat & Musyawarah', 'contoh': 'Contoh: undangan musyawarah desa, rapat RT/RW'},
+      {'value': 'layanan_kantor', 'label': 'Layanan Kantor Desa', 'contoh': 'Contoh: jadwal pelayanan KTP/KK, syarat pengurusan surat'},
+      {'value': 'transparansi', 'label': 'Transparansi Desa', 'contoh': 'Contoh: laporan penggunaan anggaran, hasil pembangunan'},
+    ]},
+    {'id': 'kegiatan', 'label': '🎉 Kegiatan & Acara', 'isi': [
+      {'value': 'kegiatan', 'label': 'Kegiatan Desa', 'contoh': 'Contoh: peringatan hari besar, lomba antar RT'},
+      {'value': 'kerja_bakti', 'label': 'Kerja Bakti & Gotong Royong', 'contoh': 'Contoh: jadwal kerja bakti, bersih selokan'},
+      {'value': 'acara_budaya', 'label': 'Budaya & Hiburan', 'contoh': 'Contoh: pentas seni, pengajian akbar, bazar'},
+      {'value': 'olahraga_pemuda', 'label': 'Olahraga & Pemuda', 'contoh': 'Contoh: turnamen futsal, kegiatan karang taruna'},
+      {'value': 'keagamaan', 'label': 'Keagamaan', 'contoh': 'Contoh: jadwal pengajian, pembagian zakat, kegiatan gereja/vihara'},
+    ]},
+    {'id': 'sosial', 'label': '🤝 Sosial & Kepedulian', 'isi': [
+      {'value': 'kabar_duka', 'label': 'Kabar Duka', 'contoh': 'Contoh: berita lelayu warga, waktu dan tempat pemakaman'},
+      {'value': 'kabar_bahagia', 'label': 'Kabar Bahagia & Syukuran', 'contoh': 'Contoh: undangan syukuran, pengumuman prestasi warga'},
+      {'value': 'galang_bantuan', 'label': 'Galang Bantuan', 'contoh': 'Contoh: bantuan untuk warga sakit atau terkena musibah'},
+      {'value': 'bantuan_sosial', 'label': 'Bantuan Sosial', 'contoh': 'Contoh: jadwal pembagian bansos, syarat penerima'},
+      {'value': 'kehilangan', 'label': 'Kehilangan & Penemuan', 'contoh': 'Contoh: dompet, motor, atau hewan peliharaan hilang/ditemukan'},
+    ]},
+    {'id': 'aman', 'label': '🛡️ Keamanan & Lingkungan', 'isi': [
+      {'value': 'keamanan', 'label': 'Keamanan & Ketertiban', 'contoh': 'Contoh: jadwal ronda, imbauan waspada pencurian'},
+      {'value': 'peringatan', 'label': 'Peringatan Cuaca & Bencana', 'contoh': 'Contoh: banjir, listrik padam, pohon tumbang'},
+      {'value': 'lingkungan', 'label': 'Lingkungan & Kebersihan', 'contoh': 'Contoh: jadwal angkut sampah, bank sampah'},
+      {'value': 'infrastruktur', 'label': 'Pembangunan & Fasilitas', 'contoh': 'Contoh: perbaikan jalan, penutupan jalan sementara'},
+    ]},
+    {'id': 'ekonomi', 'label': '💼 Ekonomi & Usaha', 'isi': [
+      {'value': 'usaha_umkm', 'label': 'Usaha & UMKM', 'contoh': 'Contoh: warung baru buka, promo usaha warga'},
+      {'value': 'layanan_jasa', 'label': 'Layanan & Jasa', 'contoh': 'Contoh: pasang wifi, servis AC, jasa cuci motor'},
+      {'value': 'jual_beli', 'label': 'Jual Beli Warga', 'contoh': 'Contoh: jual motor bekas, hasil kebun, perabot'},
+      {'value': 'pasar_murah', 'label': 'Pasar Murah & Promo', 'contoh': 'Contoh: operasi pasar, diskon sembako'},
+      {'value': 'ketenagakerjaan', 'label': 'Lowongan Kerja', 'contoh': 'Contoh: pabrik atau toko sekitar membuka lowongan'},
+    ]},
+    {'id': 'didik', 'label': '🎓 Pendidikan & Kesehatan', 'isi': [
+      {'value': 'pendidikan', 'label': 'Pendidikan', 'contoh': 'Contoh: pendaftaran sekolah, bimbingan belajar gratis'},
+      {'value': 'beasiswa', 'label': 'Beasiswa & Pelatihan', 'contoh': 'Contoh: info beasiswa, pelatihan kerja gratis'},
+      {'value': 'kesehatan', 'label': 'Kesehatan', 'contoh': 'Contoh: jadwal posyandu, imunisasi, donor darah'},
+    ]},
+    {'id': 'lain', 'label': '✏️ Lainnya', 'isi': [
+      {'value': 'lainnya', 'label': 'Lainnya (tulis kategori sendiri)', 'contoh': 'Jika tidak ada yang cocok, tulis nama kategori sendiri'},
+    ]},
+  ];
+
+  /// Id kelompok dari sebuah kategori (untuk warna/ikon & filter).
+  static String idKelompok(String kategori) {
+    if (kategori.startsWith('custom:')) return 'lain';
+    for (final g in kelompokInfo) {
+      for (final k in g['isi'] as List) {
+        if (k['value'] == kategori) return g['id'] as String;
+      }
+    }
+    return 'kabar';
+  }
+
   /// Label tampilan untuk setiap kategori
   static String labelKategori(String kategori) {
     if (kategori.startsWith('custom:')) {
@@ -339,6 +402,11 @@ class NewsModel {
       case 'kehilangan':
         return 'Kehilangan & Penemuan';
       default:
+        for (final g in kelompokInfo) {
+          for (final k in g['isi'] as List) {
+            if (k['value'] == kategori) return k['label'] as String;
+          }
+        }
         return 'Pengumuman';
     }
   }
@@ -969,6 +1037,8 @@ class ServiceModel {
     'per porsi',
     'per paket',
     'per meter',
+    'per layanan',
+    'per trip',
   ];
 
   static String satuanBawaan(String kategori) {
@@ -983,6 +1053,18 @@ class ServiceModel {
         return 'per kg';
       case 'catering':
         return 'per porsi';
+      case 'bengkel':
+        return 'per servis';
+      case 'asuh':
+        return 'per hari';
+      case 'sewa_acara':
+        return 'per paket';
+      case 'salon':
+        return 'per layanan';
+      case 'jahit':
+        return 'per potong';
+      case 'angkut':
+        return 'per trip';
       default:
         return 'per hari';
     }
@@ -1003,6 +1085,20 @@ class ServiceModel {
         return ['Kiloan', 'Satuan', 'Setrika', 'Karpet', 'Antar-jemput', 'Kebersihan rumah', 'Cuci sepatu'];
       case 'catering':
         return ['Nasi kotak', 'Hajatan', 'Tumpeng', 'Prasmanan', 'Kue/snack', 'Harian', 'Arisan'];
+      case 'bengkel':
+        return ['Servis motor', 'Ganti oli', 'Tambal ban', 'Aki', 'Rem', 'Panggilan ke lokasi', 'Cuci motor'];
+      case 'kebun':
+        return ['Rapikan taman', 'Pangkas rumput', 'Tanam', 'Pupuk', 'Semprot hama', 'Panen', 'Harian'];
+      case 'asuh':
+        return ['Jaga anak', 'Daycare rumahan', 'Antar sekolah', 'Jaga lansia', 'Harian', 'Menginap'];
+      case 'sewa_acara':
+        return ['Tenda', 'Kursi', 'Meja', 'Sound system', 'Dekorasi', 'Panggung', 'Piring gelas'];
+      case 'salon':
+        return ['Potong rambut', 'Rias pengantin', 'Creambath', 'Pijat', 'Panggilan ke rumah', 'Anak-anak'];
+      case 'jahit':
+        return ['Jahit baju', 'Permak', 'Seragam', 'Kebaya', 'Tirai', 'Obras'];
+      case 'angkut':
+        return ['Ojek', 'Pindahan', 'Pick up', 'Antar paket', 'Antar sekolah', 'Belanja'];
       default:
         return [];
     }
@@ -1025,6 +1121,20 @@ class AppUtilsLabel {
         return 'Laundry Kebersihan';
       case 'catering':
         return 'Catering Masak';
+      case 'bengkel':
+        return 'Bengkel Servis Kendaraan Motor';
+      case 'kebun':
+        return 'Tukang Kebun Pertanian';
+      case 'asuh':
+        return 'Penitipan Anak Pengasuh';
+      case 'sewa_acara':
+        return 'Sewa Perlengkapan Acara Tenda Kursi';
+      case 'salon':
+        return 'Salon Potong Rambut';
+      case 'jahit':
+        return 'Penjahit Permak';
+      case 'angkut':
+        return 'Antar Jemput Angkut Barang Ojek';
       default:
         return v;
     }

@@ -20,7 +20,7 @@ import '../controllers/complaint_controller.dart';
 import '../core/core.dart';
 import '../core/models.dart';
 import '../core/models_extra.dart';
-import '../core/ui_helpers.dart' show pilihAlasanTolak;
+import '../core/ui_helpers.dart' show pilihAlasanTolak, PemilihPeta;
 import 'chat_view.dart' show ChatAction;
 import 'verification_view.dart';
 
@@ -526,35 +526,10 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                     style: const TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(height: 8),
-                SizedBox(
-                  height: 190,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: FlutterMap(
-                      options: MapOptions(
-                        initialCenter: pusat,
-                        initialZoom: 16,
-                        onTap: (_, p) => setState(() => _titik = p),
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.example.talagasari_hub',
-                        ),
-                        MarkerLayer(markers: [
-                          Marker(
-                            point: _titik ?? pusat,
-                            width: 40,
-                            height: 40,
-                            alignment: Alignment.topCenter,
-                            child: const Icon(Icons.location_on,
-                                size: 40, color: Colors.red),
-                          ),
-                        ]),
-                      ],
-                    ),
-                  ),
+                PemilihPeta(
+                  titik: _titik ?? pusat,
+                  tinggi: 190,
+                  onChanged: (p) => setState(() => _titik = p),
                 ),
                 const SizedBox(height: 4),
                 Text('cmp_map_hint'.tr,

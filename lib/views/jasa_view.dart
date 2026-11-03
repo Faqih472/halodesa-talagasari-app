@@ -12,10 +12,12 @@
 
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../controllers/auth_controller.dart';
@@ -169,10 +171,12 @@ class _TabJasaViewState extends State<TabJasaView> {
   final MapController _map = MapController();
   final TextEditingController _cari = TextEditingController();
   bool _petaBesar = false;
+  int _mode = 0; // 0 = Cari Jasa, 1 = Butuh Pekerja
 
   @override
   void initState() {
     super.initState();
+    Get.find<LowonganController>().segarkanSemua();
     _cari.text = _svc.kataKunci.value;
     WidgetsBinding.instance.addPostFrameCallback((_) => _svc.muatJikaLama());
   }
@@ -264,8 +268,56 @@ class _TabJasaViewState extends State<TabJasaView> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           backgroundColor: primary,
-          title: const Text('Cari Jasa Lokal'),
+          title: Text(_mode == 0 ? 'Cari Jasa Lokal' : 'Butuh Pekerja'),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(44),
+            child: Row(children: [
+              for (final e in [
+                [0, 'Cari Jasa', Icons.handyman_outlined],
+                [1, 'Butuh Pekerja', Icons.groups_outlined],
+              ])
+                Expanded(
+                  child: InkWell(
+                    onTap: () => setState(() => _mode = e[0] as int),
+                    child: Container(
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        border: Border(
+                            bottom: BorderSide(
+                                color: _mode == e[0] ? Colors.white : Colors.transparent,
+                                width: 3)),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(e[2] as IconData,
+                            size: 18,
+                            color: _mode == e[0] ? Colors.white : Colors.white70),
+                        const SizedBox(width: 6),
+                        Text(e[1] as String,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _mode == e[0] ? Colors.white : Colors.white70)),
+                        if (e[0] == 1 && Get.find<LowonganController>().badge > 0)
+                          Container(
+                            margin: const EdgeInsets.only(left: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                                color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                            child: Text('${Get.find<LowonganController>().badge}',
+                                style: const TextStyle(color: Colors.white, fontSize: 10)),
+                          ),
+                      ]),
+                    ),
+                  ),
+                ),
+            ]),
+          ),
           actions: [
+            IconButton(
+              tooltip: 'Panduan & contoh',
+              icon: const Icon(Icons.help_outline, color: Colors.white),
+              onPressed: () => Get.to(() => const PanduanJasaView()),
+            ),
             Stack(
               alignment: Alignment.center,
               children: [
@@ -294,7 +346,9 @@ class _TabJasaViewState extends State<TabJasaView> {
             const ChatAction(),
           ],
         ),
-        body: RefreshIndicator(
+        body: _mode == 1
+            ? LowonganTab(primary: primary)
+            : RefreshIndicator(
           color: primary,
           onRefresh: () async {
             await _svc.fetchAktif();
@@ -375,9 +429,41 @@ class _TabJasaViewState extends State<TabJasaView> {
                 ),
               ),
 
+              const SliverToBoxAdapter(
+                child: _PanduanRingkas(
+                  judul: 'Apa itu Cari Jasa? Contoh nyatanya',
+                  isi:
+                      'Tempat menemukan warga yang ahli di satu bidang, lalu memesan hasil kerjanya. Anda juga bisa membuka jasa sendiri supaya dikenal warga.',
+                  contoh: [
+                    'AC di rumah tidak dingin: cari "Teknisi", pilih yang terdekat, tekan Pesan.',
+                    'Mau pengajian 40 nasi kotak: cari "Catering", pilih menu, tulis jumlah dan jam antar.',
+                    'Genteng bocor atau mau cat rumah: cari "Tukang / Konstruksi" (tukang bangunan, cat, keramik, atap, las).',
+                    'Anda pandai memasak atau memperbaiki barang: tekan Daftarkan Jasa Saya agar orang bisa memesan.',
+                    'Butuh orang untuk BEKERJA, bukan memesan hasil? Pindah ke tab Butuh Pekerja.',
+                  ],
+                ),
+              ),
+
               // ── Banner jasa saya / ajakan ──
               SliverToBoxAdapter(
-                child: FadeSlideIn(child: _bannerSaya(saya, primary)),
+                child: FadeSlideIn(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _bannerSaya(saya, primary),
+                      if (saya != null && _svc.bisaTambahJasa)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 10),
+                          child: TextButton.icon(
+                            onPressed: () => showFormJasa(),
+                            icon: const Icon(Icons.add_business_outlined, size: 18),
+                            label: Text(
+                                'Tambah jasa lain (${_svc.jasaSaya.length}/${ServiceController.maksJasa})'),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
 
               // ── Cari + filter ──
@@ -647,6 +733,9 @@ class _TabJasaViewState extends State<TabJasaView> {
                       _pil(
                           ServiceModel.labelStatusSekarang(saya.statusSekarang()),
                           ServiceModel.warnaStatusSekarang(saya.statusSekarang())),
+                    if (_svc.jasaSaya.length > 1)
+                      _pil('${_svc.jasaSaya.length} jasa', Colors.indigo,
+                          ikon: Icons.storefront_outlined),
                     if (baru > 0)
                       _pil('$baru pesanan baru', Colors.red.shade700,
                           ikon: Icons.notifications_active_outlined),
@@ -661,42 +750,8 @@ class _TabJasaViewState extends State<TabJasaView> {
     );
   }
 
-  Widget _chipKategori(String aktif, Color primary) {
-    final filters = <Map<String, String>>[
-      {'value': 'semua', 'label': 'Semua'},
-      ...AppUtils.daftarKategoriJasa,
-    ];
-    return SizedBox(
-      height: 50,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        children: filters.map((f) {
-          final bool on = aktif == f['value'];
-          final Color c = f['value'] == 'semua'
-              ? primary
-              : AppTheme.kategoriJasaColor(f['value']!);
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(f['label']!),
-              selected: on,
-              onSelected: (_) => _svc.setFilter(f['value']!),
-              selectedColor: c.withOpacity(0.15),
-              backgroundColor: Colors.white,
-              labelStyle: TextStyle(
-                color: on ? c : AppTheme.textSecondary,
-                fontWeight: on ? FontWeight.w600 : FontWeight.normal,
-                fontSize: 12,
-              ),
-              side: BorderSide(color: on ? c : Colors.grey.shade300),
-              showCheckmark: false,
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
+  Widget _chipKategori(String aktif, Color primary) =>
+      _FilterKategoriBar(aktif: aktif, primary: primary, onPilih: _svc.setFilter);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -2081,6 +2136,7 @@ class _FormJasaViewState extends State<FormJasaView> {
   final TextEditingController _cTag = TextEditingController();
 
   bool _satuanDiubah = false;
+  bool _tarifManual = false; // true bila penyedia mengetik tarif sendiri
   bool _fotoSiap = false;
   List<PortofolioFoto> _fotoLama = [];
   List<String> _lamaTersisa = [];
@@ -2100,7 +2156,7 @@ class _FormJasaViewState extends State<FormJasaView> {
             alamatUsaha: u?.alamatPenuh ?? '',
             lat: u?.lokasiLat ?? -6.239265,
             lng: u?.lokasiLng ?? 106.530200,
-            tarifSatuan: ServiceModel.satuanBawaan(kat0),
+            tarifSatuan: PanduanTarif.untuk(kat0).satuan.first,
           );
     _cNama = TextEditingController(text: _in.namaUsaha);
     _cDesk = TextEditingController(text: _in.deskripsi);
@@ -2109,14 +2165,16 @@ class _FormJasaViewState extends State<FormJasaView> {
     _cWa = TextEditingController(text: _in.whatsapp);
     _cAlamat = TextEditingController(text: _in.alamatUsaha);
     _cMulai = TextEditingController(
-        text: _in.tarifMulai > 0 ? '${_in.tarifMulai}' : '');
+        text: _in.tarifMulai > 0 ? RibuanFormatter.format(_in.tarifMulai) : '');
     _cMaks = TextEditingController(
-        text: _in.tarifMaks > 0 ? '${_in.tarifMaks}' : '');
+        text: _in.tarifMaks > 0 ? RibuanFormatter.format(_in.tarifMaks) : '');
     if (e != null) {
       _satuanDiubah = true;
+      _tarifManual = true;
       _muatFoto(e.id);
     } else {
       _fotoSiap = true;
+      _isiTarif(paksa: true);
     }
   }
 
@@ -2144,7 +2202,84 @@ class _FormJasaViewState extends State<FormJasaView> {
     });
   }
 
-  int _angka(String s) => int.tryParse(s.trim()) ?? 0;
+  PanduanTarif get _pt => PanduanTarif.untuk(_in.kategori);
+
+  /// Satuan yang relevan untuk kategori ini (ditambah satuan lama bila beda).
+  List<String> get _opsiSatuan {
+    final l = [..._pt.satuan];
+    if (!l.contains(_in.tarifSatuan)) l.add(_in.tarifSatuan);
+    return l;
+  }
+
+  /// Isi tarif mulai/sampai dengan kisaran awal (kecuali sudah diketik sendiri).
+  void _isiTarif({bool paksa = false}) {
+    if (_tarifManual && !paksa) return;
+    final m = _pt.mulai[_in.tarifSatuan];
+    final x = _pt.maks[_in.tarifSatuan];
+    _cMulai.text = m == null ? '' : RibuanFormatter.format(m);
+    _cMaks.text = x == null ? '' : RibuanFormatter.format(x);
+    _tarifManual = false;
+  }
+
+  Widget _kotakTarif(Color primary) {
+    final pt = _pt;
+    final String sat = _in.tarifSatuan;
+    final int? m = pt.mulai[sat];
+    final int? x = pt.maks[sat];
+    final int ini = _angka(_cMulai.text);
+    String? peringatan;
+    if (ini > 0 && m != null && x != null) {
+      if (ini < m * 0.5) {
+        peringatan = 'Jauh di bawah kisaran umum. Pastikan tarif ini sudah menutup biaya Anda.';
+      } else if (ini > x * 1.5) {
+        peringatan = 'Jauh di atas kisaran umum. Warga mungkin ragu memesan.';
+      }
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.green.shade100)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              m != null && x != null
+                  ? 'Kisaran umum ${AppUtils.labelKategoriJasa(_in.kategori)} ($sat): ${LetterModel.rupiah('$m')} sampai ${LetterModel.rupiah('$x')}'
+                  : 'Belum ada kisaran untuk satuan ini. Isi sesuai tarif Anda.',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+          const SizedBox(height: 4),
+          const Text('Contoh harga pekerjaan yang biasa:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          for (final c in pt.contoh)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text('• $c', style: const TextStyle(fontSize: 12, height: 1.35)),
+            ),
+          if (peringatan != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(peringatan,
+                  style: TextStyle(fontSize: 12, color: Colors.orange.shade900)),
+            ),
+          Row(children: [
+            TextButton(
+              onPressed: () => setState(() => _isiTarif(paksa: true)),
+              child: const Text('Pakai kisaran ini'),
+            ),
+            const Expanded(
+                child: Text('Perkiraan umum, bukan harga tetap atau data resmi.',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textSecondary))),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  int _angka(String s) => int.tryParse(s.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
 
   // ── Kartu seksi ──
   Widget _seksi(String judul, IconData ikon, List<Widget> isi, {String? catatan}) {
@@ -2263,11 +2398,10 @@ class _FormJasaViewState extends State<FormJasaView> {
     final cNama = TextEditingController(text: paket?.nama ?? '');
     final cDesk = TextEditingController(text: paket?.deskripsi ?? '');
     final cHarga = TextEditingController(
-        text: (paket != null && paket.harga > 0) ? '${paket.harga}' : '');
+        text: (paket != null && paket.harga > 0) ? RibuanFormatter.format(paket.harga) : '');
+    final List<String> opsiPaket = [..._opsiSatuan];
     String satuan = paket?.satuan ?? _in.tarifSatuan;
-    if (!ServiceModel.daftarSatuan.contains(satuan)) {
-      satuan = ServiceModel.daftarSatuan.last;
-    }
+    if (!opsiPaket.contains(satuan)) opsiPaket.add(satuan);
     String? galat;
 
     final hasil = await Get.dialog<PaketJasa>(
@@ -2297,16 +2431,22 @@ class _FormJasaViewState extends State<FormJasaView> {
                 TextField(
                   controller: cHarga,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  inputFormatters: [RibuanFormatter()],
                   decoration: const InputDecoration(
                       labelText: 'Harga (Rp)',
                       helperText: 'Kosongkan bila harga nego'),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                      'Contoh harga: ${_pt.contoh.take(2).join('; ')}',
+                      style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.3)),
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: satuan,
                   decoration: const InputDecoration(labelText: 'Satuan'),
-                  items: ServiceModel.daftarSatuan
+                  items: opsiPaket
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
                   onChanged: (v) => setD(() => satuan = v ?? satuan),
@@ -2539,60 +2679,19 @@ class _FormJasaViewState extends State<FormJasaView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: SizedBox(
-            height: 210,
-            child: FlutterMap(
-              mapController: _map,
-              options: MapOptions(
-                initialCenter: titik,
-                initialZoom: 15.5,
-                onTap: (_, p) => setState(() {
+        PemilihPeta(
+          key: ValueKey('${_in.lat}_${_in.lng}'),
+          titik: titik,
+          warna: k,
+          onChanged: (p) => _in.lat == p.latitude && _in.lng == p.longitude
+              ? null
+              : setState(() {
                   _in.lat = p.latitude;
                   _in.lng = p.longitude;
                 }),
-                interactionOptions: const InteractionOptions(
-                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.talagasari_hub',
-                ),
-                MarkerLayer(markers: [
-                  Marker(
-                    point: titik,
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.topCenter,
-                    child: Icon(Icons.location_on, size: 44, color: k),
-                  ),
-                ]),
-                const RichAttributionWidget(
-                  attributions: [
-                    TextSourceAttribution('© OpenStreetMap contributors'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                  'Ketuk peta untuk memindahkan pin.\n${_in.lat.toStringAsFixed(5)}, ${_in.lng.toStringAsFixed(5)}',
-                  style: const TextStyle(
-                      fontSize: 11.5, color: AppTheme.textSecondary, height: 1.35)),
-            ),
-            TextButton.icon(
-              onPressed: _lokasiSaya,
-              icon: const Icon(Icons.my_location, size: 18),
-              label: const Text('Lokasi saya'),
-            ),
-          ],
+          onAlamat: (a) {
+            if (_cAlamat.text.trim().isEmpty) _cAlamat.text = a;
+          },
         ),
         const SizedBox(height: 6),
         TextFormField(
@@ -2760,25 +2859,25 @@ class _FormJasaViewState extends State<FormJasaView> {
                     labelText: 'Nama usaha / panggilan jasa (opsional)',
                     hintText: 'Kosongkan bila memakai nama sendiri'),
               ),
-              DropdownButtonFormField<String>(
+              _FieldKategori(
+                label: 'Kategori jasa',
                 value: _in.kategori,
-                isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Kategori jasa'),
-                items: AppUtils.daftarKategoriJasa
-                    .map((k) => DropdownMenuItem(
-                          value: k['value'],
-                          child: Text(k['label']!),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() {
-                  if (v == null) return;
+                onPilih: (v) => setState(() {
                   _in.kategori = v;
-                  if (!_satuanDiubah) _in.tarifSatuan = ServiceModel.satuanBawaan(v);
+                  if (!_satuanDiubah || !PanduanTarif.untuk(v).satuan.contains(_in.tarifSatuan)) {
+                    _in.tarifSatuan = PanduanTarif.untuk(v).satuan.first;
+                  }
+                  _isiTarif();
                 }),
               ),
               const SizedBox(height: 14),
               _blokTag(primary),
               const SizedBox(height: 14),
+              _BoxContoh(
+                judul: 'Contoh deskripsi layanan untuk ${AppUtils.labelKategoriJasa(_in.kategori)}',
+                contoh: InfoKategoriJasa.untuk(_in.kategori).contohDeskripsi,
+                onPilih: (t) => setState(() => _cDesk.text = t),
+              ),
               TextFormField(
                 controller: _cDesk,
                 keyboardType: TextInputType.multiline,
@@ -2819,13 +2918,31 @@ class _FormJasaViewState extends State<FormJasaView> {
 
             // ── Tarif & layanan ──
             _seksi('Tarif & Cara Layanan', Icons.payments_outlined, [
+              DropdownButtonFormField<String>(
+                value: _opsiSatuan.contains(_in.tarifSatuan)
+                    ? _in.tarifSatuan
+                    : _opsiSatuan.first,
+                decoration: const InputDecoration(
+                    labelText: 'Tarif dihitung per apa?',
+                    helperText: 'Hanya satuan yang cocok untuk kategori ini'),
+                items: _opsiSatuan
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .toList(),
+                onChanged: (v) => setState(() {
+                  _satuanDiubah = true;
+                  _in.tarifSatuan = v ?? _in.tarifSatuan;
+                  _isiTarif();
+                }),
+              ),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: _cMulai,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      inputFormatters: [RibuanFormatter()],
+                      onChanged: (_) => setState(() => _tarifManual = true),
                       decoration: const InputDecoration(
                           labelText: 'Tarif mulai (Rp)',
                           helperText: 'Kosong = nego'),
@@ -2836,27 +2953,15 @@ class _FormJasaViewState extends State<FormJasaView> {
                     child: TextFormField(
                       controller: _cMaks,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      inputFormatters: [RibuanFormatter()],
+                      onChanged: (_) => setState(() => _tarifManual = true),
                       decoration: const InputDecoration(
                           labelText: 'Sampai (Rp)', helperText: 'Opsional'),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: ServiceModel.daftarSatuan.contains(_in.tarifSatuan)
-                    ? _in.tarifSatuan
-                    : ServiceModel.daftarSatuan.last,
-                decoration: const InputDecoration(labelText: 'Satuan tarif'),
-                items: ServiceModel.daftarSatuan
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                    .toList(),
-                onChanged: (v) => setState(() {
-                  _satuanDiubah = true;
-                  _in.tarifSatuan = v ?? _in.tarifSatuan;
-                }),
-              ),
+              _kotakTarif(primary),
               const SizedBox(height: 14),
               const Text('Lokasi pengerjaan',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
@@ -3058,6 +3163,7 @@ class _BuatPesananViewState extends State<BuatPesananView> {
   TimeOfDay? _jam;
   late String _mode;
   List<File> _foto = [];
+  LatLng? _titikAntar;
 
   ServiceModel get s => widget.service;
 
@@ -3172,8 +3278,8 @@ class _BuatPesananViewState extends State<BuatPesananView> {
       jam: _jam == null ? '' : '${_dua(_jam!.hour)}:${_dua(_jam!.minute)}',
       mode: _mode,
       alamat: datang ? _cAlamat.text : (s.alamatUsaha.isEmpty ? 'Di tempat penyedia' : s.alamatUsaha),
-      lat: datang ? u.lokasiLat : s.lokasiLat,
-      lng: datang ? u.lokasiLng : s.lokasiLng,
+      lat: datang ? (_titikAntar?.latitude ?? u.lokasiLat) : s.lokasiLat,
+      lng: datang ? (_titikAntar?.longitude ?? u.lokasiLng) : s.lokasiLng,
     );
     if (o == null) {
       showSnack(false, '', _ord.errorMsg.value);
@@ -3313,6 +3419,11 @@ class _BuatPesananViewState extends State<BuatPesananView> {
               ),
             ],
             _judulSeksi('2. Jelaskan kebutuhan'),
+            _BoxContoh(
+              judul: 'Contoh cara menulis kebutuhan',
+              contoh: InfoKategoriJasa.untuk(widget.service.kategori).contohPesanan,
+              onPilih: (t) => setState(() => _cDesk.text = t),
+            ),
             TextFormField(
               controller: _cDesk,
               maxLines: 4,
@@ -3391,6 +3502,18 @@ class _BuatPesananViewState extends State<BuatPesananView> {
               Text(ServiceModel.labelMode(s.modeLayanan),
                   style: const TextStyle(fontSize: 13)),
             const SizedBox(height: 8),
+            if (_mode == 'datang')
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: PemilihPeta(
+                  titik: _titikAntar ??
+                      LatLng(_auth.currentUser.value?.lokasiLat ?? s.lokasiLat,
+                          _auth.currentUser.value?.lokasiLng ?? s.lokasiLng),
+                  tinggi: 170,
+                  onChanged: (p) => _titikAntar = p,
+                  onAlamat: (a) => setState(() => _cAlamat.text = a),
+                ),
+              ),
             if (_mode == 'datang')
               TextFormField(
                 controller: _cAlamat,
@@ -4950,11 +5073,44 @@ class DasborJasaView extends StatelessWidget {
               ],
             ),
           ),
-          body: TabBarView(
+          body: Column(
+            children: [
+              if (svc.jasaSaya.length > 1 || svc.bisaTambahJasa)
+                SizedBox(
+                  height: 52,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                    children: [
+                      for (final j in svc.jasaSaya)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            avatar: Icon(AppTheme.kategoriJasaIcon(j.kategori),
+                                size: 16, color: AppTheme.kategoriJasaColor(j.kategori)),
+                            label: Text(j.nama, style: const TextStyle(fontSize: 12)),
+                            selected: j.id == saya.id,
+                            onSelected: (_) => svc.pilihJasa(j.id),
+                          ),
+                        ),
+                      if (svc.bisaTambahJasa)
+                        ActionChip(
+                          avatar: const Icon(Icons.add, size: 16),
+                          label: Text(
+                              'Tambah jasa (${svc.jasaSaya.length}/${ServiceController.maksJasa})',
+                              style: const TextStyle(fontSize: 12)),
+                          onPressed: () => showFormJasa(),
+                        ),
+                    ],
+                  ),
+                ),
+              Expanded(child: TabBarView(
             children: [
               _DsbRingkasan(saya: saya),
               _DaftarPesanan(sumber: ord.masuk, sebagaiPenyedia: true),
               _DsbUlasan(saya: saya),
+            ],
+          )),
             ],
           ),
         ),
@@ -5083,6 +5239,16 @@ class _DsbRingkasan extends StatelessWidget {
                       showSnack(ok, v ? 'Jasa kembali aktif.' : 'Jasa disembunyikan sementara.',
                           svc.errorMsg.value);
                     },
+                  ),
+                if (!saya.diblokir && !saya.dikunci)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => dialogHapusJasa(saya),
+                      icon: Icon(Icons.delete_outline, size: 18, color: Colors.red.shade700),
+                      label: Text('Hapus jasa ini',
+                          style: TextStyle(color: Colors.red.shade700)),
+                    ),
                   ),
               ],
             ),
@@ -5782,4 +5948,1923 @@ class _AdminJasaTabState extends State<AdminJasaTab> {
       ),
     );
   }
+}
+
+
+// ═════════════════════════════════════════════════════════════
+// PANDUAN & CONTOH (untuk warga awam)
+// ═════════════════════════════════════════════════════════════
+
+/// Kotak berisi contoh yang bisa diketuk untuk mengisi kolom otomatis.
+class _BoxContoh extends StatelessWidget {
+  final String judul;
+  final List<String> contoh;
+  final void Function(String) onPilih;
+  const _BoxContoh(
+      {required this.judul, required this.contoh, required this.onPilih});
+
+  @override
+  Widget build(BuildContext context) {
+    if (contoh.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+          color: Colors.amber.shade50,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.amber.shade200)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.lightbulb_outline, size: 18, color: Colors.amber.shade800),
+            const SizedBox(width: 6),
+            Expanded(
+                child: Text(judul,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13))),
+          ]),
+          const SizedBox(height: 4),
+          const Text('Ketuk salah satu contoh untuk mengisi otomatis, lalu ubah sesuai keadaan Anda.',
+              style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+          const SizedBox(height: 6),
+          for (final c in contoh)
+            InkWell(
+              onTap: () => onPilih(c),
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                    color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                child: Text(c, style: const TextStyle(fontSize: 12.5, height: 1.35)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kartu ringkas "Apa ini? Contoh nyatanya" di bagian atas layar jasa.
+/// Status buka/tutup diingat, jadi tidak terbuka terus setiap membuka aplikasi.
+class _PanduanRingkas extends StatefulWidget {
+  final String judul;
+  final String isi;
+  final List<String> contoh;
+  const _PanduanRingkas(
+      {required this.judul, required this.isi, required this.contoh});
+
+  @override
+  State<_PanduanRingkas> createState() => _PanduanRingkasState();
+}
+
+class _PanduanRingkasState extends State<_PanduanRingkas> {
+  late final String _kunci = 'panduan_buka_${widget.judul.hashCode}';
+  bool _buka = true;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      _buka = GetStorage().read<bool>(_kunci) ?? true;
+    } catch (_) {}
+  }
+
+  void _simpan(bool v) {
+    _buka = v;
+    try {
+      GetStorage().write(_kunci, v);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.shade100)),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: _buka,
+          onExpansionChanged: _simpan,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+          leading: Icon(Icons.info_outline, color: Colors.blue.shade700),
+          title: Text(widget.judul,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.isi, style: const TextStyle(fontSize: 13, height: 1.4)),
+            const SizedBox(height: 8),
+            const Text('Contoh nyata:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+            for (final c in widget.contoh)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('• '),
+                    Expanded(
+                        child: Text(c, style: const TextStyle(fontSize: 12.5, height: 1.35))),
+                  ],
+                ),
+              ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => Get.to(() => const PanduanJasaView()),
+                icon: const Icon(Icons.menu_book_outlined, size: 18),
+                label: const Text('Baca panduan lengkap'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Halaman panduan lengkap fitur Jasa.
+class PanduanJasaView extends StatelessWidget {
+  const PanduanJasaView({super.key});
+
+  Widget _jalur(IconData ikon, Color c, String judul, String untuk,
+      String contoh, List<String> langkah) {
+    return kartu(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            CircleAvatar(
+                backgroundColor: c.withOpacity(0.12), child: Icon(ikon, color: c)),
+            const SizedBox(width: 10),
+            Expanded(
+                child: Text(judul,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold))),
+          ]),
+          const SizedBox(height: 8),
+          Text(untuk, style: const TextStyle(fontSize: 13, height: 1.4)),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+                color: c.withOpacity(0.07), borderRadius: BorderRadius.circular(8)),
+            child: Text('Contoh: $contoh',
+                style: const TextStyle(fontSize: 12.5, height: 1.4)),
+          ),
+          const SizedBox(height: 8),
+          for (int i = 0; i < langkah.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${i + 1}. ', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Expanded(child: Text(langkah[i], style: const TextStyle(fontSize: 12.5, height: 1.35))),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color primary = AppTheme.primaryColor(Get.find<AuthController>().role);
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(title: const Text('Panduan Fitur Jasa'), backgroundColor: primary),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          kartu(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: const Text(
+                'Fitur Jasa adalah tempat warga Desa Talagasari saling membantu: yang butuh bantuan bisa menemukan orang yang ahli, yang punya keahlian bisa mendapat pelanggan, dan yang butuh tenaga atau mencari pekerjaan bisa saling bertemu. Semua dilakukan antarwarga yang identitasnya sudah terverifikasi.',
+                style: TextStyle(fontSize: 13.5, height: 1.45)),
+          ),
+          _jalur(
+              Icons.search,
+              AppTheme.kategoriJasaColor('teknisi'),
+              '1. Cari jasa (saya butuh bantuan)',
+              'Pakai ini kalau Anda ingin MEMBAYAR orang ahli untuk mengerjakan sesuatu sampai selesai.',
+              'AC di rumah tidak dingin. Anda cari "Teknisi", pilih yang terdekat dan bagus ulasannya, lalu pesan.',
+              [
+                'Buka menu Jasa, lihat peta dan daftar, atau ketik yang dicari.',
+                'Ketuk penyedia untuk melihat profil, harga, jadwal, dan ulasan.',
+                'Tekan Pesan, tulis keluhan Anda dengan jelas (ada contohnya di layar).',
+                'Tunggu penyedia menerima, lalu sepakati harga lewat obrolan.',
+                'Setelah selesai, beri bintang dan ulasan.',
+              ]),
+          _jalur(
+              Icons.storefront_outlined,
+              AppTheme.kategoriJasaColor('catering'),
+              '2. Buka jasa (saya punya keahlian)',
+              'Pakai ini kalau Anda ingin MENAWARKAN keahlian atau usaha supaya dikenal dan dipesan warga.',
+              'Bu Sari pandai membuat nasi kotak. Ia daftar di Catering, isi menu dan harga, lalu warga memesan untuk pengajian.',
+              [
+                'Buka menu Jasa, tekan Daftarkan Jasa Saya.',
+                'Pilih kategori, tulis deskripsi (ada contoh yang bisa diketuk), isi tarif dan lokasi.',
+                'Tambahkan foto hasil kerja supaya orang percaya.',
+                'Tunggu Admin memeriksa. Setelah disetujui, jasa Anda tampil di peta.',
+                'Terima pesanan di Dasbor Jasa.',
+              ]),
+          _jalur(
+              Icons.groups_outlined,
+              AppTheme.kategoriJasaColor('tukang'),
+              '3. Butuh pekerja (saya mencari orang untuk bekerja)',
+              'Pakai ini kalau Anda atau usaha Anda perlu TENAGA orang untuk ikut bekerja dengan upah, bukan sekadar memesan hasil.',
+              'Laundry Anda ramai dan butuh 2 orang bagian setrika. Atau Anda renovasi rumah dan butuh 3 kuli bangunan harian.',
+              [
+                'Buka menu Jasa, pindah ke tab Butuh Pekerja.',
+                'Tekan Pasang Lowongan, pilih jenis pekerjaan, jumlah orang, dan upah (ada contoh yang bisa diketuk).',
+                'Pelamar akan mengirim lamaran. Anda bisa lihat pesan, nomor telepon, dan menawar lewat obrolan.',
+                'Tekan Terima untuk yang cocok, Tolak untuk yang belum cocok.',
+                'Kalau kuota sudah penuh, lowongan tertutup otomatis.',
+              ]),
+          _jalur(
+              Icons.work_outline,
+              AppTheme.kategoriJasaColor('laundry'),
+              '4. Cari kerja (saya ingin melamar)',
+              'Pakai ini kalau Anda mencari pekerjaan, pekerjaan harian, atau tambahan penghasilan.',
+              'Anda lulusan SMK dan mau kerja harian. Anda buka Butuh Pekerja, pilih lowongan tukang bangunan, lalu tekan Lamar.',
+              [
+                'Buka menu Jasa, pindah ke tab Butuh Pekerja.',
+                'Cari lowongan yang cocok, baca upah, lokasi, dan syaratnya.',
+                'Tekan Lamar, tulis perkenalan singkat (ada contoh yang bisa diketuk).',
+                'Pantau jawabannya di menu Lamaran Saya. Anda juga mendapat pemberitahuan.',
+              ]),
+          kartu(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('Apa bedanya "Cari jasa" dan "Butuh pekerja"?',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 6),
+                Text(
+                    '• Cari jasa: Anda membeli HASIL. Contoh: panggil tukang AC, AC dingin lagi, selesai. Penyedia bekerja dengan caranya sendiri.\n'
+                    '• Butuh pekerja: Anda mencari TENAGA. Contoh: butuh 3 orang membantu renovasi selama 6 hari. Pekerja ikut aturan kerja Anda dan diupah harian, borongan, atau bulanan.',
+                    style: TextStyle(fontSize: 13, height: 1.5)),
+              ],
+            ),
+          ),
+          _judulSeksi('Semua kategori jasa dan contohnya', ikon: Icons.category_outlined),
+          for (final k in LowonganModel.daftarKategori)
+            _kartuKategori(k['value']!, k['label']!),
+          _judulSeksi('Aturan main', ikon: Icons.rule),
+          kartu(
+            child: const Text(
+                '• Memasang jasa, memasang lowongan, dan melamar wajib sudah verifikasi identitas (satu kali di menu Akun).\n'
+                '• Pembayaran dilakukan langsung antara kedua pihak. Aplikasi tidak memproses uang.\n'
+                '• Sepakati upah, jam kerja, dan tempat kerja lewat obrolan sebelum mulai.\n'
+                '• Waspada: jangan transfer uang muka ke orang yang belum dikenal. Laporkan jasa atau lowongan yang mencurigakan ke Admin.\n'
+                '• Lowongan yang melanggar (misalnya meminta uang dari pelamar) akan ditutup Admin.',
+                style: TextStyle(fontSize: 13, height: 1.5)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _kartuKategori(String value, String label) {
+    final info = InfoKategoriJasa.untuk(value);
+    final Color c = AppTheme.kategoriJasaColor(value);
+    return kartu(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.zero,
+      child: Theme(
+        data: ThemeData(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          leading: Icon(AppTheme.kategoriJasaIcon(value), color: c),
+          title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          children: [
+            Text(info.apaItu, style: const TextStyle(fontSize: 13, height: 1.4)),
+            const SizedBox(height: 8),
+            const Text('Contoh jasa yang bisa dibuka:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+            for (final j in info.contohJasa)
+              Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Text('• $j', style: const TextStyle(fontSize: 12.5))),
+            const SizedBox(height: 8),
+            const Text('Contoh lowongan "Butuh Pekerja":',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+            for (final l in info.contohLowongan)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                    '• ${l.judul} (${LowonganModel.labelJenis(l.jenis)}, sekitar ${LetterModel.rupiah('${PatokanUpah.untuk(value, l.jenis, LowonganModel.satuanBawaan(l.jenis)).tipikal}')} ${LowonganModel.satuanBawaan(l.jenis)})',
+                    style: const TextStyle(fontSize: 12.5, height: 1.35)),
+              ),
+            const SizedBox(height: 4),
+            const Text('Angka upah hanyalah perkiraan umum, bukan data resmi. Sesuaikan dengan kesepakatan.',
+                style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// BUTUH PEKERJA — tab daftar lowongan
+// ═════════════════════════════════════════════════════════════
+class LowonganTab extends StatefulWidget {
+  final Color primary;
+  const LowonganTab({super.key, required this.primary});
+
+  @override
+  State<LowonganTab> createState() => _LowonganTabState();
+}
+
+class _LowonganTabState extends State<LowonganTab> {
+  final LowonganController _c = Get.find<LowonganController>();
+  final TextEditingController _cari = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _cari.text = _c.kataKunci.value;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _c.segarkanSemua());
+  }
+
+  @override
+  void dispose() {
+    _cari.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pasang() async {
+    if (!await wajibVerifikasi()) return;
+    Get.to(() => const FormLowonganView());
+  }
+
+  Widget _aksi(IconData ikon, String teks, VoidCallback onTap, {int badge = 0}) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300)),
+          child: Column(children: [
+            Stack(clipBehavior: Clip.none, children: [
+              Icon(ikon, color: widget.primary),
+              if (badge > 0)
+                Positioned(
+                  right: -8,
+                  top: -6,
+                  child: CircleAvatar(
+                      radius: 8,
+                      backgroundColor: Colors.red,
+                      child: Text('$badge',
+                          style: const TextStyle(fontSize: 9, color: Colors.white))),
+                ),
+            ]),
+            const SizedBox(height: 4),
+            Text(teks,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color primary = widget.primary;
+    return RefreshIndicator(
+      color: primary,
+      onRefresh: _c.segarkanSemua,
+      child: Obx(() {
+        final list = _c.hasil;
+        final String kat = _c.filterKategori.value;
+        final String jen = _c.filterJenis.value;
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 28),
+          children: [
+            const _PanduanRingkas(
+              judul: 'Apa itu "Butuh Pekerja"?',
+              isi:
+                  'Tempat warga mencari TENAGA kerja atau mencari PEKERJAAN. Bukan untuk memesan jasa sampai selesai (itu ada di tab Cari Jasa). Di sini orang bekerja dan diberi upah.',
+              contoh: [
+                'Bapak Andi renovasi rumah: "Butuh 3 kuli bangunan harian, Rp 120.000 per hari". Warga yang cocok menekan Lamar.',
+                'Laundry Bu Rina ramai: "Butuh 2 karyawan bagian setrika, gaji bulanan". Pelamar mengirim pesan perkenalan.',
+                'Anda mencari kerja sampingan: buka daftar ini, pilih yang dekat rumah, tekan Lamar.',
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Row(children: [
+                _aksi(Icons.add_circle_outline, 'Pasang\nLowongan', _pasang),
+                const SizedBox(width: 8),
+                _aksi(Icons.campaign_outlined, 'Lowongan\nSaya', () async {
+                  await Get.to(() => const LowonganSayaView());
+                }, badge: _c.badge),
+                const SizedBox(width: 8),
+                _aksi(Icons.send_outlined, 'Lamaran\nSaya', () async {
+                  await Get.to(() => const LamaranSayaView());
+                }),
+              ]),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: TextField(
+                controller: _cari,
+                onChanged: (v) => _c.kataKunci.value = v,
+                decoration: InputDecoration(
+                  hintText: 'Cari lowongan: kuli, setrika, guru ngaji…',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: EdgeInsets.zero,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300)),
+                  enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300)),
+                ),
+              ),
+            ),
+            _FilterKategoriBar(
+                aktif: kat,
+                primary: primary,
+                denganUmum: true,
+                onPilih: (v) => _c.filterKategori.value = v),
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                children: [
+                  for (final k in [
+                    {'value': 'semua', 'label': 'Semua jenis'},
+                    ...LowonganModel.daftarJenis
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        label: Text(k['label']!, style: const TextStyle(fontSize: 12)),
+                        selected: jen == k['value'],
+                        onSelected: (_) => _c.filterJenis.value = k['value']!,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+              child: Text(
+                  _c.isLoading.value && list.isEmpty
+                      ? 'Memuat…'
+                      : '${list.length} lowongan dibuka',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            ),
+            if (!_c.isLoading.value && list.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: EmptyState(
+                  icon: Icons.work_outline,
+                  title: 'Belum ada lowongan',
+                  subtitle:
+                      'Belum ada warga yang mencari pekerja untuk pilihan ini. Anda bisa menjadi yang pertama memasang lowongan.',
+                ),
+              ),
+            for (final l in list)
+              _KartuLowongan(
+                  lowongan: l,
+                  onTap: () => Get.to(() => LowonganDetailView(lowongan: l))),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+Color _warnaStatusLow(LowonganModel l) => l.buka
+    ? Colors.green.shade700
+    : (l.status == 'pending' ? Colors.orange.shade800 : Colors.red.shade700);
+
+class _KartuLowongan extends StatelessWidget {
+  final LowonganModel lowongan;
+  final VoidCallback onTap;
+  final bool tampilStatus;
+  const _KartuLowongan(
+      {required this.lowongan, required this.onTap, this.tampilStatus = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = lowongan;
+    final Color c = AppTheme.kategoriJasaColor(l.kategori);
+    return kartu(
+      margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              CircleAvatar(
+                  radius: 20,
+                  backgroundColor: c.withOpacity(0.12),
+                  child: Icon(AppTheme.kategoriJasaIcon(l.kategori), color: c)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.judul,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14.5)),
+                    Text('${l.namaPemberi} • ${AppUtils.formatRelatif(l.createdAt)}',
+                        style: const TextStyle(
+                            fontSize: 11.5, color: AppTheme.textSecondary)),
+                  ],
+                ),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              _pil(LowonganModel.labelKategori(l.kategori), c),
+              _pil(LowonganModel.labelJenis(l.jenis), Colors.blueGrey),
+              _pil('Butuh ${l.sisa} orang', Colors.green.shade700, ikon: Icons.groups_outlined),
+              if (tampilStatus)
+                _pil(l.labelStatus, _warnaStatusLow(l)),
+            ]),
+            const SizedBox(height: 8),
+            _barisInfo(Icons.payments_outlined, l.labelUpah,
+                warna: Colors.green.shade800),
+            if (l.alamat.isNotEmpty) _barisInfo(Icons.place_outlined, l.alamat),
+            _barisInfo(Icons.event_available_outlined,
+                'Daftar sampai ${AppUtils.formatTanggal(l.batas)}'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// Form pasang / ubah lowongan
+// ═════════════════════════════════════════════════════════════
+class FormLowonganView extends StatefulWidget {
+  final LowonganModel? existing;
+  const FormLowonganView({super.key, this.existing});
+
+  @override
+  State<FormLowonganView> createState() => _FormLowonganViewState();
+}
+
+class _FormLowonganViewState extends State<FormLowonganView> {
+  final LowonganController _c = Get.find<LowonganController>();
+  final AuthController _auth = Get.find<AuthController>();
+  final _judul = TextEditingController();
+  final _desk = TextEditingController();
+  final _syarat = TextEditingController();
+  final _upah = TextEditingController();
+  final _alamat = TextEditingController();
+  final _wa = TextEditingController();
+  String _kategori = 'tukang';
+  String _jenis = 'harian';
+  String _satuan = 'per hari';
+  bool _upahManual = false; // true bila pengguna mengetik upah sendiri
+  bool _nego = false;
+  int _jumlah = 1;
+  DateTime? _mulai;
+  late DateTime _batas;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    final u = _auth.currentUser.value;
+    _batas = DateTime.now().add(const Duration(days: 14));
+    _mulai = _hari(_batas).add(const Duration(days: 1));
+    if (e != null) {
+      _judul.text = e.judul;
+      _desk.text = e.deskripsi;
+      _syarat.text = e.syarat;
+      _upah.text = e.upah > 0 ? RibuanFormatter.format(e.upah) : '';
+      _upahManual = true;
+      _alamat.text = e.alamat;
+      _wa.text = e.whatsapp;
+      _kategori = e.kategori;
+      _jenis = e.jenis;
+      _satuan = e.satuanUpah;
+      _nego = e.upahNego;
+      _jumlah = e.jumlahOrang;
+      _mulai = e.mulai;
+      _batas = e.batas;
+    } else {
+      _alamat.text = u?.alamatLengkap ?? '';
+      _wa.text = u?.nomorTelepon ?? '';
+      _terapkanPatokan(paksa: true);
+    }
+  }
+
+  PatokanUpah get _patokan => PatokanUpah.untuk(_kategori, _jenis, _satuan);
+
+  int get _upahAngka => int.tryParse(_upah.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+
+  /// Isi upah otomatis dengan patokan (kecuali pengguna sudah mengetik sendiri).
+  void _terapkanPatokan({bool paksa = false}) {
+    if (_upahManual && !paksa) return;
+    _upah.text = RibuanFormatter.format(_patokan.tipikal);
+    _upahManual = false;
+  }
+
+  @override
+  void dispose() {
+    for (final x in [_judul, _desk, _syarat, _upah, _alamat, _wa]) {
+      x.dispose();
+    }
+    super.dispose();
+  }
+
+  void _pakai(ContohLowongan c) {
+    setState(() {
+      _judul.text = c.judul;
+      _desk.text = c.deskripsi;
+      _jenis = c.jenis;
+      _satuan = LowonganModel.satuanBawaan(c.jenis);
+      _jumlah = c.jumlah;
+      _upahManual = false;
+      _terapkanPatokan(paksa: true);
+    });
+  }
+
+  DateTime _hari(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  /// Mulai kerja minimal 1 hari setelah pendaftaran ditutup
+  DateTime get _mulaiMin => _hari(_batas).add(const Duration(days: 1));
+
+  Future<void> _tanggal(bool batas) async {
+    final now = _hari(DateTime.now());
+    final DateTime awal = batas ? now : _mulaiMin;
+    DateTime ini = batas ? _batas : (_mulai ?? _mulaiMin);
+    if (ini.isBefore(awal)) ini = awal;
+    final p = await showDatePicker(
+      context: context,
+      initialDate: ini,
+      firstDate: awal,
+      lastDate: batas ? now.add(const Duration(days: 90)) : _mulaiMin.add(const Duration(days: 180)),
+    );
+    if (p == null) return;
+    setState(() {
+      if (batas) {
+        _batas = p;
+        // tanggal mulai ikut digeser bila jadi kurang dari batas + 1 hari
+        if (_mulai == null || _hari(_mulai!).isBefore(_mulaiMin)) _mulai = _mulaiMin;
+      } else {
+        _mulai = p;
+      }
+    });
+  }
+
+  Future<void> _kirim() async {
+    String? galat;
+    if (_judul.text.trim().length < 8) {
+      galat = 'Judul terlalu singkat. Tulis jelas, contoh: "Butuh 3 kuli bangunan harian".';
+    } else if (_desk.text.trim().length < 30) {
+      galat = 'Jelaskan pekerjaannya minimal 30 huruf: apa yang dikerjakan, jam kerja, dan tempatnya.';
+    } else if (_alamat.text.trim().length < 5) {
+      galat = 'Isi tempat kerja atau alamatnya.';
+    } else if (_wa.text.replaceAll(RegExp(r'[^0-9]'), '').length < 9) {
+      galat = 'Isi nomor WhatsApp yang bisa dihubungi.';
+    } else if (_mulai == null) {
+      galat = 'Pilih tanggal mulai bekerja.';
+    } else if (_hari(_mulai!).isBefore(_mulaiMin)) {
+      galat = 'Tanggal mulai kerja minimal 1 hari setelah pendaftaran ditutup (${AppUtils.formatTanggal(_mulaiMin)}).';
+    }
+    if (galat != null) {
+      showSnack(false, '', galat);
+      return;
+    }
+    final ok = await _c.simpan(
+      id: widget.existing?.id,
+      judul: _judul.text,
+      kategori: _kategori,
+      deskripsi: _desk.text,
+      syarat: _syarat.text,
+      jenis: _jenis,
+      jumlahOrang: _jumlah,
+      upah: _upahAngka,
+      satuanUpah: _satuan,
+      upahNego: _nego,
+      alamat: _alamat.text,
+      whatsapp: _wa.text,
+      mulai: _mulai,
+      batas: _batas,
+    );
+    if (ok) Get.back();
+    showSnack(ok,
+        widget.existing == null
+            ? 'Lowongan terkirim. Tayang setelah disetujui Admin.'
+            : 'Perubahan terkirim. Tayang lagi setelah disetujui Admin.',
+        _c.errorMsg.value);
+  }
+
+  Widget _t(TextEditingController c, String label, String hint,
+          {int min = 1,
+          int max = 1,
+          int len = 200,
+          bool angka = false,
+          bool ribuan = false,
+          void Function(String)? onChanged}) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: TextField(
+          controller: c,
+          minLines: min,
+          maxLines: max,
+          maxLength: len,
+          keyboardType: angka
+              ? TextInputType.number
+              : (max > 1 ? TextInputType.multiline : TextInputType.text),
+          onChanged: onChanged,
+          inputFormatters: ribuan
+              ? [RibuanFormatter()]
+              : (angka ? [FilteringTextInputFormatter.digitsOnly] : null),
+          decoration: InputDecoration(
+              labelText: label,
+              hintText: hint,
+              alignLabelWithHint: true,
+              counterText: '',
+              filled: true,
+              fillColor: Colors.white),
+        ),
+      );
+
+  /// Kotak patokan upah wajar + peringatan bila jauh dari patokan.
+  Widget _kotakPatokan() {
+    final p = _patokan;
+    final int u = _upahAngka;
+    String? peringatan;
+    if (u > 0) {
+      if (_satuan == 'per bulan' && _jenis != 'paruh_waktu' && u < PatokanUpah.umk) {
+        peringatan =
+            'Di bawah UMK Kabupaten Tangerang 2026 (${LetterModel.rupiah('${PatokanUpah.umk}')}). Karyawan tetap sebaiknya dibayar minimal UMK.';
+      } else if (u < p.min) {
+        peringatan = 'Lebih rendah dari patokan. Pekerja mungkin kurang tertarik.';
+      } else if (u > p.max) {
+        peringatan = 'Lebih tinggi dari patokan umum. Pastikan memang sesuai pekerjaannya.';
+      }
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.green.shade100)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+              'Patokan upah wajar (perkiraan): ${LetterModel.rupiah('${p.min}')} sampai ${LetterModel.rupiah('${p.max}')} ${p.satuan}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+          Text('Biasanya sekitar ${LetterModel.rupiah('${p.tipikal}')} ${p.satuan}. ${p.catatan}',
+              style: const TextStyle(fontSize: 12, height: 1.35)),
+          if (peringatan != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(peringatan,
+                  style: TextStyle(fontSize: 12, color: Colors.orange.shade900, height: 1.35)),
+            ),
+          Row(children: [
+            TextButton(
+              onPressed: () => setState(() => _terapkanPatokan(paksa: true)),
+              child: const Text('Pakai patokan'),
+            ),
+            const Expanded(
+                child: Text('Angka ini perkiraan umum, bukan data resmi.',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textSecondary))),
+          ]),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color primary = AppTheme.primaryColor(_auth.role);
+    final info = InfoKategoriJasa.untuk(_kategori);
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+          title: Text(widget.existing == null ? 'Pasang Lowongan' : 'Ubah Lowongan'),
+          backgroundColor: primary),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+        children: [
+          const Text(
+              'Isi selengkap mungkin supaya pelamar paham pekerjaannya. Lowongan diperiksa Admin dulu sebelum tayang (supaya aman dari penipuan). Setelah tayang, bisa Anda tutup kapan saja.',
+              style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.4)),
+          _judulSeksi('1. Pekerjaan apa?'),
+          _FieldKategori(
+            label: 'Bidang pekerjaan',
+            value: _kategori,
+            denganUmum: true,
+            onPilih: (v) => setState(() {
+              _kategori = v;
+              _terapkanPatokan();
+            }),
+          ),
+          const SizedBox(height: 6),
+          Text(info.apaItu,
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.35)),
+          const SizedBox(height: 10),
+          if (widget.existing == null)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.amber.shade200)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Bingung mengisi? Ketuk contoh ini:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  for (final c in [...PatokanUpah.templat(_kategori), ...info.contohLowongan])
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: ActionChip(
+                        label: Text(c.judul, style: const TextStyle(fontSize: 12)),
+                        onPressed: () => _pakai(c),
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  const Text('Setiap contoh sudah mengisi jenis kerja, jumlah orang, dan upah yang masuk akal. Isi hanya contoh, ubah sesuai kebutuhan Anda.',
+                      style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                ],
+              ),
+            ),
+          _t(_judul, 'Judul lowongan', 'Contoh: Butuh 3 kuli bangunan harian', len: 80),
+          _t(_desk, 'Tugas dan keterangan',
+              'Tulis apa yang dikerjakan, jam kerja, dan fasilitas (makan, transport).',
+              min: 4, max: 8, len: 800),
+          _t(_syarat, 'Syarat (boleh kosong)',
+              'Contoh: sehat, rajin, membawa alat sendiri, laki-laki/perempuan',
+              min: 2, max: 4, len: 300),
+          _judulSeksi('2. Jenis kerja, jumlah, dan upah'),
+          DropdownButtonFormField<String>(
+            value: _jenis,
+            decoration: const InputDecoration(
+                labelText: 'Jenis kerja', filled: true, fillColor: Colors.white),
+            items: [
+              for (final j in LowonganModel.daftarJenis)
+                DropdownMenuItem(value: j['value'], child: Text(j['label']!)),
+            ],
+            onChanged: (v) => setState(() {
+              _jenis = v ?? _jenis;
+              _satuan = LowonganModel.satuanBawaan(_jenis);
+              _terapkanPatokan();
+            }),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 10),
+            child: Text(
+                LowonganModel.daftarJenis
+                    .firstWhere((j) => j['value'] == _jenis)['info']!,
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          ),
+          Row(children: [
+            const Expanded(
+                child: Text('Jumlah orang yang dibutuhkan',
+                    style: TextStyle(fontWeight: FontWeight.w600))),
+            IconButton(
+                onPressed: _jumlah > 1 ? () => setState(() => _jumlah--) : null,
+                icon: const Icon(Icons.remove_circle_outline)),
+            Text('$_jumlah', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            IconButton(
+                onPressed: _jumlah < 50 ? () => setState(() => _jumlah++) : null,
+                icon: const Icon(Icons.add_circle_outline)),
+          ]),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(
+              flex: 3,
+              child: _t(_upah, 'Upah (Rp)', 'Contoh: 120.000',
+                  len: 12, ribuan: true, onChanged: (_) => setState(() => _upahManual = true)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: DropdownButtonFormField<String>(
+                value: _satuan,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                    labelText: 'Satuan', filled: true, fillColor: Colors.white),
+                items: [
+                  for (final s in LowonganModel.daftarSatuan)
+                    DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13))),
+                ],
+                onChanged: (v) => setState(() {
+                  _satuan = v ?? _satuan;
+                  _terapkanPatokan();
+                }),
+              ),
+            ),
+          ]),
+          _kotakPatokan(),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Upah bisa dinego'),
+            subtitle: const Text('Kosongkan upah bila ingin dibicarakan langsung.',
+                style: TextStyle(fontSize: 12)),
+            value: _nego,
+            onChanged: (v) => setState(() => _nego = v),
+          ),
+          _judulSeksi('3. Kapan dan di mana?'),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.event_available_outlined),
+            title: const Text('Pendaftaran dibuka sampai'),
+            subtitle: Text(AppUtils.formatTanggal(_batas)),
+            trailing: TextButton(onPressed: () => _tanggal(true), child: const Text('Ubah')),
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.play_circle_outline),
+            title: const Text('Mulai bekerja (wajib)'),
+            subtitle: Text(
+                '${_mulai == null ? 'Belum dipilih' : AppUtils.formatTanggal(_mulai!)}\n'
+                'Minimal 1 hari setelah pendaftaran ditutup. Contoh: pendaftaran sampai 16 November, mulai kerja paling cepat 17 November.'),
+            isThreeLine: true,
+            trailing: TextButton(onPressed: () => _tanggal(false), child: const Text('Pilih')),
+          ),
+          _t(_alamat, 'Tempat kerja', 'Contoh: Kp. Talagasari RT 02/RW 03, Cikupa', len: 150),
+          _t(_wa, 'Nomor WhatsApp', 'Contoh: 081234567890', len: 16, angka: true),
+          const SizedBox(height: 4),
+          Obx(() => SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _c.isSubmitting.value ? null : _kirim,
+                  child: _c.isSubmitting.value
+                      ? loadingChild()
+                      : Text(widget.existing == null ? 'Kirim ke Admin' : 'Kirim Perubahan ke Admin'),
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// Detail lowongan + daftar pelamar (untuk pemilik) + Lamar
+// ═════════════════════════════════════════════════════════════
+class LowonganDetailView extends StatefulWidget {
+  final LowonganModel lowongan;
+  const LowonganDetailView({super.key, required this.lowongan});
+
+  @override
+  State<LowonganDetailView> createState() => _LowonganDetailViewState();
+}
+
+class _LowonganDetailViewState extends State<LowonganDetailView> {
+  final LowonganController _c = Get.find<LowonganController>();
+  final AuthController _auth = Get.find<AuthController>();
+  late LowonganModel _l;
+
+  @override
+  void initState() {
+    super.initState();
+    _l = widget.lowongan;
+    _c.fetchLamaranSaya();
+    if (_l.uid == _auth.currentUser.value?.uid) _c.fetchMilik();
+  }
+
+  /// Ambil data terbaru dari daftar controller agar status ikut berubah
+  LowonganModel get _terbaru {
+    for (final x in [..._c.milik, ..._c.daftar]) {
+      if (x.id == _l.id) return x;
+    }
+    return _l;
+  }
+
+  Future<void> _lamar() async {
+    if (!await wajibVerifikasi()) return;
+    await Get.to(() => LamarView(lowongan: _terbaru));
+    await _c.fetchLamaranSaya();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _tutup(bool buka) async {
+    final ok = await _c.ubahStatus(_terbaru, buka ? 'aktif' : 'ditutup');
+    if (mounted) setState(() {});
+    showSnack(ok, buka ? 'Lowongan dibuka lagi.' : 'Lowongan ditutup.', _c.errorMsg.value);
+  }
+
+  Future<void> _hapus() async {
+    final y = await Get.dialog<bool>(AlertDialog(
+      title: const Text('Hapus lowongan?'),
+      content: const Text('Lowongan dan semua lamaran di dalamnya akan dihapus. Tindakan ini tidak bisa dibatalkan.'),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
+        TextButton(onPressed: () => Get.back(result: true), child: const Text('Hapus')),
+      ],
+    ));
+    if (y != true) return;
+    final ok = await _c.hapus(_terbaru);
+    if (ok) Get.back();
+    showSnack(ok, 'Lowongan dihapus.', _c.errorMsg.value);
+  }
+
+  Future<void> _blokir() async {
+    final a = await pilihAlasanTolak('jasa', judul: 'Tutup lowongan ini');
+    if (a == null) return;
+    final ok = await _c.ubahStatus(_terbaru, 'blokir', alasan: a);
+    if (ok) Get.back();
+    showSnack(ok, 'Lowongan ditutup.', _c.errorMsg.value);
+  }
+
+  Widget _tilePelamar(LamaranModel x) {
+    final l = _terbaru;
+    final Color w = x.status == 'diterima'
+        ? Colors.green.shade700
+        : (x.status == 'ditolak' ? Colors.red.shade700 : Colors.orange.shade800);
+    return kartu(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundImage: x.foto.isNotEmpty ? ImageUtil.provider(x.foto) : null,
+              child: x.foto.isEmpty ? Text(x.nama.isEmpty ? '?' : x.nama[0].toUpperCase()) : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+                child: Text(x.nama,
+                    style: const TextStyle(fontWeight: FontWeight.bold))),
+            _pil(x.labelStatus, w),
+          ]),
+          const SizedBox(height: 8),
+          Text(x.pesan, style: const TextStyle(fontSize: 13, height: 1.4)),
+          if (x.tawaran > 0)
+            _barisInfo(Icons.payments_outlined,
+                'Menawar upah: ${LetterModel.rupiah('${x.tawaran}')} ${l.satuanUpah}'),
+          if (x.telepon.isNotEmpty) _barisInfo(Icons.phone_outlined, x.telepon),
+          const SizedBox(height: 6),
+          Wrap(spacing: 8, children: [
+            OutlinedButton.icon(
+              onPressed: () => _bukaChat(uid: x.uid, nama: x.nama, foto: x.foto),
+              icon: const Icon(Icons.chat_bubble_outline, size: 16),
+              label: const Text('Obrolan'),
+            ),
+            if (x.telepon.isNotEmpty)
+              OutlinedButton.icon(
+                onPressed: () => _bukaWa(x.telepon,
+                    'Halo ${x.nama}, saya menanggapi lamaran Anda untuk "${l.judul}".'),
+                icon: const Icon(Icons.message_outlined, size: 16),
+                label: const Text('WhatsApp'),
+              ),
+            if (x.status == 'baru') ...[
+              OutlinedButton(
+                onPressed: () async {
+                  final ok = await _c.putuskan(x, l, terima: false);
+                  if (mounted) setState(() {});
+                  showSnack(ok, 'Pelamar diberi tahu.', _c.errorMsg.value);
+                },
+                style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
+                child: const Text('Tolak', style: TextStyle(color: Colors.red)),
+              ),
+              ElevatedButton(
+                onPressed: l.penuh
+                    ? null
+                    : () async {
+                        final ok = await _c.putuskan(x, l, terima: true);
+                        if (mounted) setState(() {});
+                        showSnack(ok, 'Pelamar diterima dan diberi tahu.', _c.errorMsg.value);
+                      },
+                child: const Text('Terima', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ]),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final l = _terbaru;
+      final u = _auth.currentUser.value;
+      final bool pemilik = u != null && l.uid == u.uid;
+      final bool admin = _auth.role == 'admin';
+      final Color primary = AppTheme.primaryColor(_auth.role);
+      final lam = _c.lamaranUntuk(l.id);
+      final pelamar = _c.lamaranMasuk.where((x) => x.lowonganId == l.id).toList();
+      final info = InfoKategoriJasa.untuk(l.kategori);
+
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: const Text('Detail Lowongan'),
+          backgroundColor: primary,
+          actions: [
+            if (pemilik)
+              PopupMenuButton<String>(
+                onSelected: (v) async {
+                  if (v == 'ubah') {
+                    await Get.to(() => FormLowonganView(existing: l));
+                    if (mounted) setState(() {});
+                  } else if (v == 'tutup') {
+                    _tutup(false);
+                  } else if (v == 'buka') {
+                    _tutup(true);
+                  } else if (v == 'hapus') {
+                    _hapus();
+                  }
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(value: 'ubah', child: Text('Ubah lowongan')),
+                  if (l.status == 'aktif' || l.status == 'pending' || l.status == 'ditolak')
+                    const PopupMenuItem(value: 'tutup', child: Text('Tutup lowongan')),
+                  if (l.status == 'ditutup' && l.disetujui)
+                    const PopupMenuItem(value: 'buka', child: Text('Buka lagi')),
+                  const PopupMenuItem(value: 'hapus', child: Text('Hapus')),
+                ],
+              ),
+            if (admin && !pemilik)
+              PopupMenuButton<String>(
+                onSelected: (v) => v == 'blokir' ? _blokir() : _hapus(),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'blokir', child: Text('Tutup (melanggar)')),
+                  PopupMenuItem(value: 'hapus', child: Text('Hapus')),
+                ],
+              ),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text(l.judul,
+                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              _pil(LowonganModel.labelKategori(l.kategori),
+                  AppTheme.kategoriJasaColor(l.kategori)),
+              _pil(LowonganModel.labelJenis(l.jenis), Colors.blueGrey),
+              _pil(l.labelStatus, _warnaStatusLow(l)),
+            ]),
+            if (l.status == 'pending' && pemilik)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+                child: const Text(
+                    'Lowongan ini sedang diperiksa Admin dan belum tampil ke warga. Anda mendapat pemberitahuan setelah disetujui.',
+                    style: TextStyle(fontSize: 12.5, height: 1.4)),
+              ),
+            if ((l.status == 'blokir' || l.status == 'ditolak') && l.alasan.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                    l.status == 'ditolak'
+                        ? 'Ditolak Admin: ${l.alasan}. Ubah lowongan lalu kirim ulang.'
+                        : 'Alasan ditutup: ${l.alasan}',
+                    style: TextStyle(color: Colors.red.shade700, height: 1.4)),
+              ),
+            kartu(
+              margin: const EdgeInsets.only(top: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _barisInfo(Icons.payments_outlined, l.labelUpah,
+                      warna: Colors.green.shade800, size: 14),
+                  _barisInfo(Icons.groups_outlined,
+                      'Butuh ${l.jumlahOrang} orang • sudah diterima ${l.diterima} • sisa ${l.sisa}'),
+                  if (l.alamat.isNotEmpty) _barisInfo(Icons.place_outlined, l.alamat),
+                  _barisInfo(Icons.event_available_outlined,
+                      'Pendaftaran sampai ${AppUtils.formatTanggal(l.batas)}'),
+                  if (l.mulai != null)
+                    _barisInfo(Icons.play_circle_outline,
+                        'Mulai bekerja ${AppUtils.formatTanggal(l.mulai!)}'),
+                ],
+              ),
+            ),
+            _judulSeksi('Tugas dan keterangan'),
+            Text(l.deskripsi, style: const TextStyle(height: 1.45)),
+            if (l.syarat.isNotEmpty) ...[
+              _judulSeksi('Syarat'),
+              Text(l.syarat, style: const TextStyle(height: 1.45)),
+            ],
+            _judulSeksi('Pemberi kerja'),
+            kartu(
+              child: Row(children: [
+                CircleAvatar(
+                  backgroundImage:
+                      l.fotoPemberi.isNotEmpty ? ImageUtil.provider(l.fotoPemberi) : null,
+                  child: l.fotoPemberi.isEmpty
+                      ? Text(l.namaPemberi.isEmpty ? '?' : l.namaPemberi[0].toUpperCase())
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                    child: Text(l.namaPemberi,
+                        style: const TextStyle(fontWeight: FontWeight.bold))),
+                if (!pemilik) ...[
+                  IconButton(
+                    tooltip: 'Obrolan',
+                    icon: const Icon(Icons.chat_bubble_outline),
+                    onPressed: () =>
+                        _bukaChat(uid: l.uid, nama: l.namaPemberi, foto: l.fotoPemberi),
+                  ),
+                  IconButton(
+                    tooltip: 'WhatsApp',
+                    icon: const Icon(Icons.message_outlined),
+                    onPressed: () => _bukaWa(l.whatsapp,
+                        'Halo ${l.namaPemberi}, saya melihat lowongan "${l.judul}" di aplikasi Halodesa Talagasari.'),
+                  ),
+                ],
+              ]),
+            ),
+            const SizedBox(height: 14),
+            if (!pemilik) ...[
+              if (lam != null)
+                kartu(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Lamaran Anda: ${lam.labelStatus}',
+                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Text(lam.pesan, style: const TextStyle(fontSize: 13)),
+                      if (lam.status == 'baru')
+                        TextButton(
+                          onPressed: () async {
+                            final ok = await _c.tarikLamaran(lam);
+                            if (mounted) setState(() {});
+                            showSnack(ok, 'Lamaran ditarik.', _c.errorMsg.value);
+                          },
+                          child: const Text('Tarik lamaran'),
+                        ),
+                    ],
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: l.buka ? _lamar : null,
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    label: Text(l.buka ? 'Lamar Sekarang' : l.labelStatus,
+                        style: const TextStyle(color: Colors.white)),
+                  ),
+                ),
+              if (lam == null && l.buka)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6),
+                  child: Text(
+                      'Setelah melamar, pemberi kerja akan menjawab. Anda mendapat pemberitahuan di aplikasi.',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                ),
+            ] else ...[
+              _judulSeksi('Pelamar (${pelamar.length})', ikon: Icons.groups_outlined),
+              if (pelamar.isEmpty)
+                Text(
+                    'Belum ada yang melamar. Contoh cara menarik pelamar: tulis upah dan jam kerja dengan jelas, cantumkan tempat kerja, dan bagikan lowongan ini ke RT/RW atau grup warga.',
+                    style: TextStyle(fontSize: 12.5, height: 1.4, color: Colors.grey.shade700)),
+              for (final x in pelamar) _tilePelamar(x),
+            ],
+            if (!pemilik)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(
+                    'Tips aman: ${info.apaItu.isEmpty ? '' : ''}jangan membayar uang apa pun untuk bisa diterima bekerja. Lowongan yang meminta uang dari pelamar dapat dilaporkan ke Admin.',
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
+              ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+class LamarView extends StatefulWidget {
+  final LowonganModel lowongan;
+  const LamarView({super.key, required this.lowongan});
+
+  @override
+  State<LamarView> createState() => _LamarViewState();
+}
+
+class _LamarViewState extends State<LamarView> {
+  final LowonganController _c = Get.find<LowonganController>();
+  final AuthController _auth = Get.find<AuthController>();
+  final _pesan = TextEditingController();
+  final _telp = TextEditingController();
+  final _tawar = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _telp.text = _auth.currentUser.value?.nomorTelepon ?? '';
+  }
+
+  @override
+  void dispose() {
+    _pesan.dispose();
+    _telp.dispose();
+    _tawar.dispose();
+    super.dispose();
+  }
+
+  Future<void> _kirim() async {
+    if (_pesan.text.trim().length < 15) {
+      showSnack(false, '',
+          'Perkenalan terlalu singkat. Ceritakan siapa Anda, pengalaman, dan kapan bisa mulai (min. 15 huruf).');
+      return;
+    }
+    if (_telp.text.replaceAll(RegExp(r'[^0-9]'), '').length < 9) {
+      showSnack(false, '', 'Isi nomor telepon/WhatsApp yang bisa dihubungi.');
+      return;
+    }
+    final ok = await _c.lamar(widget.lowongan,
+        pesan: _pesan.text,
+        telepon: _telp.text,
+        tawaran: int.tryParse(_tawar.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0);
+    if (ok) Get.back();
+    showSnack(ok, 'Lamaran terkirim. Tunggu jawaban pemberi kerja.', _c.errorMsg.value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = widget.lowongan;
+    final info = InfoKategoriJasa.untuk(l.kategori);
+    final Color primary = AppTheme.primaryColor(_auth.role);
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(title: const Text('Kirim Lamaran'), backgroundColor: primary),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          kartu(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.judul, style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(l.labelUpah,
+                    style: TextStyle(color: Colors.green.shade800, fontSize: 13)),
+              ],
+            ),
+          ),
+          _BoxContoh(
+            judul: 'Contoh perkenalan singkat',
+            contoh: info.contohLamar,
+            onPilih: (t) => setState(() => _pesan.text = t),
+          ),
+          TextField(
+            controller: _pesan,
+            minLines: 4,
+            maxLines: 8,
+            maxLength: 400,
+            decoration: const InputDecoration(
+                labelText: 'Perkenalan singkat',
+                hintText: 'Siapa Anda, pengalaman, dan kapan bisa mulai bekerja',
+                alignLabelWithHint: true,
+                filled: true,
+                fillColor: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _telp,
+            keyboardType: TextInputType.phone,
+            maxLength: 16,
+            decoration: const InputDecoration(
+                labelText: 'Nomor telepon / WhatsApp',
+                counterText: '',
+                filled: true,
+                fillColor: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _tawar,
+            keyboardType: TextInputType.number,
+            inputFormatters: [RibuanFormatter()],
+            maxLength: 12,
+            decoration: InputDecoration(
+                labelText: 'Tawaran upah (boleh dikosongkan)',
+                helperText: 'Kosongkan bila setuju dengan upah: ${l.labelUpah}',
+                counterText: '',
+                filled: true,
+                fillColor: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          Obx(() => SizedBox(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _c.isSubmitting.value ? null : _kirim,
+                  child: _c.isSubmitting.value ? loadingChild() : const Text('Kirim Lamaran'),
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// Lowongan saya & Lamaran saya
+// ═════════════════════════════════════════════════════════════
+class LowonganSayaView extends StatefulWidget {
+  const LowonganSayaView({super.key});
+
+  @override
+  State<LowonganSayaView> createState() => _LowonganSayaViewState();
+}
+
+class _LowonganSayaViewState extends State<LowonganSayaView> {
+  final LowonganController _c = Get.find<LowonganController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _c.fetchMilik();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color primary = AppTheme.primaryColor(Get.find<AuthController>().role);
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(title: const Text('Lowongan Saya'), backgroundColor: primary),
+      body: RefreshIndicator(
+        onRefresh: _c.fetchMilik,
+        child: Obx(() {
+          final list = _c.milik;
+          if (list.isEmpty) {
+            return ListView(children: [
+              const SizedBox(height: 60),
+              EmptyState(
+                icon: Icons.campaign_outlined,
+                title: 'Belum ada lowongan',
+                subtitle:
+                    'Contoh: Anda butuh 2 orang membantu pindahan rumah. Buka tab Butuh Pekerja, tekan Pasang Lowongan, isi kebutuhan, dan tunggu pelamar.',
+              ),
+            ]);
+          }
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              for (final l in list)
+                Stack(children: [
+                  _KartuLowongan(
+                    lowongan: l,
+                    tampilStatus: true,
+                    onTap: () => Get.to(() => LowonganDetailView(lowongan: l)),
+                  ),
+                  Positioned(
+                    right: 28,
+                    top: 14,
+                    child: _pil('${_c.jumlahPelamar(l.id)} pelamar', Colors.indigo,
+                        ikon: Icons.person_outline),
+                  ),
+                ]),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class LamaranSayaView extends StatefulWidget {
+  const LamaranSayaView({super.key});
+
+  @override
+  State<LamaranSayaView> createState() => _LamaranSayaViewState();
+}
+
+class _LamaranSayaViewState extends State<LamaranSayaView> {
+  final LowonganController _c = Get.find<LowonganController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _c.fetchLamaranSaya();
+  }
+
+  Future<void> _buka(LamaranModel x) async {
+    LowonganModel? l;
+    for (final e in _c.daftar) {
+      if (e.id == x.lowonganId) l = e;
+    }
+    if (l == null) {
+      try {
+        final d = await FirebaseFirestore.instance
+            .collection('lowongan_warga')
+            .doc(x.lowonganId)
+            .get();
+        if (d.exists) l = LowonganModel.fromFirestore(d);
+      } catch (_) {}
+    }
+    if (l == null) {
+      showSnack(false, '', 'Lowongan ini sudah dihapus.');
+      return;
+    }
+    Get.to(() => LowonganDetailView(lowongan: l!));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color primary = AppTheme.primaryColor(Get.find<AuthController>().role);
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(title: const Text('Lamaran Saya'), backgroundColor: primary),
+      body: RefreshIndicator(
+        onRefresh: _c.fetchLamaranSaya,
+        child: Obx(() {
+          final list = _c.lamaranSaya;
+          if (list.isEmpty) {
+            return ListView(children: [
+              const SizedBox(height: 60),
+              EmptyState(
+                icon: Icons.send_outlined,
+                title: 'Belum ada lamaran',
+                subtitle:
+                    'Contoh: Anda melihat lowongan "Butuh 3 kuli bangunan harian", tekan Lamar, isi perkenalan, lalu kirim. Statusnya muncul di sini.',
+              ),
+            ]);
+          }
+          return ListView(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              for (final x in list)
+                kartu(
+                  margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                  child: InkWell(
+                    onTap: () => _buka(x),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Expanded(
+                              child: Text(x.judulLowongan,
+                                  style: const TextStyle(fontWeight: FontWeight.bold))),
+                          _pil(
+                              x.labelStatus,
+                              x.status == 'diterima'
+                                  ? Colors.green.shade700
+                                  : (x.status == 'ditolak'
+                                      ? Colors.red.shade700
+                                      : Colors.orange.shade800)),
+                        ]),
+                        const SizedBox(height: 4),
+                        Text(AppUtils.formatRelatif(x.createdAt),
+                            style: const TextStyle(
+                                fontSize: 11.5, color: AppTheme.textSecondary)),
+                        const SizedBox(height: 4),
+                        Text(x.pesan,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
+
+
+// ═════════════════════════════════════════════════════════════
+// PEMILIH KATEGORI BERKELOMPOK (mudah untuk warga awam)
+// ═════════════════════════════════════════════════════════════
+Future<String?> pilihKategoriJasa({String? terpilih, bool denganUmum = false}) {
+  return Get.bottomSheet<String>(
+    _SheetKategori(terpilih: terpilih, denganUmum: denganUmum),
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+  );
+}
+
+class _SheetKategori extends StatelessWidget {
+  final String? terpilih;
+  final bool denganUmum;
+  const _SheetKategori({this.terpilih, this.denganUmum = false});
+
+  List<String> _isi(KelompokJasa g) {
+    final r = [...g.isi];
+    if (denganUmum) {
+      r.remove('lainnya');
+      if (g.id == 'lainnya') r.add('umum');
+    }
+    return r;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double lebar = (MediaQuery.of(context).size.width - 16 * 2 - 10) / 2;
+    return SafeArea(
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.85,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            const Text('Pilih kategori',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            const Text(
+                'Pilih yang paling mirip dengan pekerjaannya. Contoh ada di bawah setiap nama.',
+                style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+            for (final g in AppUtils.kelompokJasa) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 16, bottom: 8),
+                child: Row(children: [
+                  Icon(g.ikon, size: 18, color: g.warna),
+                  const SizedBox(width: 6),
+                  Text(g.label.toUpperCase(),
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.6,
+                          color: g.warna)),
+                ]),
+              ),
+              Wrap(spacing: 10, runSpacing: 10, children: [
+                for (final k in _isi(g))
+                  SizedBox(
+                    width: lebar,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => Get.back(result: k),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        constraints: const BoxConstraints(minHeight: 96),
+                        decoration: BoxDecoration(
+                          color: terpilih == k
+                              ? g.warna.withOpacity(0.10)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: terpilih == k ? g.warna : Colors.grey.shade300,
+                              width: terpilih == k ? 1.8 : 1),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              CircleAvatar(
+                                  radius: 15,
+                                  backgroundColor: AppTheme.kategoriJasaColor(k).withOpacity(0.14),
+                                  child: Icon(AppTheme.kategoriJasaIcon(k),
+                                      size: 17, color: AppTheme.kategoriJasaColor(k))),
+                              const Spacer(),
+                              if (terpilih == k)
+                                Icon(Icons.check_circle, size: 18, color: g.warna),
+                            ]),
+                            const SizedBox(height: 6),
+                            Text(
+                                k == 'umum'
+                                    ? 'Pekerja Umum / Serabutan'
+                                    : AppUtils.labelKategoriJasa(k),
+                                style: const TextStyle(
+                                    fontSize: 12.5, fontWeight: FontWeight.bold, height: 1.2)),
+                            const SizedBox(height: 3),
+                            Text(AppUtils.contohKategoriJasa(k),
+                                style: const TextStyle(
+                                    fontSize: 11, color: AppTheme.textSecondary, height: 1.3)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ]),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Kolom kategori di form: menampilkan pilihan + contoh, ketuk untuk mengganti.
+class _FieldKategori extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool denganUmum;
+  final void Function(String) onPilih;
+  const _FieldKategori(
+      {required this.label,
+      required this.value,
+      required this.onPilih,
+      this.denganUmum = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color c = AppTheme.kategoriJasaColor(value);
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        final v = await pilihKategoriJasa(terpilih: value, denganUmum: denganUmum);
+        if (v != null) onPilih(v);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: c.withOpacity(0.5))),
+        child: Row(children: [
+          CircleAvatar(
+              backgroundColor: c.withOpacity(0.14),
+              child: Icon(AppTheme.kategoriJasaIcon(value), color: c)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                Text(
+                    value == 'umum'
+                        ? 'Pekerja Umum / Serabutan'
+                        : AppUtils.labelKategoriJasa(value),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(AppUtils.contohKategoriJasa(value),
+                    style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+              ],
+            ),
+          ),
+          Text('Ganti', style: TextStyle(color: c, fontWeight: FontWeight.w600)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Filter dua tingkat: kelompok dulu, lalu isi kelompok (tidak penuh chip).
+class _FilterKategoriBar extends StatelessWidget {
+  final String aktif;
+  final Color primary;
+  final bool denganUmum;
+  final void Function(String) onPilih;
+  const _FilterKategoriBar(
+      {required this.aktif,
+      required this.primary,
+      required this.onPilih,
+      this.denganUmum = false});
+
+  Widget _chip(String teks, bool on, Color c, VoidCallback tap, {IconData? ikon}) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        avatar: ikon == null ? null : Icon(ikon, size: 16, color: on ? c : AppTheme.textSecondary),
+        label: Text(teks),
+        selected: on,
+        onSelected: (_) => tap(),
+        selectedColor: c.withOpacity(0.15),
+        backgroundColor: Colors.white,
+        labelStyle: TextStyle(
+            color: on ? c : AppTheme.textSecondary,
+            fontWeight: on ? FontWeight.w600 : FontWeight.normal,
+            fontSize: 12),
+        side: BorderSide(color: on ? c : Colors.grey.shade300),
+        showCheckmark: false,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    KelompokJasa? grup;
+    if (aktif.startsWith('grp:')) {
+      for (final g in AppUtils.kelompokJasa) {
+        if (g.id == aktif.substring(4)) grup = g;
+      }
+    } else if (aktif != 'semua') {
+      grup = AppUtils.kelompokDari(aktif);
+    }
+    List<String> anak = grup == null ? [] : [...grup.isi];
+    if (denganUmum && grup != null) {
+      anak.remove('lainnya');
+      if (grup.id == 'lainnya') anak.add('umum');
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 50,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              _chip('Semua', aktif == 'semua', primary, () => onPilih('semua'),
+                  ikon: Icons.apps),
+              for (final g in AppUtils.kelompokJasa)
+                _chip(g.label, grup?.id == g.id, g.warna, () => onPilih('grp:${g.id}'),
+                    ikon: g.ikon),
+            ],
+          ),
+        ),
+        if (grup != null && anak.length > 1)
+          SizedBox(
+            height: 42,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              children: [
+                _chip('Semua ${grup.label}', aktif == 'grp:${grup.id}', grup.warna,
+                    () => onPilih('grp:${grup!.id}')),
+                for (final k in anak)
+                  _chip(
+                      k == 'umum' ? 'Pekerja Umum' : AppUtils.labelKategoriJasa(k),
+                      aktif == k,
+                      AppTheme.kategoriJasaColor(k),
+                      () => onPilih(k)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+
+// ═════════════════════════════════════════════════════════════
+// HAPUS JASA OLEH PEMILIK
+// ═════════════════════════════════════════════════════════════
+Future<void> dialogHapusJasa(ServiceModel s) async {
+  const alasan = [
+    'Usaha tutup / berhenti',
+    'Pindah, tidak melayani lagi',
+    'Salah daftar, ingin buat ulang',
+    'Alasan lain',
+  ];
+  String pilih = alasan.first;
+  final ya = await Get.dialog<bool>(StatefulBuilder(
+    builder: (ctx, setD) => AlertDialog(
+      title: const Text('Hapus jasa ini?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('"${s.nama}" akan hilang dari pencarian dan tidak bisa dipesan lagi. '
+              'Riwayat pesanan lama tetap tersimpan. Penghapusan tidak bisa dibatalkan.',
+              style: const TextStyle(height: 1.4)),
+          const SizedBox(height: 8),
+          Text('Hanya libur atau sakit? Lebih baik matikan saja lewat "Tampilkan jasa saya" supaya bisa dibuka lagi.',
+              style: TextStyle(fontSize: 12.5, color: Colors.orange.shade900, height: 1.35)),
+          const SizedBox(height: 12),
+          const Text('Alasan menghapus:', style: TextStyle(fontWeight: FontWeight.bold)),
+          DropdownButton<String>(
+            value: pilih,
+            isExpanded: true,
+            items: [for (final a in alasan) DropdownMenuItem(value: a, child: Text(a))],
+            onChanged: (v) => setD(() => pilih = v ?? pilih),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
+        TextButton(
+            onPressed: () => Get.back(result: true),
+            child: Text('Hapus', style: TextStyle(color: Colors.red.shade700))),
+      ],
+    ),
+  ));
+  if (ya != true) return;
+  final svc = Get.find<ServiceController>();
+  final ok = await svc.hapusJasa(s, alasan: pilih);
+  showSnack(ok, 'Jasa sudah dihapus.', svc.errorMsg.value);
 }

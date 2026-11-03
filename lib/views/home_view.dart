@@ -24,6 +24,7 @@ import 'village_view.dart';
 import 'letter_view.dart';
 import 'admin_tools_view.dart';
 import 'info_form_view.dart';
+import 'info_sosial.dart';
 import '../controllers/village_controller.dart' show RetensiService;
 
 // ============================================================
@@ -491,22 +492,11 @@ class TabHomeView extends StatelessWidget {
   Widget _buildFilterChips(DataController dataCtrl, Color primaryColor) {
     final filters = [
       {'value': 'semua', 'label': 'Semua'},
-      {'value': 'pengumuman', 'label': 'Pengumuman'},
-      {'value': 'kegiatan', 'label': 'Kegiatan'},
-      {'value': 'kesehatan', 'label': 'Kesehatan'},
-      {'value': 'ketenagakerjaan', 'label': 'Loker'},
-      {'value': 'bantuan_sosial', 'label': 'Bansos'},
-      {'value': 'layanan_jasa', 'label': 'Layanan & Jasa'},
-      {'value': 'usaha_umkm', 'label': 'UMKM'},
-      {'value': 'pendidikan', 'label': 'Pendidikan'},
-      {'value': 'keagamaan', 'label': 'Keagamaan'},
-      {'value': 'olahraga_pemuda', 'label': 'Olahraga'},
-      {'value': 'lingkungan', 'label': 'Lingkungan'},
-      {'value': 'infrastruktur', 'label': 'Infrastruktur'},
-      {'value': 'keamanan', 'label': 'Keamanan'},
-      {'value': 'kehilangan', 'label': 'Kehilangan'},
-      {'value': 'lainnya', 'label': 'Lainnya'},
+      {'value': 'tersimpan', 'label': '🔖 Tersimpan'},
+      for (final g in NewsModel.kelompokInfo)
+        {'value': 'grp:${g['id']}', 'label': g['label'] as String},
     ];
+
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -660,9 +650,9 @@ class TabHomeView extends StatelessWidget {
                               width: 32, height: 28, child: _menuStaff(news)),
                       ],
                     ),
-                    if (news.fotoUrl.isNotEmpty) ...[
+                    if (news.semuaFoto.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      fotoFull(news.fotoUrl, radius: 14),
+                      GaleriFoto(foto: news.semuaFoto),
                     ],
                     const SizedBox(height: 12),
                     Text(news.judul,
@@ -731,6 +721,10 @@ class TabHomeView extends StatelessWidget {
                 ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+              child: InfoAksi(news: news),
+            ),
           ],
         ),
       ),
@@ -763,6 +757,7 @@ class TabHomeView extends StatelessWidget {
 
   void _showDetailBerita(
       BuildContext context, NewsModel news, Color primaryColor) {
+    catatDilihat(news.id);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -848,8 +843,8 @@ class TabHomeView extends StatelessWidget {
                         ]),
                       ],
                       const Divider(height: 24),
-                      if (news.fotoUrl.isNotEmpty) ...[
-                        fotoFull(news.fotoUrl, maksTinggi: 600),
+                      if (news.semuaFoto.isNotEmpty) ...[
+                        GaleriFoto(foto: news.semuaFoto, tinggi: 300),
                         const SizedBox(height: 14),
                       ],
                       Text(news.isi,
@@ -857,6 +852,8 @@ class TabHomeView extends StatelessWidget {
                               fontSize: 15,
                               color: AppTheme.textPrimary,
                               height: 1.6)),
+                      const SizedBox(height: 10),
+                      InfoAksi(news: news),
                       if (Get.find<AuthController>().isStaff) ...[
                         const SizedBox(height: 20),
                         SizedBox(
@@ -942,7 +939,22 @@ class TabHomeView extends StatelessWidget {
       case 'kehilangan':
         return Colors.pink.shade400;
       default:
-        return Colors.teal.shade600;
+        switch (NewsModel.idKelompok(kategori)) {
+          case 'kabar':
+            return Colors.teal.shade600;
+          case 'kegiatan':
+            return Colors.orange.shade700;
+          case 'sosial':
+            return Colors.pink.shade500;
+          case 'aman':
+            return Colors.blueGrey.shade600;
+          case 'ekonomi':
+            return Colors.amber.shade800;
+          case 'didik':
+            return Colors.cyan.shade700;
+          default:
+            return Colors.teal.shade600;
+        }
     }
   }
 
@@ -974,6 +986,30 @@ class TabHomeView extends StatelessWidget {
         return Icons.shield_outlined;
       case 'kehilangan':
         return Icons.search;
+      case 'rapat':
+        return Icons.groups_outlined;
+      case 'layanan_kantor':
+        return Icons.badge_outlined;
+      case 'transparansi':
+        return Icons.account_balance_outlined;
+      case 'kerja_bakti':
+        return Icons.handshake_outlined;
+      case 'acara_budaya':
+        return Icons.celebration_outlined;
+      case 'kabar_duka':
+        return Icons.sentiment_dissatisfied_outlined;
+      case 'kabar_bahagia':
+        return Icons.cake_outlined;
+      case 'galang_bantuan':
+        return Icons.favorite_border;
+      case 'peringatan':
+        return Icons.warning_amber_outlined;
+      case 'jual_beli':
+        return Icons.sell_outlined;
+      case 'pasar_murah':
+        return Icons.local_offer_outlined;
+      case 'beasiswa':
+        return Icons.workspace_premium_outlined;
       default:
         return Icons.campaign_outlined;
     }

@@ -19,7 +19,7 @@ import '../core/models.dart';
 import '../core/models_extra.dart';
 import '../core/ui_helpers.dart';
 import 'complaint_view.dart' show PengaduanDetailView;
-import 'jasa_view.dart' show JasaDetailView;
+import 'jasa_view.dart' show JasaDetailView, LowonganDetailView;
 
 // ─────────────────────────────────────────────────────────────
 // Peta sebaran pengaduan
@@ -706,6 +706,109 @@ class _FotoStaffTabState extends State<FotoStaffTab> {
                         onPressed: () => _setuju(f),
                         child: const Text('Setujui',
                             style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            );
+          },
+        );
+      }),
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// Antrian lowongan "Butuh Pekerja" — Admin setujui / tolak
+// ─────────────────────────────────────────────────────────────
+class LowonganStaffTab extends StatefulWidget {
+  const LowonganStaffTab({super.key});
+
+  @override
+  State<LowonganStaffTab> createState() => _LowonganStaffTabState();
+}
+
+class _LowonganStaffTabState extends State<LowonganStaffTab> {
+  final LowonganController _c = Get.find<LowonganController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _c.fetchAntrian();
+  }
+
+  Future<void> _tolak(LowonganModel l) async {
+    final a = await pilihAlasanTolak('lowongan', judul: 'Tolak lowongan');
+    if (a == null) return;
+    final ok = await _c.putuskanAdmin(l, setuju: false, alasan: a);
+    showSnack(ok, 'Lowongan ditolak.', _c.errorMsg.value);
+  }
+
+  Future<void> _setuju(LowonganModel l) async {
+    final ok = await _c.putuskanAdmin(l, setuju: true);
+    showSnack(ok, 'Lowongan disetujui dan tayang.', _c.errorMsg.value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _c.fetchAntrian,
+      child: Obx(() {
+        final list = _c.antrian;
+        if (list.isEmpty) {
+          return ListView(children: [
+            const SizedBox(height: 80),
+            EmptyState(
+                icon: Icons.work_outline,
+                title: 'Tidak ada lowongan yang menunggu',
+                subtitle: ''),
+          ]);
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: list.length,
+          itemBuilder: (_, i) {
+            final l = list[i];
+            return kartu(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l.judul,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  Text('${l.namaPemberi} • ${AppUtils.formatRelatif(l.createdAt)}',
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 6),
+                  Text(
+                      '${LowonganModel.labelKategori(l.kategori)} • ${LowonganModel.labelJenis(l.jenis)} • butuh ${l.jumlahOrang} orang\n${l.labelUpah}',
+                      style: const TextStyle(fontSize: 12.5, height: 1.4)),
+                  const SizedBox(height: 6),
+                  Text(l.deskripsi,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, height: 1.4)),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () => Get.to(() => LowonganDetailView(lowongan: l)),
+                      child: const Text('Lihat detail lengkap'),
+                    ),
+                  ),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _tolak(l),
+                        style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red)),
+                        child: const Text('Tolak', style: TextStyle(color: Colors.red)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _setuju(l),
+                        child: const Text('Setujui', style: TextStyle(color: Colors.white)),
                       ),
                     ),
                   ]),

@@ -32,9 +32,21 @@ service cloud.firestore {
       allow read, create: if login();
       // Kategori sensitif hanya boleh diterbitkan (published) oleh Kepala Desa.
       allow update: if isKades()
+        || (login() && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['jumlah_suka', 'jumlah_komentar', 'dilihat']))
         || (isAdmin() && !(request.resource.data.status == 'published'
              && request.resource.data.kategori in ['kesehatan', 'ketenagakerjaan', 'bantuan_sosial']));
       allow delete: if isStaff() || (login() && resource.data.authorId == request.auth.uid);
+      match /suka/{uid} {
+        allow read: if login();
+        allow create, delete: if login() && request.auth.uid == uid;
+      }
+      match /komentar/{kid} {
+        allow read: if login();
+        allow create: if login() && request.resource.data.uid == request.auth.uid
+          && request.resource.data.isi.size() <= 300;
+        allow delete: if isStaff() || (login() && resource.data.uid == request.auth.uid);
+      }
     }
     // ── Jasa lokal ──────────────────────────────────────────
     // penyedia_jasa : pemilik mengelola profilnya, Admin memverifikasi/memoderasi,
@@ -73,7 +85,9 @@ service cloud.firestore {
                     && ((request.resource.data.status == 'pending'
                          && resource.data.status in ['ditolak', 'aktif'])
                         || (request.resource.data.status in ['aktif', 'nonaktif']
-                            && resource.data.status in ['aktif', 'nonaktif'])))))
+                            && resource.data.status in ['aktif', 'nonaktif'])
+                        || (request.resource.data.status == 'dihapus'
+                            && resource.data.status in ['pending', 'ditolak', 'aktif', 'nonaktif']))))
         // 2) warga lain: hanya penghitung
         || (login() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
              'rating_avg', 'rating_count', 'rating_dist', 'aspek_sum', 'aspek_n',
@@ -105,6 +119,43 @@ service cloud.firestore {
       }
     }
 
+    // Butuh pekerja: lowongan dari warga + lamaran
+    match /lowongan_warga/{id} {
+      allow read: if login();
+      // lowongan baru WAJIB menunggu persetujuan Admin
+      allow create: if login() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.get('disetujui', false) == false;
+      allow update: if login() && (isAdmin()
+        || (resource.data.uid == request.auth.uid
+            && resource.data.status != 'blokir'
+            && request.resource.data.uid == resource.data.uid
+            && request.resource.data.get('disetujui', true) == resource.data.get('disetujui', true)
+            && (
+              // tutup lowongan / buka lagi (hanya yang pernah disetujui)
+              (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'alasan'])
+                && ((request.resource.data.status == 'ditutup'
+                      && resource.data.status in ['aktif', 'pending', 'ditolak'])
+                    || (request.resource.data.status == 'aktif'
+                      && resource.data.status == 'ditutup'
+                      && resource.data.get('disetujui', true) == true)))
+              // menambah jumlah pekerja yang diterima
+              || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['diterima'])
+              // ubah isi lowongan -> kembali menunggu persetujuan
+              || (request.resource.data.status == 'pending'
+                  && resource.data.status in ['pending', 'ditolak', 'aktif', 'ditutup'])
+            )));
+      allow delete: if login() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+    match /lamaran_kerja/{id} {
+      allow create: if login() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.status == 'baru';
+      allow read: if login() && (resource.data.uid == request.auth.uid
+                    || resource.data.pemberi_uid == request.auth.uid || isAdmin());
+      allow update: if login() && (resource.data.pemberi_uid == request.auth.uid || isAdmin());
+      allow delete: if login() && (resource.data.uid == request.auth.uid
+                    || resource.data.pemberi_uid == request.auth.uid || isAdmin());
+    }
     match /pesanan_jasa/{id} {
       allow create: if login()
         && request.resource.data.uid_pemesan == request.auth.uid
@@ -196,7 +247,11 @@ service cloud.firestore {
     // ── SOS, audit, laporan jasa ──
     match /sos/{id} {
       allow create: if login() && request.resource.data.uid == request.auth.uid;
-      allow read, update: if isStaff();
+      allow read: if isStaff();
+      allow update: if isStaff() || (login() && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['lat','lng','akurasi','sumber','status','updated_at'])
+        && request.resource.data.status in ['baru','aman']);
       // Pembersihan otomatis: hanya riwayat lebih dari 90 hari
       allow delete: if isStaff() && resource.data.created_at < request.time - duration.value(90, 'd');
     }

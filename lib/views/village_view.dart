@@ -167,6 +167,7 @@ class _SosWargaState extends State<_SosWarga>
   @override
   void initState() {
     super.initState();
+    _ctrl.siapkanLokasi();
     _anim = AnimationController(
         vsync: this, duration: const Duration(seconds: 3))
       ..addStatusListener((s) {
@@ -275,6 +276,29 @@ class _SosWargaState extends State<_SosWarga>
                 style: TextStyle(
                     color: Colors.green.shade700, fontWeight: FontWeight.w600)),
           ),
+        Obx(() => _ctrl.sosAktifId.value == null
+            ? const SizedBox.shrink()
+            : Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Column(children: [
+                  Text(
+                      _ctrl.sumber.value == 'gps'
+                          ? 'Lokasi GPS Anda sedang dibagikan ke petugas.'
+                          : 'Lokasi sementara terkirim. Nyalakan GPS agar posisi akurat.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await _ctrl.sudahAman();
+                      if (mounted) setState(() => _terkirim = false);
+                    },
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Saya sudah aman (hentikan)'),
+                  ),
+                ]),
+              )),
         const SizedBox(height: 28),
         SectionTitle('sos_numbers'.tr),
         ...AppContact.nomorPenting.map((n) => kartu(
@@ -370,7 +394,7 @@ class _SosStaf extends StatelessWidget {
               );
             }
             final s = list[i];
-            final bool baru = s.status == 'baru';
+            final bool baru = s.status == 'baru' || s.status == 'aman';
             return kartu(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -395,6 +419,10 @@ class _SosStaf extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(AppUtils.formatTanggalWaktu(s.createdAt),
+                      style: const TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
+                  Text(
+                      'Posisi diperbarui ${AppUtils.formatRelatif(s.updatedAt)} · ${s.sumber == 'gps' ? 'GPS langsung' : s.sumber == 'terakhir' ? 'lokasi terakhir perangkat' : 'lokasi profil (perkiraan)'}${s.akurasi > 0 ? ' · ±${s.akurasi.round()} m' : ''}',
                       style: const TextStyle(
                           fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 10),

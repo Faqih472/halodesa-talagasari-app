@@ -14,6 +14,7 @@ import 'package:get/get_rx/get_rx.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:intl/intl.dart';
 
+import 'models.dart' show NewsModel;
 import 'motif.dart';
 export 'motif.dart';
 
@@ -386,6 +387,8 @@ class AppTheme {
         return 'Ditolak';
       case 'diblokir':
         return 'Diblokir';
+      case 'dihapus':
+        return 'Dihapus pemilik';
       default:
         return 'Nonaktif';
     }
@@ -408,6 +411,23 @@ class AppTheme {
         return const Color(0xFF00838F);
       case 'catering':
         return const Color(0xFFC2185B);
+      case 'bengkel':
+        return const Color(0xFF455A64);
+      case 'kebun':
+        return const Color(0xFF558B2F);
+      case 'asuh':
+        return const Color(0xFFF9A825);
+      case 'sewa_acara':
+        return const Color(0xFF5E35B1);
+      case 'salon':
+        return const Color(0xFFD81B60);
+      case 'jahit':
+        return const Color(0xFF8D6E63);
+      case 'angkut':
+        return const Color(0xFF0277BD);
+      case 'lainnya':
+      case 'umum':
+        return const Color(0xFF607D8B);
       default:
         return warnaWarga;
     }
@@ -427,6 +447,23 @@ class AppTheme {
         return Icons.local_laundry_service_outlined;
       case 'catering':
         return Icons.restaurant_outlined;
+      case 'bengkel':
+        return Icons.two_wheeler;
+      case 'kebun':
+        return Icons.yard_outlined;
+      case 'asuh':
+        return Icons.child_care;
+      case 'sewa_acara':
+        return Icons.event_seat_outlined;
+      case 'salon':
+        return Icons.content_cut;
+      case 'jahit':
+        return Icons.checkroom_outlined;
+      case 'angkut':
+        return Icons.local_shipping_outlined;
+      case 'lainnya':
+      case 'umum':
+        return Icons.more_horiz;
       default:
         return Icons.handyman_outlined;
     }
@@ -600,23 +637,11 @@ class AppUtils {
   // ─────────────────────────────────────────────────────────
   // DAFTAR KATEGORI INFORMASI DESA
   // ─────────────────────────────────────────────────────────
-  static const List<Map<String, String>> daftarKategoriInfo = [
-    {'value': 'pengumuman', 'label': 'Pengumuman'},
-    {'value': 'kegiatan', 'label': 'Kegiatan Desa'},
-    {'value': 'layanan_jasa', 'label': 'Layanan & Jasa (wifi, servis, dll.)'},
-    {'value': 'usaha_umkm', 'label': 'Usaha & UMKM'},
-    {'value': 'pendidikan', 'label': 'Pendidikan'},
-    {'value': 'keagamaan', 'label': 'Keagamaan'},
-    {'value': 'olahraga_pemuda', 'label': 'Olahraga & Pemuda'},
-    {'value': 'lingkungan', 'label': 'Lingkungan & Kebersihan'},
-    {'value': 'infrastruktur', 'label': 'Infrastruktur & Fasilitas'},
-    {'value': 'keamanan', 'label': 'Keamanan & Ketertiban'},
-    {'value': 'kehilangan', 'label': 'Kehilangan & Penemuan'},
-    {'value': 'kesehatan', 'label': 'Kesehatan'},
-    {'value': 'ketenagakerjaan', 'label': 'Lowongan Kerja'},
-    {'value': 'bantuan_sosial', 'label': 'Bantuan Sosial'},
-    {'value': 'lainnya', 'label': 'Lainnya (tulis kategori sendiri)'},
-  ];
+  static List<Map<String, String>> get daftarKategoriInfo => [
+        for (final g in NewsModel.kelompokInfo)
+          for (final k in g['isi'] as List)
+            {'value': k['value'] as String, 'label': k['label'] as String}
+      ];
 
   /// Label kategori di form. Tanda seru (⚠️) HANYA tampil untuk staf
   /// (admin/kades); warga tidak melihat penanda ini.
@@ -631,13 +656,66 @@ class AppUtils {
   // DAFTAR KATEGORI JASA
   // ─────────────────────────────────────────────────────────
   static const List<Map<String, String>> daftarKategoriJasa = [
-    {'value': 'tukang', 'label': 'Tukang / Konstruksi'},
-    {'value': 'teknisi', 'label': 'Teknisi Elektronik'},
-    {'value': 'guru_les', 'label': 'Guru Les / Pengajar'},
-    {'value': 'fotografer', 'label': 'Fotografer / Videografer'},
-    {'value': 'laundry', 'label': 'Laundry / Kebersihan'},
-    {'value': 'catering', 'label': 'Catering / Masak'},
+    {'value': 'tukang', 'label': 'Tukang / Konstruksi', 'contoh': 'Tukang bangunan, cat, keramik, atap, las'},
+    {'value': 'teknisi', 'label': 'Teknisi Elektronik', 'contoh': 'Servis AC, kulkas, TV, laptop, HP'},
+    {'value': 'bengkel', 'label': 'Bengkel & Servis Kendaraan', 'contoh': 'Servis motor, tambal ban, ganti oli'},
+    {'value': 'laundry', 'label': 'Laundry / Kebersihan', 'contoh': 'Cuci-setrika, bersih rumah, cuci sofa'},
+    {'value': 'kebun', 'label': 'Tukang Kebun & Pertanian', 'contoh': 'Rapikan taman, tanam, panen, semprot'},
+    {'value': 'catering', 'label': 'Catering / Masak', 'contoh': 'Nasi kotak, tumpeng, kue, snack box'},
+    {'value': 'guru_les', 'label': 'Guru Les / Pengajar', 'contoh': 'Les sekolah, ngaji, bahasa, musik'},
+    {'value': 'asuh', 'label': 'Penitipan Anak & Pengasuh', 'contoh': 'Jaga anak, daycare rumahan, lansia'},
+    {'value': 'fotografer', 'label': 'Fotografer / Videografer', 'contoh': 'Foto acara, video, foto produk'},
+    {'value': 'sewa_acara', 'label': 'Sewa Perlengkapan Acara', 'contoh': 'Tenda, kursi, sound system, dekorasi'},
+    {'value': 'salon', 'label': 'Salon & Potong Rambut', 'contoh': 'Potong rambut, rias pengantin, pijat'},
+    {'value': 'jahit', 'label': 'Penjahit & Permak', 'contoh': 'Jahit baju, permak, seragam'},
+    {'value': 'angkut', 'label': 'Antar-Jemput & Angkut Barang', 'contoh': 'Ojek, pindahan, antar paket'},
+    {'value': 'lainnya', 'label': 'Jasa Lainnya', 'contoh': 'Jasa lain yang belum ada di daftar'},
   ];
+
+  /// Pengelompokan agar warga awam cepat memilih (14 kategori dibagi 8 kelompok).
+  static const List<KelompokJasa> kelompokJasa = [
+    KelompokJasa('bangunan', 'Bangunan & Perbaikan', Icons.construction, Color(0xFFE65100),
+        ['tukang', 'teknisi', 'bengkel']),
+    KelompokJasa('rumah', 'Rumah & Kebersihan', Icons.home_work_outlined, Color(0xFF00838F),
+        ['laundry', 'kebun']),
+    KelompokJasa('makanan', 'Makanan', Icons.restaurant_outlined, Color(0xFFC2185B),
+        ['catering']),
+    KelompokJasa('belajar', 'Belajar & Anak', Icons.school_outlined, Color(0xFF2E7D32),
+        ['guru_les', 'asuh']),
+    KelompokJasa('acara', 'Acara & Foto', Icons.celebration_outlined, Color(0xFF6A1B9A),
+        ['fotografer', 'sewa_acara']),
+    KelompokJasa('tampil', 'Penampilan', Icons.content_cut, Color(0xFFD81B60),
+        ['salon', 'jahit']),
+    KelompokJasa('antar', 'Antar & Angkut', Icons.local_shipping_outlined, Color(0xFF0277BD),
+        ['angkut']),
+    KelompokJasa('lainnya', 'Lainnya', Icons.more_horiz, Color(0xFF607D8B),
+        ['lainnya']),
+  ];
+
+  static KelompokJasa? kelompokDari(String kategori) {
+    for (final g in kelompokJasa) {
+      if (g.isi.contains(kategori) || (g.id == 'lainnya' && kategori == 'umum')) {
+        return g;
+      }
+    }
+    return null;
+  }
+
+  /// Filter bernilai 'semua', 'grp:<idKelompok>', atau satu kategori.
+  static bool cocokKategori(String filter, String kategori) {
+    if (filter == 'semua') return true;
+    if (filter.startsWith('grp:')) {
+      return kelompokDari(kategori)?.id == filter.substring(4);
+    }
+    return filter == kategori;
+  }
+
+  static String contohKategoriJasa(String value) {
+    for (final k in daftarKategoriJasa) {
+      if (k['value'] == value) return k['contoh'] ?? '';
+    }
+    return value == 'umum' ? 'Kuli angkut, jaga warung, serabutan' : '';
+  }
 
   static String labelKategoriJasa(String value) {
     final found = daftarKategoriJasa.firstWhere(
@@ -662,6 +740,20 @@ class AppUtils {
         return 180; // cyan
       case 'catering':
         return 330; // pink
+      case 'bengkel':
+        return 200;
+      case 'kebun':
+        return 90;
+      case 'asuh':
+        return 50;
+      case 'sewa_acara':
+        return 250;
+      case 'salon':
+        return 340;
+      case 'jahit':
+        return 15;
+      case 'angkut':
+        return 160;
       default:
         return 0; // merah
     }
@@ -1424,4 +1516,13 @@ String labelSisaWaktu(DateTime sampai) {
   final hari = sampai.difference(t).inDays;
   if (bulan == 0 && hari == 0) return 'berakhir hari ini';
   return [if (bulan > 0) '$bulan bulan', if (hari > 0) '$hari hari'].join(' ');
+}
+
+class KelompokJasa {
+  final String id;
+  final String label;
+  final IconData ikon;
+  final Color warna;
+  final List<String> isi;
+  const KelompokJasa(this.id, this.label, this.ikon, this.warna, this.isi);
 }

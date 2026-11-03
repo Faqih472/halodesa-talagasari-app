@@ -16,6 +16,7 @@ import '../controllers/data_controller.dart';
 import '../core/core.dart';
 import '../core/models.dart';
 import '../core/ui_helpers.dart';
+import 'info_sosial.dart' show pilihKategoriInfo;
 
 Future<void> showFormInformasi({NewsModel? edit}) async {
   final auth = Get.find<AuthController>();
@@ -38,7 +39,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
   DateTime? berlaku = edit?.berlakuSampai;
   bool simpanDraft = false;
   List<File> fotoBaru = [];
-  List<String> fotoLama = edit != null && edit.fotoUrl.isNotEmpty ? [edit.fotoUrl] : [];
+  List<String> fotoLama = edit != null ? List<String>.from(edit.semuaFoto) : [];
 
   await Get.bottomSheet(
     StatefulBuilder(
@@ -105,24 +106,36 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                         fontSize: 12, color: AppTheme.textSecondary),
                   ),
                   const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: kategori,
-                    decoration: const InputDecoration(
-                      labelText: 'Kategori',
-                      prefixIcon: Icon(Icons.category_outlined),
-                    ),
-                    isExpanded: true,
-                    items: AppUtils.daftarKategoriInfo
-                        .map((k) => DropdownMenuItem(
-                            value: k['value'],
-                            child: Text(
-                                AppUtils.labelKategoriForm(
-                                    k['value']!, k['label']!, staf),
-                                overflow: TextOverflow.ellipsis)))
-                        .toList(),
-                    onChanged: (v) {
+                  InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () async {
+                      final v = await pilihKategoriInfo(kategori, staf);
                       if (v != null) setSheet(() => kategori = v);
                     },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Jenis informasi (ketuk untuk memilih)',
+                        prefixIcon: Icon(Icons.category_outlined),
+                        suffixIcon: Icon(Icons.arrow_drop_down),
+                      ),
+                      child: Text(
+                          AppUtils.labelKategoriForm(
+                              kategori,
+                              NewsModel.labelKategori(kategori),
+                              staf),
+                          style: const TextStyle(fontSize: 14.5)),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, left: 4),
+                    child: Text(
+                        NewsModel.kelompokInfo
+                            .expand((g) => g['isi'] as List)
+                            .firstWhere((k) => k['value'] == kategori,
+                                orElse: () => {'contoh': ''})['contoh']
+                            .toString(),
+                        style: const TextStyle(
+                            fontSize: 11.5, color: AppTheme.textSecondary)),
                   ),
                   if (kategori == 'lainnya') ...[
                     const SizedBox(height: 10),
@@ -194,8 +207,8 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                   ),
                   const SizedBox(height: 14),
                   FotoPicker(
-                    maks: 1,
-                    label: 'Foto / gambar pendukung (opsional)',
+                    maks: 3,
+                    label: 'Foto pendukung (opsional, sampai 3)',
                     bantuan:
                         'Gambar dikecilkan otomatis dan disimpan gratis. Dihapus bersama informasinya saat masa berlaku habis.',
                     fotoLama: fotoLama,
@@ -248,8 +261,6 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                     showSnack(false, '', 'expiry_required'.tr);
                                     return;
                                   }
-                                  final File? foto =
-                                      fotoBaru.isNotEmpty ? fotoBaru.first : null;
                                   bool ok;
                                   String pesan = 'Berhasil disimpan.';
                                   if (modeEdit) {
@@ -260,7 +271,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                       kategori: kategoriFinal(),
                                       berlakuSampai: berlaku!,
                                       fotoLama: fotoLama,
-                                      fotoBaru: foto,
+                                      fotoBaruList: fotoBaru,
                                     );
                                     if (ok && dataCtrl.perluAccUlang) {
                                       pesan =
@@ -274,7 +285,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                       isi: isiCtrl.text,
                                       kategori: kategoriFinal(),
                                       berlakuSampai: berlaku,
-                                      foto: foto,
+                                      fotos: fotoBaru,
                                     );
                                     pesan = sensitif
                                         ? 'Pengajuan dikirim ke Kepala Desa.'
@@ -287,7 +298,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                       role: role,
                                       simpanDraft: simpanDraft,
                                       berlakuSampai: berlaku,
-                                      foto: foto,
+                                      fotos: fotoBaru,
                                     );
                                     pesan = simpanDraft
                                         ? 'Disimpan sebagai draf (lihat tab Tertunda).'

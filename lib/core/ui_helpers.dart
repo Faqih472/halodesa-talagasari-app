@@ -2,13 +2,18 @@
 // ui_helpers.dart — Fungsi tampilan kecil yang dipakai bersama
 // ============================================================
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data' show ByteData;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
+import 'package:flutter/services.dart' show TextInputFormatter, TextEditingValue, TextSelection;
+import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -505,6 +510,14 @@ class AlasanTolak {
       'Bukan penduduk Desa Talagasari',
       'Data belum lengkap',
     ],
+    'lowongan': [
+      'Pekerjaan tidak jelas / deskripsi asal-asalan',
+      'Meminta uang dari pelamar',
+      'Upah tidak wajar atau menyesatkan',
+      'Bukan untuk warga / lokasi di luar Desa Talagasari',
+      'Mengandung unsur SARA / dewasa / melanggar hukum',
+      'Data kontak tidak valid',
+    ],
     'foto': [
       'Foto tidak pantas / mengandung unsur dewasa',
       'Bukan foto wajah',
@@ -892,4 +905,267 @@ class _LubangBulatPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+
+/// Memberi titik ribuan otomatis saat mengetik angka (1500000 -> 1.500.000).
+class RibuanFormatter extends TextInputFormatter {
+  static String format(num n) {
+    final d = n.round().toString();
+    final b = StringBuffer();
+    for (int i = 0; i < d.length; i++) {
+      if (i > 0 && (d.length - i) % 3 == 0) b.write('.');
+      b.write(d[i]);
+    }
+    return b.toString();
+  }
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final d = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (d.isEmpty) return const TextEditingValue(text: '');
+    final t = format(int.parse(d));
+    return TextEditingValue(text: t, selection: TextSelection.collapsed(offset: t.length));
+  }
+}
+
+// ============================================================
+// PEMILIH PETA BERSAMA (pengaduan, jasa, lowongan, pesanan)
+// Ketuk peta / tombol "Lokasi saya" (GPS) / "Cari alamat".
+// Catatan: aplikasi tidak bisa menyalakan GPS sendiri; bila GPS mati,
+// pengguna diarahkan ke pengaturan lokasi.
+// ============================================================
+class PemilihPeta extends StatefulWidget {
+  final LatLng titik;
+  final ValueChanged<LatLng> onChanged;
+  final ValueChanged<String>? onAlamat;
+  final double tinggi;
+  final Color warna;
+  const PemilihPeta({
+    super.key,
+    required this.titik,
+    required this.onChanged,
+    this.onAlamat,
+    this.tinggi = 210,
+    this.warna = Colors.red,
+  });
+
+  @override
+  State<PemilihPeta> createState() => _PemilihPetaState();
+}
+
+class _PemilihPetaState extends State<PemilihPeta> {
+  final MapController _map = MapController();
+  late LatLng _titik = widget.titik;
+  bool _cariGps = false;
+
+  void _set(LatLng p, {bool pindah = false}) {
+    setState(() => _titik = p);
+    if (pindah) _map.move(p, 17);
+    widget.onChanged(p);
+  }
+
+  Future<void> _gps() async {
+    setState(() => _cariGps = true);
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        await Geolocator.openLocationSettings();
+        Get.snackbar('GPS mati', 'Nyalakan GPS, lalu tekan "Lokasi saya" lagi.',
+            snackPosition: SnackPosition.BOTTOM);
+        return;
+      }
+      var izin = await Geolocator.checkPermission();
+      if (izin == LocationPermission.denied) {
+        izin = await Geolocator.requestPermission();
+      }
+      if (izin == LocationPermission.denied ||
+          izin == LocationPermission.deniedForever) {
+        Get.snackbar('Izin lokasi ditolak',
+            'Izinkan lokasi di pengaturan aplikasi, atau pilih lewat "Cari alamat".',
+            snackPosition: SnackPosition.BOTTOM);
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 12));
+      _set(LatLng(pos.latitude, pos.longitude), pindah: true);
+    } catch (_) {
+      Get.snackbar('Gagal', 'Lokasi belum ditemukan. Coba lagi di tempat terbuka.',
+          snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      if (mounted) setState(() => _cariGps = false);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _cari(String q) async {
+    final c = HttpClient()..userAgent = 'TalagasariHub/1.0 (aplikasi desa)';
+    try {
+      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
+        'q': q,
+        'format': 'json',
+        'limit': '6',
+        'countrycodes': 'id',
+      });
+      final req = await c.getUrl(uri).timeout(const Duration(seconds: 10));
+      final res = await req.close().timeout(const Duration(seconds: 10));
+      final body = await res.transform(utf8.decoder).join();
+      return (jsonDecode(body) as List).cast<Map<String, dynamic>>();
+    } catch (_) {
+      return [];
+    } finally {
+      c.close();
+    }
+  }
+
+  Future<void> _dialogCari() async {
+    final ctrl = TextEditingController();
+    List<Map<String, dynamic>> hasil = [];
+    bool loading = false, sudah = false;
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: const Text('Cari alamat'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'Contoh: Talagasari Cikupa',
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.search),
+                    onPressed: () => ctrl.text.trim().isEmpty
+                        ? null
+                        : _jalankan(ctrl.text.trim(), setD, (r) {
+                            hasil = r;
+                            loading = false;
+                            sudah = true;
+                          }, () => loading = true),
+                  ),
+                ),
+                onSubmitted: (v) => v.trim().isEmpty
+                    ? null
+                    : _jalankan(v.trim(), setD, (r) {
+                        hasil = r;
+                        loading = false;
+                        sudah = true;
+                      }, () => loading = true),
+              ),
+              const SizedBox(height: 8),
+              if (loading) const LinearProgressIndicator(),
+              if (sudah && hasil.isEmpty && !loading)
+                const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Text('Tidak ditemukan. Coba kata lain atau ketuk peta.'),
+                ),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: hasil
+                      .map((h) => ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.place_outlined),
+                            title: Text('${h['display_name']}',
+                                maxLines: 3, overflow: TextOverflow.ellipsis),
+                            onTap: () {
+                              final p = LatLng(
+                                  double.parse('${h['lat']}'),
+                                  double.parse('${h['lon']}'));
+                              Navigator.pop(ctx);
+                              _set(p, pindah: true);
+                              widget.onAlamat?.call('${h['display_name']}');
+                            },
+                          ))
+                      .toList(),
+                ),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Tutup')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _jalankan(String q, void Function(void Function()) setD,
+      void Function(List<Map<String, dynamic>>) selesai, VoidCallback mulai) async {
+    setD(mulai);
+    final r = await _cari(q);
+    setD(() => selesai(r));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: widget.tinggi,
+            child: FlutterMap(
+              mapController: _map,
+              options: MapOptions(
+                initialCenter: _titik,
+                initialZoom: 16,
+                onTap: (_, p) => _set(p),
+                interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.talagasari_hub',
+                ),
+                MarkerLayer(markers: [
+                  Marker(
+                    point: _titik,
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.topCenter,
+                    child: Icon(Icons.location_on, size: 44, color: widget.warna),
+                  ),
+                ]),
+                const RichAttributionWidget(attributions: [
+                  TextSourceAttribution('© OpenStreetMap contributors'),
+                ]),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _cariGps ? null : _gps,
+              icon: _cariGps
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.my_location, size: 18),
+              label: const Text('Lokasi saya'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _dialogCari,
+              icon: const Icon(Icons.search, size: 18),
+              label: const Text('Cari alamat'),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 4),
+        Text(
+            'Ketuk peta untuk memindahkan pin. ${_titik.latitude.toStringAsFixed(5)}, ${_titik.longitude.toStringAsFixed(5)}',
+            style: const TextStyle(fontSize: 11, color: Colors.black54)),
+      ],
+    );
+  }
 }

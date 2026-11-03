@@ -74,6 +74,34 @@ Semua notifikasi pesanan muncul di dalam aplikasi. Chat otomatis berisi ringkasa
 - Foto profil: foto baru masuk antrian. Admin membuka tab **Foto** → Setujui / Tolak (pilih alasan). Foto Admin sendiri langsung tayang. Foto lama tetap tampil sampai foto baru disetujui.
 - Pengguna lama: tidak perlu migrasi. Surat lama tanpa data tambahan tetap bisa dicetak (kolom tersebut tertulis "-").
 
+## 8d. Pembaruan: Jasa + Butuh Pekerja
+- **Publish ulang `firestore.rules`** (koleksi baru `lowongan_warga` dan `lamaran_kerja`).
+- Menu Jasa kini punya 2 tab: **Cari Jasa** dan **Butuh Pekerja**. Ikon (?) di atas membuka panduan lengkap dengan contoh nyata.
+- Butuh Pekerja: warga terverifikasi memasang lowongan (jenis kerja, jumlah orang, upah). Warga lain melamar. Pemilik menerima/menolak, dan pelamar mendapat notifikasi. Kuota penuh = lowongan tertutup otomatis.
+- Admin bisa menutup lowongan yang melanggar (alasan wajib) dari halaman detail lowongan.
+- Tes cepat: akun A pasang lowongan -> akun B lamar -> akun A terima -> akun B cek Lamaran Saya.
+
+## 8e. Pembaruan: 14 kategori jasa dalam 8 kelompok
+- Tidak ada perubahan rules. Data jasa lama (6 kategori awal) tetap valid.
+- Pilih kategori lewat layar berkelompok (Bangunan & Perbaikan, Rumah & Kebersihan, Makanan, Belajar & Anak, Acara & Foto, Penampilan, Antar & Angkut, Lainnya) dengan contoh di setiap pilihan.
+- Filter di daftar jasa dan lowongan dua tingkat: kelompok dulu, lalu isi kelompok.
+
+## 8f. Pembaruan: patokan upah, banyak jasa, hapus jasa
+- **Publish ulang `firestore.rules`** (pemilik boleh mengubah status jasanya menjadi `dihapus`).
+- Satu akun boleh punya sampai 3 jasa. Ganti jasa yang dikelola lewat tombol di atas Dasbor Jasa.
+- Hapus jasa: Dasbor Jasa -> Ringkasan -> Hapus jasa ini. Ditolak bila masih ada pesanan berjalan. Riwayat pesanan tetap tersimpan.
+- Lowongan: upah terisi otomatis sesuai kategori, jenis kerja, dan satuan (patokan perkiraan, bukan data resmi). Gaji bulanan karyawan tetap mengacu UMK Kabupaten Tangerang 2026 (Rp 5.210.377).
+
+## 8g. Pembaruan: tarif awal per kategori
+- Tidak ada perubahan rules.
+- Form daftar jasa: satuan tarif hanya yang cocok untuk kategori (mis. Teknisi: per servis, per jam, per proyek), tarif mulai dan sampai terisi kisaran umum, ada contoh harga pekerjaan, dan angka memakai titik ribuan.
+
+## 8h. Pembaruan: Butuh Pekerja wajib ACC Admin
+- **Publish ulang `firestore.rules`** (lowongan baru wajib berstatus `pending`; pemilik tidak bisa menyetujui sendiri).
+- Alur: warga pasang lowongan -> status Menunggu persetujuan -> Admin buka tab **Lowongan** -> Setujui / Tolak (alasan) -> warga dapat notifikasi.
+- Mengubah isi lowongan yang sudah tayang = kembali menunggu persetujuan. Tutup / buka lagi (yang pernah disetujui) tidak perlu ACC.
+- Lowongan lama yang sudah tayang sebelum update ini tetap tayang.
+
 ## 9. Daftar tes cepat
 1. Daftar warga baru, login. Coba buka jasa → terkunci, muncul ajakan verifikasi.
 2. Akun → Verifikasi Identitas → isi data. Login Admin → Kelola → tab KTP → ACC. Warga kini bertanda Terverifikasi.
@@ -94,3 +122,11 @@ Semua notifikasi pesanan muncul di dalam aplikasi. Chat otomatis berisi ringkasa
 - Tombol SOS butuh izin lokasi aktif di HP.
 - Peta memakai OpenStreetMap (gratis, tanpa API key).
 - Nomor di `app_contact.dart` saat ini hanya contoh.
+
+## 8i. Pin peta, SOS real, Info ala Facebook
+1. Deploy `firestore.rules` terbaru (SOS update oleh pemilik, suka/komentar info).
+2. Android: di `android/app/src/main/AndroidManifest.xml` pastikan ada:
+   - `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`
+   - `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS`
+3. iOS: `NSLocationWhenInUseUsageDescription` di Info.plist.
+4. Batasan sistem: aplikasi tidak bisa menyalakan GPS atau melewati izin lokasi tanpa persetujuan. SOS tetap terkirim memakai lokasi terakhir; GPS aktif diminta lewat pengaturan.

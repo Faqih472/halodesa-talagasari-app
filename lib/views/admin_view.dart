@@ -12,7 +12,7 @@ import '../controllers/data_controller.dart';
 import '../core/core.dart';
 import '../core/models.dart';
 import '../core/ui_helpers.dart';
-import 'admin_tools_view.dart' show LaporanJasaTab, FotoStaffTab;
+import 'admin_tools_view.dart' show LaporanJasaTab, FotoStaffTab, LowonganStaffTab;
 import 'complaint_view.dart';
 import 'info_form_view.dart';
 import 'jasa_view.dart' show AdminJasaTab;
@@ -37,6 +37,7 @@ class _TabManageViewState extends State<TabManageView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!Get.isRegistered<DataController>()) Get.put(DataController());
       Get.find<DataController>().fetchPendingList();
+      Get.find<LowonganController>().fetchAntrian();
     });
   }
 
@@ -89,6 +90,7 @@ class _TabManageViewState extends State<TabManageView> {
               tabBadge('tab_complaint'.tr, cmpCtrl.antrian.length),
               tabBadge('KTP', cmpCtrl.ktpMenunggu.length),
               const Tab(text: 'Laporan Jasa'),
+              tabBadge('Lowongan', Get.find<LowonganController>().antrian.length),
               tabBadge('Foto', Get.find<FotoProfilController>().antrian.length),
             ]
           : [
@@ -102,6 +104,7 @@ class _TabManageViewState extends State<TabManageView> {
               const PengaduanStaffTab(),
               const KtpStaffTab(),
               const LaporanJasaTab(),
+              const LowonganStaffTab(),
               const FotoStaffTab(),
             ]
           : [
@@ -262,8 +265,8 @@ class _TabManageViewState extends State<TabManageView> {
                     color: AppTheme.textPrimary)),
             const SizedBox(height: 6),
 
-            if (news.fotoUrl.isNotEmpty) ...[
-              fotoFull(news.fotoUrl, maksTinggi: 320),
+            if (news.semuaFoto.isNotEmpty) ...[
+              fotoFull(news.semuaFoto.first, maksTinggi: 320),
               const SizedBox(height: 8),
             ],
             // Isi preview
@@ -421,8 +424,8 @@ class _TabManageViewState extends State<TabManageView> {
                             fontSize: 12, color: AppTheme.textSecondary)),
                   ),
                 const Divider(height: 24),
-                if (news.fotoUrl.isNotEmpty) ...[
-                  fotoFull(news.fotoUrl, maksTinggi: 600),
+                if (news.semuaFoto.isNotEmpty) ...[
+                  for (final f in news.semuaFoto) ...[fotoFull(f, maksTinggi: 600), const SizedBox(height: 8)],
                   const SizedBox(height: 14),
                 ],
                 Text(news.isi,
