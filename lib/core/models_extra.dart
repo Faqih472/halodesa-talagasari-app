@@ -58,11 +58,21 @@ class SosModel {
   final String telepon;
   final double lat;
   final double lng;
-  final String status; // 'baru' | 'ditangani' | 'aman'
+  final String status; // 'baru' | 'diproses' | 'aman' | 'ditangani'
   final DateTime createdAt;
   final DateTime updatedAt;
+  final DateTime? posisiAt; // kapan titik GPS ini diambil
   final double akurasi;
-  final String sumber; // 'gps' | 'terakhir' | 'profil'
+  final String sumber; // 'gps' | 'terakhir' | 'tidak_ada'
+  final String jenis; // medis | kebakaran | kejahatan | kecelakaan | bencana | lainnya
+  final String keterangan;
+  final String foto;
+  final String petugas;
+  final String hasil; // hasil penanganan
+  final String catatan;
+  final DateTime? ditanganiAt;
+  final int rating; // 0 = belum menilai
+  final String ulasan;
 
   SosModel({
     required this.id,
@@ -75,9 +85,37 @@ class SosModel {
     this.status = 'baru',
     required this.createdAt,
     required this.updatedAt,
+    this.posisiAt,
     this.akurasi = 0,
-    this.sumber = 'profil',
+    this.sumber = 'tidak_ada',
+    this.jenis = 'lainnya',
+    this.keterangan = '',
+    this.foto = '',
+    this.petugas = '',
+    this.hasil = '',
+    this.catatan = '',
+    this.ditanganiAt,
+    this.rating = 0,
+    this.ulasan = '',
   });
+
+  bool get punyaLokasi => sumber != 'tidak_ada' && !(lat == 0 && lng == 0);
+  bool get aktif => status != 'ditangani';
+
+  static const Map<String, String> labelJenis = {
+    'medis': 'Medis / Sakit parah',
+    'kebakaran': 'Kebakaran',
+    'kejahatan': 'Kejahatan / Pencurian',
+    'kecelakaan': 'Kecelakaan',
+    'bencana': 'Bencana / Banjir',
+    'lainnya': 'Darurat lainnya',
+  };
+  static const List<String> opsiHasil = [
+    'Warga sudah ditolong / ditangani',
+    'Dirujuk ke pihak berwenang (polisi / ambulans / damkar)',
+    'Alarm palsu atau salah tekan',
+    'Warga tidak ditemukan / tidak bisa dihubungi',
+  ];
 
   factory SosModel.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
@@ -92,8 +130,18 @@ class SosModel {
       status: d['status'] ?? 'baru',
       createdAt: _ts(d['created_at']) ?? DateTime.now(),
       updatedAt: _ts(d['updated_at']) ?? _ts(d['created_at']) ?? DateTime.now(),
+      posisiAt: _ts(d['posisi_at']),
       akurasi: (d['akurasi'] ?? 0).toDouble(),
-      sumber: d['sumber'] ?? 'profil',
+      sumber: d['sumber'] ?? 'tidak_ada',
+      jenis: d['jenis'] ?? 'lainnya',
+      keterangan: d['keterangan'] ?? '',
+      foto: d['foto'] ?? '',
+      petugas: d['petugas'] ?? '',
+      hasil: d['hasil'] ?? '',
+      catatan: d['catatan'] ?? '',
+      ditanganiAt: _ts(d['ditangani_at']),
+      rating: ((d['rating'] ?? 0) as num).toInt(),
+      ulasan: d['ulasan'] ?? '',
     );
   }
 }

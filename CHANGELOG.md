@@ -58,3 +58,9 @@ Buka / Penuh / Tutup + catatan + buka otomatis pada tanggal tertentu. Profil tet
 - Pengaduan: pilih kelompok lalu jenis, contoh laporan, tombol kerangka 4 pertanyaan.
 - Lowongan: sampai 3 foto, pin peta realtime, tampil di detail.
 - Perbaikan aturan Firestore lowongan agar pengajuan hapus tidak gagal.
+
+## Lokasi andal, SOS serius, lokasi di info, ikon
+- Lokasi: tidak lagi otomatis (kecuali SOS); galat dijelaskan; tidak crash saat scroll; izin diminta satu per satu.
+- SOS: jenis darurat wajib, keterangan + foto opsional, titik GPS segar (posisi lama tidak dipercaya), peta live di Admin, konfirmasi "sudah aman", Admin tutup kasus wajib hasil + catatan, penilaian warga.
+- Tambah Info: lokasi opsional (pin + alamat terkunci Talagasari), tampil di detail dengan rute.
+- Ikon adaptif full dan manifest izin lokasi di android_patch/.

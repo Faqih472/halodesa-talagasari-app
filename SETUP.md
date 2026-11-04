@@ -139,3 +139,11 @@ Semua notifikasi pesanan muncul di dalam aplikasi. Chat otomatis berisi ringkasa
 
 ## 8k. Wajib deploy ulang rules
 Pengajuan hapus lowongan hanya berhasil setelah `firestore.rules` terbaru dipublish di Firebase Console.
+
+## 8l. WAJIB: izin lokasi + ikon baru (folder android_patch/)
+Penyebab "Lokasi gagal" di semua peta: `AndroidManifest.xml` belum punya izin lokasi.
+1. Salin `android_patch/AndroidManifest.xml` ke `android/app/src/main/AndroidManifest.xml` (timpa).
+2. Salin isi `android_patch/res/` ke `android/app/src/main/res/` (gabungkan/timpa folder `mipmap-*` dan `drawable-*`). Ini ikon adaptif full tanpa teks, sehingga ikon di layar HP penuh dan splash Android 12 tidak terpotong.
+3. Jangan jalankan flutter_launcher_icons (sudah dinonaktifkan di pubspec).
+4. Hapus aplikasi lama dari HP, lalu `flutter clean` dan `flutter run` (izin lokasi baru hanya terbaca setelah build ulang).
+5. Deploy `firestore.rules` terbaru (SOS: warga bisa membaca SOS sendiri dan menilai).

@@ -235,6 +235,10 @@ class NewsModel {
   final DateTime? publishedAt;
   final DateTime? berlakuSampai; // WAJIB untuk informasi baru; null = data lama (akan dihapus otomatis)
   final List<String> fotoList; // sampai 3 foto (base64)
+  final double lat; // lokasi opsional (0 = tanpa lokasi)
+  final double lng;
+  final String lokasiNama;
+  bool get punyaLokasi => lat != 0 || lng != 0;
 
   /// Semua foto: memakai foto_list, atau foto_url lama bila foto_list kosong.
   List<String> get semuaFoto =>
@@ -253,6 +257,9 @@ class NewsModel {
     this.publishedAt,
     this.berlakuSampai,
     this.fotoList = const [],
+    this.lat = 0,
+    this.lng = 0,
+    this.lokasiNama = '',
   });
 
   factory NewsModel.fromFirestore(DocumentSnapshot doc) {
@@ -266,6 +273,9 @@ class NewsModel {
       authorId: data['authorId'] ?? '',
       fotoUrl: data['foto_url'] ?? '',
       fotoList: List<String>.from(data['foto_list'] ?? const []),
+      lat: (data['lat'] ?? 0).toDouble(),
+      lng: (data['lng'] ?? 0).toDouble(),
+      lokasiNama: data['lokasi_nama'] ?? '',
       alasanPenolakan: data['alasan_penolakan'],
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       publishedAt: (data['published_at'] as Timestamp?)?.toDate(),

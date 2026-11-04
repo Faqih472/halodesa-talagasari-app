@@ -4,7 +4,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_map/flutter_map.dart' show Marker;
 import 'package:get/get.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../controllers/auth_controller.dart';
 import '../controllers/chat_controller.dart';
@@ -852,6 +854,37 @@ class TabHomeView extends StatelessWidget {
                               fontSize: 15,
                               color: AppTheme.textPrimary,
                               height: 1.6)),
+                      if (news.punyaLokasi) ...[
+                        const SizedBox(height: 12),
+                        if (news.lokasiNama.isNotEmpty)
+                          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const Icon(Icons.place_outlined, size: 18),
+                            const SizedBox(width: 6),
+                            Expanded(child: Text(news.lokasiNama, style: const TextStyle(fontSize: 13, height: 1.4))),
+                          ]),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: PetaDenganLokasi(
+                            pusat: LatLng(news.lat, news.lng),
+                            tinggi: 180,
+                            penanda: [
+                              Marker(
+                                point: LatLng(news.lat, news.lng),
+                                width: 40,
+                                height: 40,
+                                alignment: Alignment.topCenter,
+                                child: Icon(Icons.location_on, size: 40, color: Colors.red.shade700),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => bukaUri(uriPeta(news.lat, news.lng)),
+                          icon: const Icon(Icons.directions_outlined, size: 16),
+                          label: const Text('Buka rute di aplikasi peta'),
+                        ),
+                      ],
                       const SizedBox(height: 10),
                       InfoAksi(news: news),
                       if (Get.find<AuthController>().isStaff) ...[

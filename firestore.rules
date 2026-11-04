@@ -256,11 +256,18 @@ service cloud.firestore {
     // ── SOS, audit, laporan jasa ──
     match /sos/{id} {
       allow create: if login() && request.resource.data.uid == request.auth.uid;
-      allow read: if isStaff();
-      allow update: if isStaff() || (login() && resource.data.uid == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['lat','lng','akurasi','sumber','status','updated_at'])
-        && request.resource.data.status in ['baru','aman']);
+      allow read: if isStaff() || (login() && resource.data.uid == request.auth.uid);
+      allow update: if isStaff() || (login() && resource.data.uid == request.auth.uid && (
+        // pemilik: perbarui titik GPS / menyatakan sudah aman
+        (request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['lat','lng','akurasi','sumber','posisi_at','status','updated_at'])
+         && resource.data.status in ['baru','diproses','aman']
+         && (request.resource.data.status == resource.data.status
+             || request.resource.data.status == 'aman'))
+        // pemilik: menilai penanganan setelah ditutup
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating','ulasan'])
+            && resource.data.status == 'ditangani'
+            && request.resource.data.rating >= 1 && request.resource.data.rating <= 5)));
       // Pembersihan otomatis: hanya riwayat lebih dari 90 hari
       allow delete: if isStaff() && resource.data.created_at < request.time - duration.value(90, 'd');
     }

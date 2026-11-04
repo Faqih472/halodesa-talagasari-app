@@ -949,14 +949,24 @@ class LokasiLangsung extends ChangeNotifier {
   bool _pertama = true;
   bool _selesai = false;
   StreamSubscription<Position>? _sub;
+  Timer? _polling;
   final void Function(LatLng p, bool pertama)? onPosisi;
   LokasiLangsung({this.onPosisi});
 
+  static Future<void>? _izinBerjalan; // cegah dua permintaan izin bersamaan
+
+  void _beri() {
+    if (!_selesai) notifyListeners();
+  }
+
   void _pesan(String judul, String isi) {
-    Get.snackbar(judul, isi,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 5),
-        margin: const EdgeInsets.all(12));
+    if (_selesai) return;
+    try {
+      Get.snackbar(judul, isi,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 6),
+          margin: const EdgeInsets.all(12));
+    } catch (_) {}
   }
 
   void _terima(Position p) {
@@ -966,26 +976,47 @@ class LokasiLangsung extends ChangeNotifier {
     final pertama = _pertama;
     _pertama = false;
     mencari = false;
-    notifyListeners();
-    onPosisi?.call(posisi!, pertama);
+    _beri();
+    try {
+      onPosisi?.call(posisi!, pertama);
+    } catch (_) {}
   }
 
-  /// Mulai (atau pusatkan ulang) pelacakan lokasi realtime.
-  Future<void> mulai() async {
-    if (aktif) {
-      if (posisi != null) onPosisi?.call(posisi!, true);
-      return;
+  /// Penjelasan galat yang bisa dipahami, termasuk penyebab umum.
+  String _jelaskan(Object e) {
+    final t = e.toString();
+    if (t.contains('PermissionDefinitionsNotFound') || t.contains('permission definitions')) {
+      return 'Izin lokasi belum terdaftar di AndroidManifest.xml. Pasang file AndroidManifest.xml terbaru dari update, lalu build ulang aplikasi.';
     }
-    mencari = true;
-    notifyListeners();
+    if (t.contains('LocationServiceDisabled')) {
+      return 'GPS/Lokasi di HP belum menyala.';
+    }
+    if (t.contains('PermissionRequestInProgress')) {
+      return 'Permintaan izin sedang berjalan. Tekan tombol lokasi sekali lagi.';
+    }
+    if (t.contains('MissingPluginException')) {
+      return 'Plugin lokasi belum terpasang. Hentikan aplikasi, jalankan flutter clean, lalu flutter run lagi.';
+    }
+    return 'Detail: ${t.length > 120 ? t.substring(0, 120) : t}';
+  }
+
+  Future<bool> _pastikanIzin() async {
+    // satu permintaan izin pada satu waktu
+    while (_izinBerjalan != null) {
+      try {
+        await _izinBerjalan;
+      } catch (_) {}
+    }
+    final c = Completer<void>();
+    _izinBerjalan = c.future;
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
         _pesan('GPS belum menyala',
             'Nyalakan Lokasi/GPS di HP, lalu tekan tombol lokasi lagi.');
-        await Geolocator.openLocationSettings();
-        mencari = false;
-        notifyListeners();
-        return;
+        try {
+          await Geolocator.openLocationSettings();
+        } catch (_) {}
+        return false;
       }
       var izin = await Geolocator.checkPermission();
       if (izin == LocationPermission.denied) {
@@ -994,54 +1025,121 @@ class LokasiLangsung extends ChangeNotifier {
       if (izin == LocationPermission.deniedForever) {
         _pesan('Izin lokasi diblokir',
             'Buka Pengaturan aplikasi > Izin > Lokasi, pilih "Izinkan".');
-        await Geolocator.openAppSettings();
-        mencari = false;
-        notifyListeners();
-        return;
+        try {
+          await Geolocator.openAppSettings();
+        } catch (_) {}
+        return false;
       }
       if (izin == LocationPermission.denied) {
         _pesan('Izin lokasi ditolak', 'Izinkan lokasi agar posisi Anda bisa ditandai.');
+        return false;
+      }
+      return true;
+    } catch (e) {
+      _pesan('Lokasi belum bisa dipakai', _jelaskan(e));
+      return false;
+    } finally {
+      _izinBerjalan = null;
+      c.complete();
+    }
+  }
+
+  /// Mulai (atau pusatkan ulang) pelacakan lokasi realtime. Tidak pernah melempar galat.
+  Future<void> mulai() async {
+    if (_selesai) return;
+    if (aktif) {
+      if (posisi != null) {
+        try {
+          onPosisi?.call(posisi!, true);
+        } catch (_) {}
+      }
+      return;
+    }
+    mencari = true;
+    _beri();
+    try {
+      if (!await _pastikanIzin()) {
         mencari = false;
-        notifyListeners();
+        _beri();
         return;
       }
+      // 1) titik tercepat: posisi terakhir yang MASIH BARU (maks 2 menit)
       try {
         final last = await Geolocator.getLastKnownPosition();
-        if (last != null) _terima(last);
+        if (last != null &&
+            DateTime.now().difference(last.timestamp).inMinutes < 2) {
+          _terima(last);
+        }
       } catch (_) {}
+      // 2) titik segar dari GPS
+      try {
+        final p = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 15),
+        );
+        _terima(p);
+      } catch (_) {}
+      if (_selesai) return;
       aktif = true;
+      _beri();
+      _mulaiStream();
+      if (posisi == null) {
+        Future.delayed(const Duration(seconds: 12), () {
+          if (!_selesai && aktif && posisi == null) {
+            _pesan('Sinyal GPS lemah', 'Masih mencari lokasi. Pindah ke tempat terbuka.');
+          }
+        });
+      }
+    } catch (e) {
+      _pesan('Lokasi gagal', _jelaskan(e));
+      mencari = false;
+      aktif = false;
+    }
+    _beri();
+  }
+
+  void _mulaiStream() {
+    try {
       _sub = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high, distanceFilter: 2),
-      ).listen(_terima, onError: (_) {
-        _pesan('Lokasi gagal', 'Sinyal GPS lemah. Coba di tempat terbuka.');
-        berhenti();
-      });
-      Future.delayed(const Duration(seconds: 15), () {
-        if (!_selesai && aktif && posisi == null) {
-          _pesan('Sinyal GPS lemah', 'Masih mencari lokasi. Pindah ke tempat terbuka.');
-        }
-      });
+            accuracy: LocationAccuracy.high, distanceFilter: 3),
+      ).listen(_terima, onError: (_) => _alihKePolling(), cancelOnError: false);
     } catch (_) {
-      _pesan('Lokasi gagal', 'Tidak bisa membaca lokasi. Periksa GPS dan izin aplikasi.');
-      mencari = false;
+      _alihKePolling();
     }
-    notifyListeners();
+  }
+
+  void _alihKePolling() {
+    _sub?.cancel();
+    _sub = null;
+    _polling?.cancel();
+    _polling = Timer.periodic(const Duration(seconds: 4), (_) async {
+      try {
+        final p = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 10),
+        );
+        _terima(p);
+      } catch (_) {}
+    });
   }
 
   void berhenti() {
     _sub?.cancel();
     _sub = null;
+    _polling?.cancel();
+    _polling = null;
     aktif = false;
     mencari = false;
     _pertama = true;
-    notifyListeners();
+    _beri();
   }
 
   @override
   void dispose() {
     _selesai = true;
     _sub?.cancel();
+    _polling?.cancel();
     super.dispose();
   }
 }
@@ -1119,6 +1217,7 @@ class PetaDenganLokasi extends StatefulWidget {
   final List<Marker> penanda;
   final bool geser;
   final VoidCallback? onTap;
+  final bool ikutiPusat; // peta ikut bergerak bila titik pusat berubah (mis. SOS live)
   const PetaDenganLokasi({
     super.key,
     required this.pusat,
@@ -1127,6 +1226,7 @@ class PetaDenganLokasi extends StatefulWidget {
     this.tinggi = 150,
     this.geser = true,
     this.onTap,
+    this.ikutiPusat = false,
   });
 
   @override
@@ -1135,10 +1235,28 @@ class PetaDenganLokasi extends StatefulWidget {
 
 class _PetaDenganLokasiState extends State<PetaDenganLokasi> {
   final MapController _map = MapController();
+  bool _siap = false;
   late final LokasiLangsung _gps = LokasiLangsung(
       onPosisi: (p, pertama) {
-        if (pertama) _map.move(p, 16);
+        if (pertama && _siap && mounted) {
+          try {
+            _map.move(p, 16);
+          } catch (_) {}
+        }
       });
+
+  @override
+  void didUpdateWidget(covariant PetaDenganLokasi old) {
+    super.didUpdateWidget(old);
+    if (widget.ikutiPusat &&
+        _siap &&
+        (old.pusat.latitude != widget.pusat.latitude ||
+            old.pusat.longitude != widget.pusat.longitude)) {
+      try {
+        _map.move(widget.pusat, _map.camera.zoom);
+      } catch (_) {}
+    }
+  }
 
   @override
   void dispose() {
@@ -1156,6 +1274,7 @@ class _PetaDenganLokasiState extends State<PetaDenganLokasi> {
           options: MapOptions(
             initialCenter: widget.pusat,
             initialZoom: widget.zoom,
+            onMapReady: () => _siap = true,
             interactionOptions: InteractionOptions(
                 flags: widget.geser
                     ? InteractiveFlag.all & ~InteractiveFlag.rotate
@@ -1186,7 +1305,6 @@ class PemilihPeta extends StatefulWidget {
   final ValueChanged<String>? onAlamat;
   final double tinggi;
   final Color warna;
-  final bool ikutiAwal; // langsung ikuti GPS saat dibuka
   const PemilihPeta({
     super.key,
     required this.titik,
@@ -1194,7 +1312,6 @@ class PemilihPeta extends StatefulWidget {
     this.onAlamat,
     this.tinggi = 210,
     this.warna = Colors.red,
-    this.ikutiAwal = false,
   });
 
   @override
@@ -1205,23 +1322,16 @@ class _PemilihPetaState extends State<PemilihPeta> {
   final MapController _map = MapController();
   late LatLng _titik = widget.titik;
   bool _ikuti = false;
+  bool _siap = false;
   bool _alamatDiminta = false;
   late final LokasiLangsung _gps = LokasiLangsung(onPosisi: (p, pertama) {
     if (!_ikuti) return;
-    _set(p, pindah: pertama || true);
+    _set(p, pindah: true);
     if (pertama && !_alamatDiminta && widget.onAlamat != null) {
       _alamatDiminta = true;
       _alamatDari(p);
     }
   });
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.ikutiAwal) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _mulaiIkuti());
-    }
-  }
 
   @override
   void dispose() {
@@ -1232,7 +1342,11 @@ class _PemilihPetaState extends State<PemilihPeta> {
   void _set(LatLng p, {bool pindah = false}) {
     if (!mounted) return;
     setState(() => _titik = p);
-    if (pindah) _map.move(p, _map.camera.zoom < 16 ? 17 : _map.camera.zoom);
+    if (pindah && _siap) {
+      try {
+        _map.move(p, 17);
+      } catch (_) {}
+    }
     widget.onChanged(p);
   }
 
@@ -1379,6 +1493,7 @@ class _PemilihPetaState extends State<PemilihPeta> {
                 options: MapOptions(
                   initialCenter: _titik,
                   initialZoom: 16,
+                  onMapReady: () => _siap = true,
                   onTap: (_, p) {
                     if (_ikuti) _berhentiIkuti();
                     _set(p);

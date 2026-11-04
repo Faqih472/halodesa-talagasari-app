@@ -102,9 +102,8 @@ class SosController extends GetxController {
 
   final RxBool sending = false.obs;
   final RxString errorMsg = ''.obs;
-
   final RxnString sosAktifId = RxnString();
-  final RxString sumber = ''.obs; // 'gps' | 'terakhir' | 'profil'
+  final RxString sumber = ''.obs; // 'gps' | 'terakhir' | 'tidak_ada'
   StreamSubscription<Position>? _langgan;
   DateTime _terakhirKirim = DateTime.fromMillisecondsSinceEpoch(0);
   Timer? _batas;
@@ -112,7 +111,6 @@ class SosController extends GetxController {
   /// Minta izin lokasi lebih awal (dipanggil saat halaman SOS dibuka).
   Future<void> siapkanLokasi() async {
     try {
-      if (!await Geolocator.isLocationServiceEnabled()) return;
       var izin = await Geolocator.checkPermission();
       if (izin == LocationPermission.denied) {
         await Geolocator.requestPermission();
@@ -120,52 +118,75 @@ class SosController extends GetxController {
     } catch (_) {}
   }
 
-  /// Kirim SOS: langsung terkirim dengan lokasi terakhir yang ada,
-  /// lalu diperbarui dengan GPS akurat dan dilacak terus sampai "sudah aman".
-  Future<bool> kirimSos() async {
+  /// Ambil titik GPS SEGAR (maks 8 detik). Posisi lama (>2 menit) tidak dipercaya.
+  Future<Position?> _ambilPosisi() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        // Aplikasi tidak boleh menyalakan GPS sendiri; arahkan ke pengaturan.
+        Geolocator.openLocationSettings();
+        return null;
+      }
+      var izin = await Geolocator.checkPermission();
+      if (izin == LocationPermission.denied) {
+        izin = await Geolocator.requestPermission();
+      }
+      if (izin != LocationPermission.always && izin != LocationPermission.whileInUse) {
+        return null;
+      }
+      try {
+        return await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 8),
+        );
+      } catch (_) {}
+      final last = await Geolocator.getLastKnownPosition();
+      if (last != null && DateTime.now().difference(last.timestamp).inMinutes < 2) {
+        return last;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Kirim SOS. Wajib memilih [jenis]; keterangan dan foto opsional.
+  Future<bool> kirimSos({
+    required String jenis,
+    String keterangan = '',
+    File? foto,
+  }) async {
     final user = _authCtrl.currentUser.value;
     if (user == null) return false;
+    if (!SosModel.labelJenis.containsKey(jenis)) {
+      errorMsg.value = 'Pilih dulu apa yang terjadi.';
+      return false;
+    }
     try {
       sending.value = true;
       errorMsg.value = '';
-
-      double lat = user.lokasiLat;
-      double lng = user.lokasiLng;
-      double akurasi = 0;
-      String src = 'profil';
-      bool gpsOk = false;
-      try {
-        if (!await Geolocator.isLocationServiceEnabled()) {
-          // Aplikasi tidak boleh menyalakan GPS sendiri; buka pengaturan.
-          Geolocator.openLocationSettings();
+      String fotoData = '';
+      if (foto != null) {
+        final enc = await ImageUtil.encode(foto);
+        if (enc == null) {
+          errorMsg.value = 'Foto terlalu besar, pilih foto lain atau kirim tanpa foto.';
+          return false;
         }
-        var izin = await Geolocator.checkPermission();
-        if (izin == LocationPermission.denied) {
-          izin = await Geolocator.requestPermission();
-        }
-        gpsOk = izin == LocationPermission.always ||
-            izin == LocationPermission.whileInUse;
-        if (gpsOk) {
-          final last = await Geolocator.getLastKnownPosition();
-          if (last != null) {
-            lat = last.latitude;
-            lng = last.longitude;
-            akurasi = last.accuracy;
-            src = 'terakhir';
-          }
-        }
-      } catch (_) {}
-
+        fotoData = enc;
+      }
+      final pos = await _ambilPosisi();
       final now = Timestamp.fromDate(DateTime.now());
+      final String src = pos == null ? 'tidak_ada' : 'gps';
       final ref = await _firestore.collection('sos').add({
         'uid': user.uid,
         'nama': user.nama,
         'peran': user.role,
         'telepon': user.nomorTelepon,
-        'lat': lat,
-        'lng': lng,
-        'akurasi': akurasi,
+        'jenis': jenis,
+        'keterangan': keterangan.trim(),
+        'foto': fotoData,
+        'lat': pos?.latitude ?? 0,
+        'lng': pos?.longitude ?? 0,
+        'akurasi': pos?.accuracy ?? 0,
         'sumber': src,
+        'posisi_at': pos == null ? null : Timestamp.fromDate(pos.timestamp),
         'status': 'baru',
         'created_at': now,
         'updated_at': now,
@@ -175,15 +196,14 @@ class SosController extends GetxController {
 
       await notifPeran(
         ['admin', 'kades'],
-        judul: '🚨 SOS DARURAT',
+        judul: '🚨 SOS: ${SosModel.labelJenis[jenis]}',
         isi:
-            '${user.isStaff ? '${AppTheme.labelRole(user.role)} ' : ''}${user.nama} membutuhkan bantuan segera. Telp: ${user.nomorTelepon.isEmpty ? '-' : user.nomorTelepon}',
+            '${user.isStaff ? '${AppTheme.labelRole(user.role)} ' : ''}${user.nama} membutuhkan bantuan. Telp: ${user.nomorTelepon.isEmpty ? '-' : user.nomorTelepon}${pos == null ? ' (lokasi belum didapat)' : ''}',
         tipe: 'sos',
         targetId: ref.id,
         kecualiUid: user.uid,
       );
-
-      if (gpsOk) _lacak(ref.id);
+      _lacak(ref.id);
       return true;
     } catch (e) {
       errorMsg.value = 'Gagal mengirim SOS: $e';
@@ -195,39 +215,55 @@ class SosController extends GetxController {
 
   void _lacak(String id) {
     _langgan?.cancel();
-    LocationSettings set;
-    if (Platform.isAndroid) {
-      set = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
-        intervalDuration: const Duration(seconds: 10),
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: 'SOS aktif',
-          notificationText: 'Lokasi Anda dibagikan ke petugas desa.',
-          enableWakeLock: true,
-        ),
-      );
-    } else {
-      set = const LocationSettings(
-          accuracy: LocationAccuracy.high, distanceFilter: 5);
+    Future<void> kirimTitik(Position p) async {
+      if (DateTime.now().difference(_terakhirKirim).inSeconds < 6) return;
+      _terakhirKirim = DateTime.now();
+      sumber.value = 'gps';
+      try {
+        await _firestore.collection('sos').doc(id).update({
+          'lat': p.latitude,
+          'lng': p.longitude,
+          'akurasi': p.accuracy,
+          'sumber': 'gps',
+          'posisi_at': Timestamp.fromDate(p.timestamp),
+          'updated_at': Timestamp.fromDate(DateTime.now()),
+        });
+      } catch (_) {}
     }
-    _langgan = Geolocator.getPositionStream(locationSettings: set).listen(
-      (p) async {
-        if (DateTime.now().difference(_terakhirKirim).inSeconds < 8) return;
-        _terakhirKirim = DateTime.now();
-        sumber.value = 'gps';
-        try {
-          await _firestore.collection('sos').doc(id).update({
-            'lat': p.latitude,
-            'lng': p.longitude,
-            'akurasi': p.accuracy,
-            'sumber': 'gps',
-            'updated_at': Timestamp.fromDate(DateTime.now()),
-          });
-        } catch (_) {}
-      },
-      onError: (_) {},
-    );
+
+    void mulaiPolos() {
+      try {
+        _langgan = Geolocator.getPositionStream(
+          locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high, distanceFilter: 3),
+        ).listen(kirimTitik, onError: (_) {});
+      } catch (_) {}
+    }
+
+    try {
+      final LocationSettings set = Platform.isAndroid
+          ? AndroidSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 3,
+              intervalDuration: const Duration(seconds: 8),
+              foregroundNotificationConfig: const ForegroundNotificationConfig(
+                notificationTitle: 'SOS aktif',
+                notificationText: 'Lokasi Anda dibagikan ke petugas desa.',
+                enableWakeLock: true,
+              ),
+            )
+          : const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 3);
+      _langgan = Geolocator.getPositionStream(locationSettings: set).listen(
+        kirimTitik,
+        onError: (_) {
+          // layanan latar gagal (izin/manifest) -> pakai aliran biasa
+          _langgan?.cancel();
+          mulaiPolos();
+        },
+      );
+    } catch (_) {
+      mulaiPolos();
+    }
     _batas?.cancel();
     _batas = Timer(const Duration(hours: 2), berhentiLacak);
   }
@@ -238,11 +274,10 @@ class SosController extends GetxController {
     _batas?.cancel();
   }
 
-  /// Warga menandai dirinya sudah aman: pelacakan berhenti.
+  /// Warga menyatakan sudah aman: pelacakan berhenti (petugas tetap menutup kasus).
   Future<void> sudahAman() async {
     final id = sosAktifId.value;
     berhentiLacak();
-    sosAktifId.value = null;
     if (id == null) return;
     try {
       await _firestore.collection('sos').doc(id).update({
@@ -250,6 +285,33 @@ class SosController extends GetxController {
         'updated_at': Timestamp.fromDate(DateTime.now()),
       });
     } catch (_) {}
+  }
+
+  /// SOS milik saya (terbaru dulu), untuk melihat status & memberi penilaian.
+  Stream<List<SosModel>> streamSaya() {
+    final uid = _authCtrl.currentUser.value?.uid ?? '-';
+    return _firestore
+        .collection('sos')
+        .where('uid', isEqualTo: uid)
+        .limit(10)
+        .snapshots()
+        .map((s) {
+      final l = s.docs.map((d) => SosModel.fromFirestore(d)).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return l;
+    });
+  }
+
+  Future<bool> beriNilai(SosModel s, int rating, String ulasan) async {
+    try {
+      await _firestore.collection('sos').doc(s.id).update({
+        'rating': rating,
+        'ulasan': ulasan.trim(),
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Stream<List<SosModel>> stream() {
@@ -261,18 +323,64 @@ class SosController extends GetxController {
         .map((s) => s.docs.map((d) => SosModel.fromFirestore(d)).toList());
   }
 
-  Future<void> tandaiDitangani(SosModel s) async {
+  /// Petugas menyatakan sedang menangani / menuju lokasi.
+  Future<bool> mulaiTangani(SosModel s) async {
+    final u = _authCtrl.currentUser.value;
+    if (u == null) return false;
     try {
       await _firestore.collection('sos').doc(s.id).update({
-        'status': 'ditangani',
-        'ditangani_oleh': _authCtrl.currentUser.value?.uid,
+        'status': 'diproses',
+        'petugas': '${AppTheme.labelRole(u.role)} ${u.nama}',
+        'petugas_uid': u.uid,
       });
+      await Get.find<NotificationController>().kirimKe(
+          uidTujuan: s.uid,
+          judul: 'Petugas menuju lokasi Anda',
+          isi: '${AppTheme.labelRole(u.role)} ${u.nama} menangani SOS Anda. Tetap tenang.',
+          tipe: 'sos',
+          targetId: s.id);
       await AuditLog.catat(
-          aksi: 'Menandai SOS ditangani',
+          aksi: 'SOS mulai ditangani',
           targetTipe: 'sos',
           targetId: s.id,
           detail: s.nama);
-    } catch (_) {}
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Menutup kasus SOS: hasil dan catatan WAJIB agar tercatat serius.
+  Future<bool> selesaikan(SosModel s,
+      {required String hasil, required String catatan}) async {
+    final u = _authCtrl.currentUser.value;
+    if (u == null) return false;
+    try {
+      await _firestore.collection('sos').doc(s.id).update({
+        'status': 'ditangani',
+        'hasil': hasil,
+        'catatan': catatan.trim(),
+        'ditangani_oleh': u.uid,
+        'petugas': '${AppTheme.labelRole(u.role)} ${u.nama}',
+        'ditangani_at': Timestamp.fromDate(DateTime.now()),
+        'updated_at': Timestamp.fromDate(DateTime.now()),
+      });
+      await Get.find<NotificationController>().kirimKe(
+          uidTujuan: s.uid,
+          judul: 'SOS Anda sudah ditutup',
+          isi: '$hasil. Mohon beri penilaian di halaman SOS.',
+          tipe: 'sos',
+          targetId: s.id);
+      await AuditLog.catat(
+          aksi: 'SOS ditutup',
+          targetTipe: 'sos',
+          targetId: s.id,
+          detail: '${s.nama}: $hasil',
+          alasan: catatan.trim());
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 }
 

@@ -48,10 +48,11 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^2.0.0
 
-flutter_icons:
-  android: true
-  ios: true
-  image_path: "assets/ic_launcher.png"
+# (dinonaktifkan: ikon dibuat manual di android_res/, jangan jalankan flutter_launcher_icons)
+# flutter_icons:
+#   android: true
+#   ios: true
+#   image_path: "assets/ic_launcher.png"
 
 flutter:
   uses-material-design: true

@@ -9,7 +9,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart' show Marker;
 import 'package:get/get.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../controllers/auth_controller.dart';
 import '../controllers/data_controller.dart';
@@ -39,6 +41,13 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
   DateTime? berlaku = edit?.berlakuSampai;
   bool simpanDraft = false;
   List<File> fotoBaru = [];
+  bool pakaiLokasi = edit?.punyaLokasi ?? false;
+  LatLng titikInfo = (edit?.punyaLokasi ?? false)
+      ? LatLng(edit!.lat, edit.lng)
+      : LatLng(Get.find<AuthController>().currentUser.value?.lokasiLat ?? -6.239265,
+          Get.find<AuthController>().currentUser.value?.lokasiLng ?? 106.5302);
+  final AlamatDesaCtrl almtInfo = AlamatDesaCtrl();
+  if (edit != null && edit.lokasiNama.isNotEmpty) almtInfo.isiDari(jalanTeks: edit.lokasiNama);
   List<String> fotoLama = edit != null ? List<String>.from(edit.semuaFoto) : [];
 
   await Get.bottomSheet(
@@ -218,6 +227,25 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                     },
                   ),
                   const SizedBox(height: 14),
+                  SwitchListTile(
+                    value: pakaiLokasi,
+                    onChanged: (v) => setSheet(() => pakaiLokasi = v),
+                    title: const Text('Tambahkan lokasi (opsional)',
+                        style: TextStyle(fontSize: 14)),
+                    subtitle: const Text(
+                        'Untuk acara, kehilangan, atau kejadian di tempat tertentu. Tidak otomatis: Anda yang menentukan titiknya.',
+                        style: TextStyle(fontSize: 12)),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  if (pakaiLokasi) ...[
+                    BlokAlamatDesa(c: almtInfo),
+                    const SizedBox(height: 10),
+                    PemilihPeta(
+                      titik: titikInfo,
+                      onChanged: (p) => titikInfo = p,
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                   ExpiryPicker(
                     key: ValueKey('exp_$kategori'),
                     initial: berlaku,
@@ -261,6 +289,13 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                     showSnack(false, '', 'expiry_required'.tr);
                                     return;
                                   }
+                                  if (pakaiLokasi && almtInfo.galat() != null) {
+                                    showSnack(false, '', almtInfo.galat()!);
+                                    return;
+                                  }
+                                  final double? latI = pakaiLokasi ? titikInfo.latitude : null;
+                                  final double? lngI = pakaiLokasi ? titikInfo.longitude : null;
+                                  final String namaI = pakaiLokasi ? almtInfo.teks : '';
                                   bool ok;
                                   String pesan = 'Berhasil disimpan.';
                                   if (modeEdit) {
@@ -272,6 +307,9 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                       berlakuSampai: berlaku!,
                                       fotoLama: fotoLama,
                                       fotoBaruList: fotoBaru,
+                                      lat: latI,
+                                      lng: lngI,
+                                      lokasiNama: namaI,
                                     );
                                     if (ok && dataCtrl.perluAccUlang) {
                                       pesan =
@@ -286,6 +324,9 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                       kategori: kategoriFinal(),
                                       berlakuSampai: berlaku,
                                       fotos: fotoBaru,
+                                      lat: latI,
+                                      lng: lngI,
+                                      lokasiNama: namaI,
                                     );
                                     pesan = sensitif
                                         ? 'Pengajuan dikirim ke Kepala Desa.'
@@ -299,6 +340,9 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                       simpanDraft: simpanDraft,
                                       berlakuSampai: berlaku,
                                       fotos: fotoBaru,
+                                      lat: latI,
+                                      lng: lngI,
+                                      lokasiNama: namaI,
                                     );
                                     pesan = simpanDraft
                                         ? 'Disimpan sebagai draf (lihat tab Tertunda).'

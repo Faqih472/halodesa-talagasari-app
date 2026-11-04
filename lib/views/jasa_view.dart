@@ -2668,7 +2668,6 @@ class _FormJasaViewState extends State<FormJasaView> {
       children: [
         PemilihPeta(
           titik: titik,
-          ikutiAwal: widget.existing == null,
           warna: k,
           onChanged: (p) => _in.lat == p.latitude && _in.lng == p.longitude
               ? null
@@ -3497,7 +3496,6 @@ class _BuatPesananViewState extends State<BuatPesananView> {
                       LatLng(_auth.currentUser.value?.lokasiLat ?? s.lokasiLat,
                           _auth.currentUser.value?.lokasiLng ?? s.lokasiLng),
                   tinggi: 170,
-                  ikutiAwal: true,
                   onChanged: (p) => _titikAntar = p,
                   onAlamat: (a) => setState(() => _cAlamat.text = a),
                 ),
@@ -6947,7 +6945,6 @@ class _FormLowonganViewState extends State<FormLowonganView> {
             titik: _titikKerja ??
                 LatLng(_auth.currentUser.value?.lokasiLat ?? -6.239265,
                     _auth.currentUser.value?.lokasiLng ?? 106.5302),
-            ikutiAwal: widget.existing == null,
             onChanged: (p) => _titikKerja = p,
           ),
           const SizedBox(height: 12),

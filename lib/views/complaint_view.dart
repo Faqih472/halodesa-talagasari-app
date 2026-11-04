@@ -778,7 +778,6 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                 PemilihPeta(
                   titik: _titik ?? pusat,
                   tinggi: 190,
-                  ikutiAwal: true,
                   onChanged: (p) => setState(() => _titik = p),
                 ),
                 const SizedBox(height: 4),

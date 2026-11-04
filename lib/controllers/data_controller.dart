@@ -209,6 +209,9 @@ class DataController extends GetxController {
     DateTime? berlakuSampai,
     File? foto,
     List<File> fotos = const [],
+    double? lat,
+    double? lng,
+    String lokasiNama = '',
   }) async {
     try {
       isSubmitting.value = true;
@@ -239,6 +242,9 @@ class DataController extends GetxController {
         'authorId': uid,
         'foto_url': fotoUrl,
         'foto_list': daftarFoto,
+        'lat': lat ?? 0,
+        'lng': lng ?? 0,
+        'lokasi_nama': lat == null ? '' : lokasiNama,
         'alasan_penolakan': null,
         'created_at': Timestamp.fromDate(DateTime.now()),
         'published_at': null,
@@ -264,6 +270,9 @@ class DataController extends GetxController {
     DateTime? berlakuSampai,
     File? foto,
     List<File> fotos = const [],
+    double? lat,
+    double? lng,
+    String lokasiNama = '',
   }) async {
     try {
       isSubmitting.value = true;
@@ -305,6 +314,9 @@ class DataController extends GetxController {
         'authorId': uid,
         'foto_url': fotoUrl,
         'foto_list': daftarFoto,
+        'lat': lat ?? 0,
+        'lng': lng ?? 0,
+        'lokasi_nama': lat == null ? '' : lokasiNama,
         'alasan_penolakan': null,
         'created_at': Timestamp.fromDate(DateTime.now()),
         'published_at':
@@ -548,6 +560,9 @@ class DataController extends GetxController {
     List<String> fotoLama = const [],
     File? fotoBaru,
     List<File> fotoBaruList = const [],
+    double? lat,
+    double? lng,
+    String lokasiNama = '',
   }) async {
     try {
       isSubmitting.value = true;
@@ -573,6 +588,9 @@ class DataController extends GetxController {
         'berlaku_sampai': Timestamp.fromDate(berlakuSampai),
         'foto_url': foto,
         'foto_list': semua,
+        'lat': lat ?? 0,
+        'lng': lng ?? 0,
+        'lokasi_nama': lat == null ? '' : lokasiNama,
         if (butuhAccUlang) 'status': 'pending_kades',
         if (butuhAccUlang) 'published_at': null,
         'edited_at': Timestamp.fromDate(DateTime.now()),
