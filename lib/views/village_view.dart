@@ -746,10 +746,10 @@ class _SosStaf extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                       !s.punyaLokasi
-                          ? '⚠️ Lokasi belum didapat dari HP warga. Hubungi lewat telepon.'
+                          ? '⏳ Menunggu titik GPS dari HP warga. Peta muncul otomatis begitu didapat. Sambil menunggu, hubungi lewat telepon.'
                           : 'Titik GPS diambil ${AppUtils.formatRelatif(s.posisiAt ?? s.updatedAt)}'
                               '${s.akurasi > 0 ? ' • akurasi ±${s.akurasi.round()} m' : ''}'
-                              '${lama ? '\n⚠️ Posisi belum diperbarui ${umurPosisi.inMinutes} menit. Mungkin warga di dalam gedung atau GPS terputus. Telepon segera.' : ''}',
+                              '${s.sumber == 'terakhir' ? '\n⚠️ Ini titik TERAKHIR yang diketahui HP, bukan GPS langsung; posisi bisa bergeser.' : ''}${lama ? '\n⚠️ Posisi belum diperbarui ${umurPosisi.inMinutes} menit. Mungkin warga di dalam gedung atau GPS terputus. Telepon segera.' : ''}',
                       style: TextStyle(
                           fontSize: 12,
                           height: 1.4,

@@ -133,16 +133,16 @@ class SosController extends GetxController {
       if (izin != LocationPermission.always && izin != LocationPermission.whileInUse) {
         return null;
       }
+      // akurasi sedang = cepat (jaringan + GPS), cocok untuk di dalam rumah
       try {
         return await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 8),
+          desiredAccuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 10),
         );
       } catch (_) {}
+      // cadangan: titik terakhir yang diketahui HP (diberi tanda umurnya)
       final last = await Geolocator.getLastKnownPosition();
-      if (last != null && DateTime.now().difference(last.timestamp).inMinutes < 2) {
-        return last;
-      }
+      if (last != null) return last;
     } catch (_) {}
     return null;
   }
@@ -170,7 +170,9 @@ class SosController extends GetxController {
       }
       final pos = await _ambilPosisi();
       final now = Timestamp.fromDate(DateTime.now());
-      final String src = pos == null ? 'tidak_ada' : 'gps';
+      final bool segar =
+          pos != null && DateTime.now().difference(pos.timestamp).inMinutes < 2;
+      final String src = pos == null ? 'tidak_ada' : (segar ? 'gps' : 'terakhir');
       final ref = await _firestore.collection('sos').add({
         'uid': user.uid,
         'nama': user.nama,
@@ -201,6 +203,7 @@ class SosController extends GetxController {
         kecualiUid: user.uid,
       );
       _lacak(ref.id);
+      if (!segar) _susulan(ref.id);
       return true;
     } catch (e) {
       errorMsg.value = 'Gagal mengirim SOS: $e';
@@ -232,6 +235,25 @@ class SosController extends GetxController {
     } catch (_) {
       return false;
     }
+  }
+
+  /// Bila titik awal belum segar, cari titik GPS akurat di latar lalu perbarui SOS.
+  Future<void> _susulan(String id) async {
+    try {
+      final p = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 45),
+      );
+      sumber.value = 'gps';
+      await _firestore.collection('sos').doc(id).update({
+        'lat': p.latitude,
+        'lng': p.longitude,
+        'akurasi': p.accuracy,
+        'sumber': 'gps',
+        'posisi_at': Timestamp.fromDate(p.timestamp),
+        'updated_at': Timestamp.fromDate(DateTime.now()),
+      });
+    } catch (_) {}
   }
 
   void _lacak(String id) {
