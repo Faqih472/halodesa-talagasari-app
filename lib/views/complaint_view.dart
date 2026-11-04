@@ -20,7 +20,7 @@ import '../controllers/complaint_controller.dart';
 import '../core/core.dart';
 import '../core/models.dart';
 import '../core/models_extra.dart';
-import '../core/ui_helpers.dart' show pilihAlasanTolak, PemilihPeta;
+import '../core/ui_helpers.dart' show pilihAlasanTolak, PemilihPeta, AlamatDesaCtrl, BlokAlamatDesa;
 import 'chat_view.dart' show ChatAction;
 import 'verification_view.dart';
 
@@ -373,9 +373,111 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
   bool _rahasia = false;
   DateTime? _tglKejadian;
   LatLng? _titik;
+  String _urgensi = 'biasa';
+  String _dampak = '';
+  bool _sudahLapor = false;
+  final _harapanCtrl = TextEditingController();
+  final AlamatDesaCtrl _almt = AlamatDesaCtrl();
+
+  @override
+  void initState() {
+    super.initState();
+    final u = Get.find<AuthController>().currentUser.value;
+    if (u != null) {
+      _almt.isiDari(
+          jalanTeks: u.alamatLengkap, rtTeks: u.alamatRt, rwTeks: u.alamatRw);
+    }
+  }
+
+  Map<String, dynamic> get _info =>
+      ComplaintModel.infoKategori(_kategori) ?? const {};
+
+  void _pakaiContoh() {
+    setState(() {
+      _judulCtrl.text = '${_info['judul'] ?? ''}';
+      _isiCtrl.text = '${_info['isi'] ?? ''}';
+    });
+  }
+
+  Future<void> _pilihKategori() async {
+    final v = await Get.bottomSheet<String>(
+      Container(
+        height: Get.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(children: [
+          const SizedBox(height: 12),
+          Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2))),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text('Apa yang ingin dilaporkan?',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text('Pilih yang paling dekat dengan masalah Anda. Contoh ada di bawah tiap pilihan.',
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+              children: ComplaintModel.kelompokKategori.map((g) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
+                      child: Text('${g['label']}',
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                    ),
+                    ...(g['isi'] as List).map((k) {
+                      final v = k['value'] as String;
+                      final pilih = v == _kategori;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        decoration: BoxDecoration(
+                          color: pilih ? Colors.green.shade50 : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: pilih ? Colors.green.shade600 : Colors.grey.shade300),
+                        ),
+                        child: ListTile(
+                          dense: true,
+                          leading: Icon(ComplaintModel.ikonKategori(v)),
+                          onTap: () => Get.back(result: v),
+                          title: Text('${k['label']}',
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                          subtitle: Text('${k['contoh']}', style: const TextStyle(fontSize: 11.5)),
+                          trailing: pilih
+                              ? Icon(Icons.check_circle, color: Colors.green.shade700)
+                              : null,
+                        ),
+                      );
+                    }),
+                  ]),
+                );
+              }).toList(),
+            ),
+          ),
+        ]),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+    );
+    if (v != null) setState(() => _kategori = v);
+  }
 
   @override
   void dispose() {
+    _harapanCtrl.dispose();
+    _almt.dispose();
     _judulCtrl.dispose();
     _isiCtrl.dispose();
     _terlaporCtrl.dispose();
@@ -404,6 +506,11 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
 
   Future<void> _kirim() async {
     if (!_formKey.currentState!.validate()) return;
+    final ga = _almt.galat();
+    if (ga != null) {
+      _snack(false, '', ga);
+      return;
+    }
     final ok = await _ctrl.kirim(
       kategori: _kategori,
       judul: _judulCtrl.text,
@@ -414,6 +521,11 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
       terlapor: _terlaporCtrl.text,
       lat: _titik?.latitude,
       lng: _titik?.longitude,
+      urgensi: _urgensi,
+      dampak: _dampak,
+      sudahLaporRt: _sudahLapor,
+      harapan: _harapanCtrl.text,
+      alamatKejadian: _almt.teks,
     );
     if (ok) Get.back();
     _snack(ok, 'cmp_sent'.tr, _ctrl.errorMsg.value);
@@ -453,16 +565,91 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                         color: AppTheme.textSecondary,
                         height: 1.4)),
                 const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  value: _kategori,
-                  decoration: InputDecoration(labelText: 'cmp_category'.tr),
-                  items: ComplaintModel.daftarKategori
-                      .map((k) => DropdownMenuItem(
-                            value: k['value'],
-                            child: Text(k['label']!),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() => _kategori = v ?? _kategori),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: const Text(
+                      'Cara melapor (mudah):\n'
+                      '1. Pilih jenis masalah.\n'
+                      '2. Tulis judul & ceritakan kejadiannya (tekan "Pakai contoh" bila bingung).\n'
+                      '3. Tandai lokasi di peta dan tambah foto.\n'
+                      '4. Kirim. Admin memeriksa, lalu laporan ditangani dan Anda dapat kabar.\n'
+                      'Untuk keadaan darurat jiwa, gunakan tombol SOS, bukan pengaduan.',
+                      style: TextStyle(fontSize: 12.5, height: 1.5)),
+                ),
+                const Text('Langkah 1 — Pilih kelompok masalah',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                const SizedBox(height: 6),
+                Wrap(spacing: 6, runSpacing: 2, children: [
+                  for (final g in ComplaintModel.kelompokKategori)
+                    ChoiceChip(
+                      label: Text('${g['label']}', style: const TextStyle(fontSize: 12)),
+                      selected: ComplaintModel.idKelompok(_kategori) == g['id'],
+                      onSelected: (_) => setState(() =>
+                          _kategori = (g['isi'] as List).first['value'] as String),
+                    ),
+                ]),
+                const SizedBox(height: 12),
+                const Text('Langkah 2 — Pilih jenis masalahnya',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                const SizedBox(height: 6),
+                ...(ComplaintModel.kelompokKategori
+                        .firstWhere((g) => g['id'] == ComplaintModel.idKelompok(_kategori))['isi']
+                    as List)
+                    .map((k) {
+                  final v = k['value'] as String;
+                  final pilih = v == _kategori;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      color: pilih ? Colors.green.shade50 : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: pilih ? Colors.green.shade600 : Colors.grey.shade300),
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(ComplaintModel.ikonKategori(v)),
+                      title: Text('${k['label']}',
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                      subtitle: Text('${k['contoh']}', style: const TextStyle(fontSize: 11.5)),
+                      trailing: pilih
+                          ? Icon(Icons.check_circle, color: Colors.green.shade700)
+                          : null,
+                      onTap: () => setState(() => _kategori = v),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.shade300),
+                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Contoh laporan untuk jenis ini',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
+                    const SizedBox(height: 4),
+                    Text('Judul: ${_info['judul'] ?? ''}',
+                        style: const TextStyle(fontSize: 12.5, height: 1.4)),
+                    Text('Isi: ${_info['isi'] ?? ''}',
+                        style: const TextStyle(fontSize: 12.5, height: 1.4)),
+                  ]),
+                ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: _pakaiContoh,
+                    icon: const Icon(Icons.auto_fix_high, size: 16),
+                    label: const Text('Pakai contoh ini (lalu ubah sesuai kejadian Anda)'),
+                  ),
                 ),
                 if (ComplaintModel.kategoriBerat.contains(_kategori)) ...[
                   const SizedBox(height: 6),
@@ -493,7 +680,69 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                     alignLabelWithHint: true,
                   ),
                 ),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => setState(() {
+                      if (_isiCtrl.text.trim().isEmpty) {
+                        _isiCtrl.text = 'Apa yang terjadi: \nSejak kapan: \nSiapa yang terdampak: \nYang diharapkan: ';
+                      }
+                    }),
+                    icon: const Icon(Icons.checklist, size: 16),
+                    label: const Text('Bingung menulis? Pakai kerangka 4 pertanyaan'),
+                  ),
+                ),
                 const SizedBox(height: 14),
+                const Text('Seberapa mendesak?',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 6),
+                Wrap(spacing: 8, children: [
+                  for (final u in const ['biasa', 'penting', 'darurat'])
+                    ChoiceChip(
+                      label: Text(ComplaintModel.labelUrgensi(u)),
+                      selected: _urgensi == u,
+                      onSelected: (_) => setState(() => _urgensi = u),
+                    ),
+                ]),
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: Text('Biasa: bisa menunggu. Penting: mengganggu banyak orang. Mendesak: berbahaya bila dibiarkan.',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                ),
+                const SizedBox(height: 14),
+                const Text('Siapa yang terdampak?',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 6),
+                Wrap(spacing: 8, children: [
+                  for (final d in const ['keluarga', 'rt', 'dusun'])
+                    ChoiceChip(
+                      label: Text(ComplaintModel.labelDampak(d)),
+                      selected: _dampak == d,
+                      onSelected: (_) => setState(() => _dampak = _dampak == d ? '' : d),
+                    ),
+                ]),
+                const SizedBox(height: 14),
+                const Text('Lokasi kejadian',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 6),
+                BlokAlamatDesa(c: _almt),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _sudahLapor,
+                  onChanged: (v) => setState(() => _sudahLapor = v),
+                  title: const Text('Sudah dilaporkan ke RT/RW?',
+                      style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                ),
+                TextFormField(
+                  controller: _harapanCtrl,
+                  maxLines: 2,
+                  maxLength: 200,
+                  decoration: const InputDecoration(
+                    labelText: 'Harapan penyelesaian (opsional)',
+                    hintText: 'Contoh: jalan ditambal / petugas datang memeriksa',
+                  ),
+                ),
+                const SizedBox(height: 6),
                 InkWell(
                   onTap: _pilihTanggal,
                   child: InputDecorator(
@@ -529,6 +778,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                 PemilihPeta(
                   titik: _titik ?? pusat,
                   tinggi: 190,
+                  ikutiAwal: true,
                   onChanged: (p) => setState(() => _titik = p),
                 ),
                 const SizedBox(height: 4),
@@ -737,6 +987,27 @@ class PengaduanDetailView extends StatelessWidget {
                   '${'cmp_date'.tr}: ${AppUtils.formatTanggal(c.tglKejadian!)}',
                   style: const TextStyle(
                       fontSize: 12, color: AppTheme.textSecondary)),
+            ],
+            const SizedBox(height: 6),
+            Wrap(spacing: 6, runSpacing: 4, children: [
+              if (c.urgensi != 'biasa')
+                Chip(
+                  label: Text('Urgensi: ${ComplaintModel.labelUrgensi(c.urgensi)}'),
+                  backgroundColor: c.urgensi == 'darurat' ? Colors.red.shade100 : Colors.orange.shade100,
+                  visualDensity: VisualDensity.compact,
+                ),
+              if (c.dampak.isNotEmpty)
+                Chip(
+                  label: Text('Terdampak: ${ComplaintModel.labelDampak(c.dampak)}'),
+                  visualDensity: VisualDensity.compact,
+                ),
+              if (c.sudahLaporRt)
+                const Chip(label: Text('Sudah lapor RT/RW'), visualDensity: VisualDensity.compact),
+            ]),
+            if (c.harapan.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text('Harapan: ${c.harapan}',
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             ],
             if (c.terlapor.isNotEmpty) ...[
               const SizedBox(height: 4),

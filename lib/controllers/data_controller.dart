@@ -766,12 +766,22 @@ class ServiceController extends GetxController {
     }
   }
 
-  /// Hapus jasa oleh pemiliknya (disembunyikan permanen, riwayat pesanan tetap ada).
+  final RxList<ServiceModel> antrianHapus = <ServiceModel>[].obs;
+
+  /// Pemilik MENGAJUKAN hapus jasa (wajib alasan). Jasa baru hilang setelah Admin setuju.
   Future<bool> hapusJasa(ServiceModel s, {String alasan = ''}) async {
     try {
       errorMsg.value = '';
+      if (s.hapusStatus == 'diajukan') {
+        errorMsg.value = 'Pengajuan hapus sudah dikirim. Tunggu keputusan Admin.';
+        return false;
+      }
       if (s.diblokir || s.dikunci) {
         errorMsg.value = 'Jasa yang dikunci atau diblokir Admin tidak bisa dihapus sendiri. Hubungi Admin.';
+        return false;
+      }
+      if (alasan.trim().length < 10) {
+        errorMsg.value = 'Alasan penghapusan wajib diisi.';
         return false;
       }
       final n = Get.find<OrderController>()
@@ -780,36 +790,96 @@ class ServiceController extends GetxController {
           .length;
       if (n > 0) {
         errorMsg.value =
-            'Masih ada $n pesanan yang berjalan. Selesaikan atau batalkan dulu sebelum menghapus jasa.';
+            'Masih ada $n pesanan yang berjalan. Selesaikan atau batalkan dulu sebelum mengajukan hapus.';
         return false;
       }
       await _firestore.collection('penyedia_jasa').doc(s.id).update({
-        'status': 'dihapus',
-        'alasan_hapus': alasan,
-        'dihapus_at': Timestamp.fromDate(DateTime.now()),
-        'diperbarui_at': Timestamp.fromDate(DateTime.now()),
+        'hapus_status': 'diajukan',
+        'hapus_alasan': alasan.trim(),
+        'hapus_keputusan': '',
+        'hapus_diajukan_at': Timestamp.fromDate(DateTime.now()),
       });
-      if (jasaSaya.length <= 1) {
-        final uid = _authCtrl.currentUser.value?.uid;
-        if (uid != null) {
-          await _firestore.collection('users').doc(uid).update({'isPenyediaJasa': false});
-        }
-      }
+      await notifPeran(['admin'],
+          judul: 'Permintaan Hapus Jasa',
+          isi: '${s.nama}: $alasan',
+          tipe: 'jasa',
+          targetId: s.id);
       await AuditLog.catat(
-          aksi: 'jasa_hapus_pemilik',
+          aksi: 'jasa_hapus_diajukan',
           targetTipe: 'jasa',
           targetId: s.id,
           detail: s.nama,
           alasan: alasan);
-      await fetchPunyaSaya();
-      await fetchAktif();
       return true;
     } catch (e) {
-      errorMsg.value = 'Gagal menghapus jasa. Coba lagi.';
+      errorMsg.value = 'Gagal mengajukan hapus jasa. Coba lagi.';
       return false;
     }
   }
 
+  Future<void> fetchAntrianHapus() async {
+    try {
+      final snap = await _firestore
+          .collection('penyedia_jasa')
+          .where('hapus_status', isEqualTo: 'diajukan')
+          .get();
+      antrianHapus.assignAll(snap.docs
+          .map((d) => ServiceModel.fromFirestore(d))
+          .where((s) => s.status != 'dihapus'));
+    } catch (_) {}
+  }
+
+  /// Admin: setujui / tolak permintaan hapus jasa (keterangan wajib di kedua kasus).
+  Future<bool> putuskanHapus(ServiceModel s,
+      {required bool setuju, required String keterangan}) async {
+    try {
+      errorMsg.value = '';
+      final now = Timestamp.fromDate(DateTime.now());
+      if (setuju) {
+        await _firestore.collection('penyedia_jasa').doc(s.id).update({
+          'status': 'dihapus',
+          'hapus_status': 'disetujui',
+          'hapus_keputusan': keterangan,
+          'dihapus_at': now,
+          'diperbarui_at': now,
+        });
+        final sisa = await _firestore
+            .collection('penyedia_jasa')
+            .where('uid_penyedia', isEqualTo: s.uidPenyedia)
+            .get();
+        final masih = sisa.docs.where((d) =>
+            d.id != s.id && (d.data()['status'] ?? '') != 'dihapus');
+        if (masih.isEmpty) {
+          await _firestore
+              .collection('users')
+              .doc(s.uidPenyedia)
+              .update({'isPenyediaJasa': false});
+        }
+      } else {
+        await _firestore.collection('penyedia_jasa').doc(s.id).update({
+          'hapus_status': 'ditolak',
+          'hapus_keputusan': keterangan,
+        });
+      }
+      await Get.find<NotificationController>().kirimKe(
+          uidTujuan: s.uidPenyedia,
+          judul: setuju ? 'Hapus Jasa Disetujui' : 'Hapus Jasa Ditolak',
+          isi: '${s.nama}. $keterangan',
+          tipe: 'jasa',
+          targetId: s.id);
+      await AuditLog.catat(
+          aksi: setuju ? 'jasa_hapus_setuju' : 'jasa_hapus_tolak',
+          targetTipe: 'jasa',
+          targetId: s.id,
+          detail: s.nama,
+          alasan: keterangan);
+      await fetchAntrianHapus();
+      return true;
+    } catch (e) {
+      errorMsg.value = 'Gagal menyimpan keputusan. Coba lagi.';
+      return false;
+    }
+  }
   // ─── FETCH: semua penyedia jasa berstatus aktif ──────────
   Future<void> fetchAktif() async {
     try {
@@ -2317,7 +2387,10 @@ class LowonganController extends GetxController {
           .collection('lowongan_warga')
           .where('uid', isEqualTo: u.uid)
           .get();
-      final list = a.docs.map(LowonganModel.fromFirestore).toList()
+      final list = a.docs
+          .map(LowonganModel.fromFirestore)
+          .where((x) => x.status != 'dihapus')
+          .toList()
         ..sort((x, y) => y.createdAt.compareTo(x.createdAt));
       milik.assignAll(list);
       final b = await _firestore
@@ -2364,13 +2437,29 @@ class LowonganController extends GetxController {
     required String whatsapp,
     DateTime? mulai,
     required DateTime batas,
+    double? lat,
+    double? lng,
+    List<File> fotoBaru = const [],
+    List<String> fotoLama = const [],
   }) async {
     final u = _auth.currentUser.value;
     if (u == null) return false;
     try {
       isSubmitting.value = true;
       errorMsg.value = '';
+      final semuaFoto = <String>[...fotoLama];
+      for (final f in fotoBaru) {
+        final enc = await ImageUtil.encode(f);
+        if (enc == null) {
+          errorMsg.value = 'Foto terlalu besar, pilih foto lain.';
+          return false;
+        }
+        semuaFoto.add(enc);
+      }
       final data = <String, dynamic>{
+        'foto_list': semuaFoto.take(3).toList(),
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
         'judul': judul.trim(),
         'kategori': kategori,
         'deskripsi': deskripsi.trim(),
@@ -2495,21 +2584,83 @@ class LowonganController extends GetxController {
     }
   }
 
-  Future<bool> hapus(LowonganModel l) async {
+  final RxList<LowonganModel> antrianHapus = <LowonganModel>[].obs;
+
+  /// Pemilik MENGAJUKAN hapus lowongan (wajib alasan); Admin yang memutuskan.
+  Future<bool> hapus(LowonganModel l, {String alasan = ''}) async {
     try {
       errorMsg.value = '';
-      final lam = await _firestore
-          .collection('lamaran_kerja')
-          .where('lowongan_id', isEqualTo: l.id)
-          .get();
-      for (final d in lam.docs) {
-        await d.reference.delete();
+      if (l.hapusStatus == 'diajukan') {
+        errorMsg.value = 'Pengajuan hapus sudah dikirim. Tunggu keputusan Admin.';
+        return false;
       }
-      await _firestore.collection('lowongan_warga').doc(l.id).delete();
+      if (alasan.trim().length < 10) {
+        errorMsg.value = 'Alasan penghapusan wajib diisi.';
+        return false;
+      }
+      await _firestore.collection('lowongan_warga').doc(l.id).update({
+        'hapus_status': 'diajukan',
+        'hapus_alasan': alasan.trim(),
+        'hapus_keputusan': '',
+      });
+      await notifPeran(['admin'],
+          judul: 'Permintaan Hapus Lowongan',
+          isi: '${l.judul}: $alasan',
+          tipe: 'jasa',
+          targetId: l.id);
       await segarkanSemua();
       return true;
     } catch (_) {
-      errorMsg.value = 'Gagal menghapus lowongan. Coba lagi.';
+      errorMsg.value = 'Gagal mengajukan hapus lowongan. Coba lagi.';
+      return false;
+    }
+  }
+
+  Future<void> fetchAntrianHapus() async {
+    try {
+      final snap = await _firestore
+          .collection('lowongan_warga')
+          .where('hapus_status', isEqualTo: 'diajukan')
+          .get();
+      antrianHapus.assignAll(snap.docs
+          .map(LowonganModel.fromFirestore)
+          .where((l) => l.status != 'dihapus'));
+    } catch (_) {}
+  }
+
+  /// Admin: setujui (lowongan disembunyikan permanen, riwayat lamaran tetap) / tolak.
+  /// [langsung] = Admin menghapus sendiri lowongan yang melanggar.
+  Future<bool> putuskanHapus(LowonganModel l,
+      {required bool setuju, required String keterangan}) async {
+    try {
+      errorMsg.value = '';
+      await _firestore.collection('lowongan_warga').doc(l.id).update(setuju
+          ? {
+              'status': 'dihapus',
+              'hapus_status': 'disetujui',
+              'hapus_keputusan': keterangan,
+            }
+          : {
+              'hapus_status': 'ditolak',
+              'hapus_keputusan': keterangan,
+            });
+      await Get.find<NotificationController>().kirimKe(
+          uidTujuan: l.uid,
+          judul: setuju ? 'Hapus Lowongan Disetujui' : 'Hapus Lowongan Ditolak',
+          isi: '${l.judul}. $keterangan',
+          tipe: 'jasa',
+          targetId: l.id);
+      await AuditLog.catat(
+          aksi: setuju ? 'lowongan_hapus_setuju' : 'lowongan_hapus_tolak',
+          targetTipe: 'lowongan',
+          targetId: l.id,
+          detail: l.judul,
+          alasan: keterangan);
+      await fetchAntrianHapus();
+      await segarkanSemua();
+      return true;
+    } catch (_) {
+      errorMsg.value = 'Gagal menyimpan keputusan. Coba lagi.';
       return false;
     }
   }

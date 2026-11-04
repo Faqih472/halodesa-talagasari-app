@@ -86,8 +86,12 @@ service cloud.firestore {
                          && resource.data.status in ['ditolak', 'aktif'])
                         || (request.resource.data.status in ['aktif', 'nonaktif']
                             && resource.data.status in ['aktif', 'nonaktif'])
-                        || (request.resource.data.status == 'dihapus'
-                            && resource.data.status in ['pending', 'ditolak', 'aktif', 'nonaktif']))))
+                        ))))
+            // mengajukan hapus: hanya mengisi kolom hapus_* dengan status 'diajukan'
+            && (!request.resource.data.diff(resource.data).affectedKeys()
+                  .hasAny(['hapus_status', 'hapus_alasan', 'hapus_keputusan', 'hapus_diajukan_at'])
+                || (request.resource.data.hapus_status == 'diajukan'
+                    && request.resource.data.get('hapus_keputusan', '') == ''))
         // 2) warga lain: hanya penghitung
         || (login() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
              'rating_avg', 'rating_count', 'rating_dist', 'aspek_sum', 'aspek_n',
@@ -139,6 +143,11 @@ service cloud.firestore {
                     || (request.resource.data.status == 'aktif'
                       && resource.data.status == 'ditutup'
                       && resource.data.get('disetujui', true) == true)))
+              // mengajukan hapus (alasan wajib), keputusan hanya Admin
+              || (request.resource.data.diff(resource.data).affectedKeys()
+                    .hasOnly(['hapus_status', 'hapus_alasan', 'hapus_keputusan'])
+                  && request.resource.data.hapus_status == 'diajukan'
+                  && request.resource.data.get('hapus_keputusan', '') == '')
               // menambah jumlah pekerja yang diterima
               || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['diterima'])
               // ubah isi lowongan -> kembali menunggu persetujuan

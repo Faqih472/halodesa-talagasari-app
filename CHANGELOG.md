@@ -47,3 +47,14 @@ Buka / Penuh / Tutup + catatan + buka otomatis pada tanggal tertentu. Profil tet
 - Widget `PemilihPeta` (Lokasi saya + Cari alamat) di pengaduan, jasa, pesanan.
 - SOS: terkirim instan, lokasi diperbarui live, tombol "sudah aman", Admin lihat waktu & sumber posisi.
 - Info desa: 7 kelompok/30 kategori dengan contoh, sampai 3 foto, suka, komentar, simpan, bagikan, dilihat.
+
+## Lokasi realtime, pengaduan lengkap, hapus dengan ACC
+- Tombol "Lokasi saya" realtime di semua peta (pin form, peta jasa, detail jasa, peta pengaduan); pin otomatis mengikuti GPS; pesan jelas bila GPS/izin bermasalah.
+- Pengaduan: 6 kelompok, 28 kategori + contoh laporan, urgensi, dampak, lokasi, harapan, panduan langkah.
+- Hapus jasa/lowongan: pemilik wajib alasan; Admin setuju/tolak dengan keterangan; data disembunyikan (soft delete) sehingga tidak gagal lagi.
+
+## Alamat terkunci, kategori bertingkat, lowongan foto + pin
+- Alamat pengaduan & lowongan: Desa Talagasari, Kec. Cikupa, Kab. Tangerang, Banten terkunci; isi kampung, RT, RW, jalan.
+- Pengaduan: pilih kelompok lalu jenis, contoh laporan, tombol kerangka 4 pertanyaan.
+- Lowongan: sampai 3 foto, pin peta realtime, tampil di detail.
+- Perbaikan aturan Firestore lowongan agar pengajuan hapus tidak gagal.

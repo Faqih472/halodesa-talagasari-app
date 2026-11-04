@@ -230,6 +230,11 @@ class ComplaintController extends GetxController {
     String terlapor = '',
     double? lat,
     double? lng,
+    String urgensi = 'biasa',
+    String dampak = '',
+    bool sudahLaporRt = false,
+    String harapan = '',
+    String alamatKejadian = '',
   }) async {
     final user = _authCtrl.currentUser.value;
     if (user == null) return false;
@@ -262,7 +267,7 @@ class ComplaintController extends GetxController {
         urls.add(enc);
       }
 
-      final alamat = [
+      final alamat = alamatKejadian.trim().isNotEmpty ? alamatKejadian.trim() : [
         if (user.alamatLengkap.isNotEmpty) user.alamatLengkap,
         if (user.alamatRt.isNotEmpty || user.alamatRw.isNotEmpty)
           'RT ${user.alamatRt}/RW ${user.alamatRw}',
@@ -282,6 +287,10 @@ class ComplaintController extends GetxController {
         'terlapor': terlapor.trim(),
         'alamat': alamat,
         'rahasia': rahasia,
+        'urgensi': urgensi,
+        'dampak': dampak,
+        'sudah_lapor_rt': sudahLaporRt,
+        'harapan': harapan.trim(),
         'status': 'menunggu_review',
         'penanganan': '',
         'alasan_penolakan': null,
@@ -294,7 +303,7 @@ class ComplaintController extends GetxController {
       await fetchMine();
       await _notifAdmin(
         judul: 'Pengaduan Baru',
-        isi: '${ComplaintModel.labelKategori(kategori)}: ${judul.trim()}',
+        isi: '${urgensi == 'darurat' ? '[MENDESAK] ' : ''}${ComplaintModel.labelKategori(kategori)}: ${judul.trim()}',
         tipe: 'pengaduan',
         targetId: ref.id,
       );

@@ -41,7 +41,20 @@ Color warnaKategori(String k) {
     case 'layanan_desa':
       return Colors.teal;
     default:
-      return Colors.blueGrey;
+      switch (ComplaintModel.idKelompok(k)) {
+        case 'fasilitas':
+          return Colors.orange.shade800;
+        case 'lingkungan':
+          return Colors.green.shade700;
+        case 'aman':
+          return Colors.red.shade800;
+        case 'layanan':
+          return Colors.teal;
+        case 'sosial':
+          return Colors.pink.shade600;
+        default:
+          return Colors.blueGrey;
+      }
   }
 }
 
@@ -219,31 +232,23 @@ class _ComplaintMapViewState extends State<ComplaintMapView> {
     }
     return Stack(
       children: [
-        FlutterMap(
-          options: MapOptions(
-              initialCenter: pusat, initialZoom: _fokus != null ? 16 : 14),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.talagasari_hub',
-            ),
-            MarkerLayer(
-              markers: list
-                  .map((c) => Marker(
-                        point: LatLng(c.lat, c.lng),
-                        width: 36,
-                        height: 36,
-                        alignment: Alignment.topCenter,
-                        child: GestureDetector(
-                          onTap: () =>
-                              Get.to(() => PengaduanDetailView(complaint: c)),
-                          child: Icon(Icons.location_on,
-                              size: 36, color: warnaKategori(c.kategori)),
-                        ),
-                      ))
-                  .toList(),
-            ),
-          ],
+        PetaDenganLokasi(
+          pusat: pusat,
+          zoom: _fokus != null ? 16 : 14,
+          tinggi: double.infinity,
+          penanda: list
+              .map((c) => Marker(
+                    point: LatLng(c.lat, c.lng),
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.topCenter,
+                    child: GestureDetector(
+                      onTap: () => Get.to(() => PengaduanDetailView(complaint: c)),
+                      child: Icon(Icons.location_on,
+                          size: 36, color: warnaKategori(c.kategori)),
+                    ),
+                  ))
+              .toList(),
         ),
         Positioned(
           left: 8,
@@ -817,6 +822,116 @@ class _LowonganStaffTabState extends State<LowonganStaffTab> {
             );
           },
         );
+      }),
+    );
+  }
+}
+
+
+// ============================================================
+// PERMINTAAN HAPUS (jasa & lowongan) — Admin setuju/tolak + keterangan
+// ============================================================
+class HapusStaffTab extends StatefulWidget {
+  const HapusStaffTab({super.key});
+  @override
+  State<HapusStaffTab> createState() => _HapusStaffTabState();
+}
+
+class _HapusStaffTabState extends State<HapusStaffTab> {
+  final ServiceController _sc = Get.find<ServiceController>();
+  final LowonganController _lc = Get.find<LowonganController>();
+
+  Future<void> _muat() async {
+    await Future.wait([_sc.fetchAntrianHapus(), _lc.fetchAntrianHapus()]);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _muat();
+  }
+
+  Future<void> _putus(bool setuju, Future<bool> Function(String ket) simpan) async {
+    final ket = setuju
+        ? await dialogKeteranganSetuju('Setujui penghapusan')
+        : await pilihAlasanTolak('hapus', judul: 'Tolak penghapusan');
+    if (ket == null) return;
+    final ok = await simpan(ket);
+    showSnack(ok, setuju ? 'Penghapusan disetujui.' : 'Penghapusan ditolak.',
+        _sc.errorMsg.value.isNotEmpty ? _sc.errorMsg.value : _lc.errorMsg.value);
+  }
+
+  Widget _tombol(Future<void> Function(bool) f) => Row(children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => f(false),
+            style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
+            child: const Text('Tolak', style: TextStyle(color: Colors.red)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => f(true),
+            child: const Text('Setujui hapus', style: TextStyle(color: Colors.white)),
+          ),
+        ),
+      ]);
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _muat,
+      child: Obx(() {
+        final js = _sc.antrianHapus.toList();
+        final ls = _lc.antrianHapus.toList();
+        if (js.isEmpty && ls.isEmpty) {
+          return ListView(children: const [
+            SizedBox(height: 80),
+            EmptyState(
+                icon: Icons.delete_sweep_outlined,
+                title: 'Tidak ada permintaan hapus',
+                subtitle: ''),
+          ]);
+        }
+        return ListView(padding: const EdgeInsets.symmetric(vertical: 8), children: [
+          for (final s in js)
+            kartu(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Jasa: ${s.nama}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                Text(s.namaPenyedia,
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                const SizedBox(height: 6),
+                Text('Alasan pemilik:\n${s.hapusAlasan}',
+                    style: const TextStyle(fontSize: 13, height: 1.4)),
+                TextButton(
+                  onPressed: () => Get.to(() => JasaDetailView(service: s)),
+                  child: const Text('Lihat jasa'),
+                ),
+                _tombol((setuju) => _putus(setuju,
+                    (k) => _sc.putuskanHapus(s, setuju: setuju, keterangan: k))),
+              ]),
+            ),
+          for (final l in ls)
+            kartu(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Lowongan: ${l.judul}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                Text(l.namaPemberi,
+                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                const SizedBox(height: 6),
+                Text('Alasan pemilik:\n${l.hapusAlasan}',
+                    style: const TextStyle(fontSize: 13, height: 1.4)),
+                TextButton(
+                  onPressed: () => Get.to(() => LowonganDetailView(lowongan: l)),
+                  child: const Text('Lihat lowongan'),
+                ),
+                _tombol((setuju) => _putus(setuju,
+                    (k) => _lc.putuskanHapus(l, setuju: setuju, keterangan: k))),
+              ]),
+            ),
+        ]);
       }),
     );
   }

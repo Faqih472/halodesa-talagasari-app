@@ -12,7 +12,7 @@ import '../controllers/data_controller.dart';
 import '../core/core.dart';
 import '../core/models.dart';
 import '../core/ui_helpers.dart';
-import 'admin_tools_view.dart' show LaporanJasaTab, FotoStaffTab, LowonganStaffTab;
+import 'admin_tools_view.dart' show LaporanJasaTab, FotoStaffTab, LowonganStaffTab, HapusStaffTab;
 import 'complaint_view.dart';
 import 'info_form_view.dart';
 import 'jasa_view.dart' show AdminJasaTab;
@@ -92,6 +92,7 @@ class _TabManageViewState extends State<TabManageView> {
               const Tab(text: 'Laporan Jasa'),
               tabBadge('Lowongan', Get.find<LowonganController>().antrian.length),
               tabBadge('Foto', Get.find<FotoProfilController>().antrian.length),
+              tabBadge('Hapus', serviceCtrl.antrianHapus.length + Get.find<LowonganController>().antrianHapus.length),
             ]
           : [
               const Tab(text: 'Informasi'),
@@ -106,6 +107,7 @@ class _TabManageViewState extends State<TabManageView> {
               const LaporanJasaTab(),
               const LowonganStaffTab(),
               const FotoStaffTab(),
+              const HapusStaffTab(),
             ]
           : [
               infoList,

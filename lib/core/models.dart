@@ -607,6 +607,9 @@ class ServiceModel {
   final String status; // 'pending' | 'aktif' | 'nonaktif' | 'ditolak' | 'diblokir'
   final String? alasanPenolakan;
   final bool dikunci; // dinonaktifkan/diblokir Admin → pemilik tak bisa mengaktifkan
+  final String hapusStatus; // '' | 'diajukan' | 'ditolak' | 'disetujui'
+  final String hapusAlasan;
+  final String hapusKeputusan;
   final DateTime createdAt;
   final DateTime? diperbaruiAt;
   final bool ktpOk;
@@ -665,6 +668,9 @@ class ServiceModel {
     required this.status,
     this.alasanPenolakan,
     this.dikunci = false,
+    this.hapusStatus = '',
+    this.hapusAlasan = '',
+    this.hapusKeputusan = '',
     required this.createdAt,
     this.diperbaruiAt,
     this.ktpOk = false,
@@ -763,6 +769,9 @@ class ServiceModel {
       status: data['status'] ?? 'pending',
       alasanPenolakan: data['alasan_penolakan'],
       dikunci: data['dikunci'] ?? false,
+      hapusStatus: data['hapus_status'] ?? '',
+      hapusAlasan: data['hapus_alasan'] ?? '',
+      hapusKeputusan: data['hapus_keputusan'] ?? '',
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       diperbaruiAt: (data['diperbarui_at'] as Timestamp?)?.toDate(),
       ktpOk: data['ktp_ok'] ?? false,
@@ -1371,6 +1380,10 @@ class ComplaintModel {
   final String terlapor; // opsional
   final int rating; // 0 = belum dinilai
   final String ulasanRating;
+  final String urgensi; // 'biasa' | 'penting' | 'darurat'
+  final String dampak; // '' | 'keluarga' | 'rt' | 'dusun'
+  final bool sudahLaporRt;
+  final String harapan;
 
   ComplaintModel({
     required this.id,
@@ -1393,6 +1406,10 @@ class ComplaintModel {
     this.terlapor = '',
     this.rating = 0,
     this.ulasanRating = '',
+    this.urgensi = 'biasa',
+    this.dampak = '',
+    this.sudahLaporRt = false,
+    this.harapan = '',
   });
 
   factory ComplaintModel.fromFirestore(DocumentSnapshot doc) {
@@ -1418,6 +1435,10 @@ class ComplaintModel {
       terlapor: d['terlapor'] ?? '',
       rating: ((d['rating'] ?? 0) as num).toInt(),
       ulasanRating: d['ulasan_rating'] ?? '',
+      urgensi: d['urgensi'] ?? 'biasa',
+      dampak: d['dampak'] ?? '',
+      sudahLaporRt: d['sudah_lapor_rt'] ?? false,
+      harapan: d['harapan'] ?? '',
     );
   }
 
@@ -1432,19 +1453,103 @@ class ComplaintModel {
   /// Kategori yang harus diteruskan ke Kepala Desa
   bool get isBerat => kategoriBerat.contains(kategori);
 
-  static const List<String> kategoriBerat = ['keamanan', 'kekerasan'];
-
-  /// value, label, ikon
-  static const List<Map<String, String>> daftarKategori = [
-    {'value': 'sampah', 'label': 'Sampah & Kebersihan'},
-    {'value': 'jalan_rusak', 'label': 'Jalan / Fasilitas Rusak'},
-    {'value': 'keamanan', 'label': 'Keamanan / Tawuran'},
-    {'value': 'kekerasan', 'label': 'Kekerasan'},
-    {'value': 'gangguan', 'label': 'Gangguan Ketertiban'},
-    {'value': 'lingkungan', 'label': 'Lingkungan'},
-    {'value': 'layanan_desa', 'label': 'Layanan Desa'},
-    {'value': 'lainnya', 'label': 'Lainnya'},
+  static const List<String> kategoriBerat = [
+    'keamanan', 'kekerasan', 'pencurian', 'narkoba', 'pungli', 'anak_perempuan'
   ];
+
+  static String labelUrgensi(String v) =>
+      const {'biasa': 'Biasa', 'penting': 'Penting', 'darurat': 'Mendesak'}[v] ?? 'Biasa';
+  static String labelDampak(String v) =>
+      const {
+        'keluarga': 'Satu keluarga / rumah',
+        'rt': 'Beberapa keluarga (satu RT)',
+        'dusun': 'Banyak warga (lebih dari satu RT)',
+      }[v] ??
+      '';
+
+  /// Kategori dikelompokkan agar warga awam mudah memilih.
+  /// Tiap kategori: value, label, contoh (apa yang dilaporkan), judul, isi (contoh laporan).
+  static const List<Map<String, dynamic>> kelompokKategori = [
+    {'id': 'fasilitas', 'label': '🛣️ Jalan & Fasilitas Umum', 'isi': [
+      {'value': 'jalan_rusak', 'label': 'Jalan Rusak / Berlubang', 'contoh': 'Jalan berlubang, aspal rusak, jalan tergenang',
+       'judul': 'Jalan berlubang di depan masjid RT 03', 'isi': 'Sejak 2 minggu lalu ada lubang sedalam kira-kira 20 cm di jalan depan masjid. Sudah ada motor yang terjatuh. Mohon segera ditambal.'},
+      {'value': 'lampu_jalan', 'label': 'Lampu Jalan Mati', 'contoh': 'Lampu penerangan jalan mati atau tidak ada',
+       'judul': 'Lampu jalan mati di gang mawar', 'isi': 'Tiga lampu jalan di gang mawar mati sejak seminggu. Jalan sangat gelap malam hari dan rawan kejahatan.'},
+      {'value': 'drainase', 'label': 'Selokan Tersumbat / Banjir', 'contoh': 'Selokan mampet, air meluap, genangan banjir',
+       'judul': 'Selokan tersumbat, air meluap ke jalan', 'isi': 'Selokan di samping pos ronda tersumbat sampah sehingga air meluap ke jalan setiap hujan.'},
+      {'value': 'fasilitas_umum', 'label': 'Fasilitas Umum Rusak', 'contoh': 'Jembatan, pos ronda, taman, balai warga, makam',
+       'judul': 'Jembatan kecil di Kp. Talagasari retak', 'isi': 'Pegangan jembatan patah dan lantainya retak. Membahayakan anak-anak yang lewat.'},
+      {'value': 'air_listrik', 'label': 'Air Bersih & Listrik', 'contoh': 'Air mati, pipa bocor, kabel listrik menjuntai',
+       'judul': 'Kabel listrik menjuntai rendah', 'isi': 'Kabel listrik di dekat tiang depan warung menjuntai rendah dan berbahaya bagi pengendara.'},
+    ]},
+    {'id': 'lingkungan', 'label': '🌿 Kebersihan & Lingkungan', 'isi': [
+      {'value': 'sampah', 'label': 'Sampah & Kebersihan', 'contoh': 'Sampah menumpuk, TPS penuh, buang sampah sembarangan',
+       'judul': 'Sampah menumpuk di lahan kosong RT 05', 'isi': 'Warga membuang sampah di lahan kosong dekat jembatan. Bau menyengat dan mulai banyak tikus.'},
+      {'value': 'limbah', 'label': 'Limbah & Pencemaran', 'contoh': 'Limbah pabrik/usaha, air sungai tercemar, bau menyengat',
+       'judul': 'Air selokan berwarna hitam dan berbau', 'isi': 'Sejak beberapa hari air selokan dekat pabrik berwarna hitam dan berbau menyengat.'},
+      {'value': 'lingkungan', 'label': 'Lingkungan Lainnya', 'contoh': 'Pohon tumbang/rawan, lahan tidak terurus, asap pembakaran',
+       'judul': 'Pohon besar miring dekat rumah warga', 'isi': 'Pohon di tepi jalan miring dan berpotensi roboh saat hujan angin.'},
+      {'value': 'hewan', 'label': 'Hewan Liar / Ternak', 'contoh': 'Anjing liar, ular, ternak lepas, sarang tawon',
+       'judul': 'Anjing liar berkeliaran di sekitar sekolah', 'isi': 'Beberapa anjing liar sering mengejar anak-anak yang berangkat sekolah pagi hari.'},
+    ]},
+    {'id': 'aman', 'label': '🛡️ Keamanan & Ketertiban', 'isi': [
+      {'value': 'keamanan', 'label': 'Keamanan / Tawuran', 'contoh': 'Tawuran, balap liar, perkelahian, orang mencurigakan',
+       'judul': 'Balap liar setiap malam Minggu', 'isi': 'Setiap malam Minggu sekitar pukul 23.00 ada balap liar di jalan utama dan mengganggu warga.'},
+      {'value': 'pencurian', 'label': 'Pencurian / Kehilangan Berharga', 'contoh': 'Pencurian motor, rumah, atau barang warga',
+       'judul': 'Pencurian helm dan motor di gang melati', 'isi': 'Tadi malam sekitar pukul 02.00 ada motor warga hilang dari depan rumah. Mohon ronda diperketat.'},
+      {'value': 'narkoba', 'label': 'Narkoba & Miras', 'contoh': 'Dugaan peredaran narkoba atau pesta miras',
+       'judul': 'Dugaan pesta miras di rumah kosong', 'isi': 'Setiap malam beberapa orang berkumpul dan minum miras di rumah kosong ujung gang.'},
+      {'value': 'kekerasan', 'label': 'Kekerasan', 'contoh': 'Kekerasan fisik, ancaman, perundungan',
+       'judul': 'Ancaman kekerasan terhadap warga', 'isi': 'Terjadi ancaman dan pemukulan di depan warung. Korban butuh perlindungan.'},
+      {'value': 'anak_perempuan', 'label': 'Perlindungan Anak & Perempuan', 'contoh': 'Kekerasan atau penelantaran anak, KDRT',
+       'judul': 'Anak diduga ditelantarkan', 'isi': 'Seorang anak di sekitar rumah sering terlihat sendirian dan tidak terurus. Mohon ditindaklanjuti dengan hati-hati.'},
+      {'value': 'gangguan', 'label': 'Kebisingan & Gangguan', 'contoh': 'Suara bising, parkir liar, hajatan mengganggu',
+       'judul': 'Musik keras sampai lewat tengah malam', 'isi': 'Hajatan dengan musik keras berlangsung sampai pukul 01.00 dan mengganggu warga yang beristirahat.'},
+    ]},
+    {'id': 'layanan', 'label': '🏛️ Pelayanan & Pemerintahan', 'isi': [
+      {'value': 'layanan_desa', 'label': 'Layanan Kantor Desa', 'contoh': 'Pelayanan lambat, surat tidak selesai, petugas tidak ramah',
+       'judul': 'Pengurusan surat domisili belum selesai 1 minggu', 'isi': 'Saya mengajukan surat domisili tanggal 20 tetapi belum ada kabar sampai sekarang.'},
+      {'value': 'pungli', 'label': 'Pungutan Liar / Penyalahgunaan', 'contoh': 'Diminta uang di luar aturan, penyalahgunaan wewenang',
+       'judul': 'Diminta biaya tambahan saat mengurus surat', 'isi': 'Saat mengurus surat saya diminta uang di luar biaya resmi tanpa kwitansi.'},
+      {'value': 'bansos', 'label': 'Bantuan Sosial Tidak Tepat', 'contoh': 'Bantuan tidak sampai atau salah sasaran',
+       'judul': 'Warga miskin tidak menerima bantuan', 'isi': 'Ada warga lansia yang tidak terdata penerima bantuan padahal sangat membutuhkan.'},
+    ]},
+    {'id': 'sosial', 'label': '❤️ Sosial & Kesehatan', 'isi': [
+      {'value': 'kesehatan_lingkungan', 'label': 'Kesehatan Lingkungan', 'contoh': 'Jentik nyamuk/DBD, wabah penyakit, air kotor',
+       'judul': 'Banyak jentik nyamuk dan warga demam', 'isi': 'Beberapa warga satu gang terkena demam berdarah. Mohon fogging dan penyuluhan.'},
+      {'value': 'warga_butuh', 'label': 'Warga Butuh Bantuan', 'contoh': 'Lansia sendirian, warga sakit, keluarga kesulitan',
+       'judul': 'Lansia hidup sendiri butuh bantuan', 'isi': 'Seorang nenek tinggal sendiri dan sedang sakit. Butuh perhatian dan bantuan sembako.'},
+    ]},
+    {'id': 'lain', 'label': '✏️ Lainnya', 'isi': [
+      {'value': 'lainnya', 'label': 'Lainnya', 'contoh': 'Jika tidak ada pilihan yang cocok',
+       'judul': 'Tuliskan judul singkat', 'isi': 'Jelaskan kejadian, lokasi, dan waktunya.'},
+    ]},
+  ];
+
+  static Map<String, dynamic>? infoKategori(String v) {
+    for (final g in kelompokKategori) {
+      for (final k in g['isi'] as List) {
+        if (k['value'] == v) return Map<String, dynamic>.from(k as Map);
+      }
+    }
+    return null;
+  }
+
+  static String idKelompok(String v) {
+    for (final g in kelompokKategori) {
+      for (final k in g['isi'] as List) {
+        if (k['value'] == v) return g['id'] as String;
+      }
+    }
+    return 'lain';
+  }
+
+  /// value + label (datar) untuk filter/statistik
+  static List<Map<String, String>> get daftarKategori => [
+        for (final g in kelompokKategori)
+          for (final k in g['isi'] as List)
+            {'value': k['value'] as String, 'label': k['label'] as String}
+      ];
 
   static String labelKategori(String v) => daftarKategori
       .firstWhere((k) => k['value'] == v,
@@ -1466,6 +1571,32 @@ class ComplaintModel {
         return Icons.park_outlined;
       case 'layanan_desa':
         return Icons.account_balance_outlined;
+      case 'lampu_jalan':
+        return Icons.lightbulb_outline;
+      case 'drainase':
+        return Icons.water_drop_outlined;
+      case 'fasilitas_umum':
+        return Icons.domain_outlined;
+      case 'air_listrik':
+        return Icons.bolt_outlined;
+      case 'limbah':
+        return Icons.science_outlined;
+      case 'hewan':
+        return Icons.pets_outlined;
+      case 'pencurian':
+        return Icons.lock_open_outlined;
+      case 'narkoba':
+        return Icons.no_drinks_outlined;
+      case 'anak_perempuan':
+        return Icons.child_care_outlined;
+      case 'pungli':
+        return Icons.money_off_outlined;
+      case 'bansos':
+        return Icons.volunteer_activism_outlined;
+      case 'kesehatan_lingkungan':
+        return Icons.coronavirus_outlined;
+      case 'warga_butuh':
+        return Icons.favorite_border;
       default:
         return Icons.report_gmailerrorred_outlined;
     }

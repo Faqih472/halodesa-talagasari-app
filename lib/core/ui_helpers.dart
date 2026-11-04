@@ -2,6 +2,7 @@
 // ui_helpers.dart — Fungsi tampilan kecil yang dipakai bersama
 // ============================================================
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data' show ByteData;
@@ -9,7 +10,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
-import 'package:flutter/services.dart' show TextInputFormatter, TextEditingValue, TextSelection;
+import 'package:flutter/services.dart' show FilteringTextInputFormatter, TextInputFormatter, TextEditingValue, TextSelection;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
@@ -525,6 +526,12 @@ class AlasanTolak {
       'Mengandung SARA / kekerasan',
       'Menggunakan foto orang lain / tokoh terkenal',
     ],
+    'hapus': [
+      'Alasan penghapusan kurang jelas',
+      'Masih ada pesanan atau lamaran yang berjalan',
+      'Cukup dinonaktifkan / ditutup sementara saja',
+      'Data masih diperlukan untuk pemeriksaan laporan',
+    ],
     'surat': [
       'Data tidak sesuai data kependudukan',
       'Keperluan surat tidak jelas',
@@ -930,17 +937,256 @@ class RibuanFormatter extends TextInputFormatter {
 }
 
 // ============================================================
-// PEMILIH PETA BERSAMA (pengaduan, jasa, lowongan, pesanan)
-// Ketuk peta / tombol "Lokasi saya" (GPS) / "Cari alamat".
-// Catatan: aplikasi tidak bisa menyalakan GPS sendiri; bila GPS mati,
-// pengguna diarahkan ke pengaturan lokasi.
+// LOKASI REALTIME + PETA BERSAMA
+// Aplikasi TIDAK bisa menyalakan GPS sendiri (aturan Android/iOS); bila
+// GPS mati, layar pengaturan lokasi dibuka dan pengguna diberi petunjuk.
 // ============================================================
+class LokasiLangsung extends ChangeNotifier {
+  LatLng? posisi;
+  double akurasi = 0;
+  bool aktif = false;
+  bool mencari = false; // menunggu titik GPS pertama
+  bool _pertama = true;
+  bool _selesai = false;
+  StreamSubscription<Position>? _sub;
+  final void Function(LatLng p, bool pertama)? onPosisi;
+  LokasiLangsung({this.onPosisi});
+
+  void _pesan(String judul, String isi) {
+    Get.snackbar(judul, isi,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 5),
+        margin: const EdgeInsets.all(12));
+  }
+
+  void _terima(Position p) {
+    if (_selesai) return;
+    posisi = LatLng(p.latitude, p.longitude);
+    akurasi = p.accuracy;
+    final pertama = _pertama;
+    _pertama = false;
+    mencari = false;
+    notifyListeners();
+    onPosisi?.call(posisi!, pertama);
+  }
+
+  /// Mulai (atau pusatkan ulang) pelacakan lokasi realtime.
+  Future<void> mulai() async {
+    if (aktif) {
+      if (posisi != null) onPosisi?.call(posisi!, true);
+      return;
+    }
+    mencari = true;
+    notifyListeners();
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        _pesan('GPS belum menyala',
+            'Nyalakan Lokasi/GPS di HP, lalu tekan tombol lokasi lagi.');
+        await Geolocator.openLocationSettings();
+        mencari = false;
+        notifyListeners();
+        return;
+      }
+      var izin = await Geolocator.checkPermission();
+      if (izin == LocationPermission.denied) {
+        izin = await Geolocator.requestPermission();
+      }
+      if (izin == LocationPermission.deniedForever) {
+        _pesan('Izin lokasi diblokir',
+            'Buka Pengaturan aplikasi > Izin > Lokasi, pilih "Izinkan".');
+        await Geolocator.openAppSettings();
+        mencari = false;
+        notifyListeners();
+        return;
+      }
+      if (izin == LocationPermission.denied) {
+        _pesan('Izin lokasi ditolak', 'Izinkan lokasi agar posisi Anda bisa ditandai.');
+        mencari = false;
+        notifyListeners();
+        return;
+      }
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null) _terima(last);
+      } catch (_) {}
+      aktif = true;
+      _sub = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high, distanceFilter: 2),
+      ).listen(_terima, onError: (_) {
+        _pesan('Lokasi gagal', 'Sinyal GPS lemah. Coba di tempat terbuka.');
+        berhenti();
+      });
+      Future.delayed(const Duration(seconds: 15), () {
+        if (!_selesai && aktif && posisi == null) {
+          _pesan('Sinyal GPS lemah', 'Masih mencari lokasi. Pindah ke tempat terbuka.');
+        }
+      });
+    } catch (_) {
+      _pesan('Lokasi gagal', 'Tidak bisa membaca lokasi. Periksa GPS dan izin aplikasi.');
+      mencari = false;
+    }
+    notifyListeners();
+  }
+
+  void berhenti() {
+    _sub?.cancel();
+    _sub = null;
+    aktif = false;
+    mencari = false;
+    _pertama = true;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _selesai = true;
+    _sub?.cancel();
+    super.dispose();
+  }
+}
+
+/// Tombol bulat "Lokasi saya" (tekan = mulai/pusatkan, tekan lama = berhenti).
+class TombolLokasiSaya extends StatelessWidget {
+  final LokasiLangsung lokasi;
+  const TombolLokasiSaya({super.key, required this.lokasi});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: lokasi,
+      builder: (_, __) => Material(
+        color: Colors.white,
+        elevation: 3,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: lokasi.mulai,
+          onLongPress: lokasi.aktif ? lokasi.berhenti : null,
+          child: Padding(
+            padding: const EdgeInsets.all(9),
+            child: Tooltip(
+              message: 'Lokasi saya (tekan lama untuk berhenti)',
+              child: lokasi.mencari
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(lokasi.aktif ? Icons.my_location : Icons.location_searching,
+                      size: 20, color: lokasi.aktif ? Colors.blue.shade700 : Colors.black87),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Titik biru posisi pengguna (lapisan peta).
+class LokasiSayaLayer extends StatelessWidget {
+  final LokasiLangsung lokasi;
+  const LokasiSayaLayer({super.key, required this.lokasi});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: lokasi,
+      builder: (_, __) => MarkerLayer(markers: [
+        if (lokasi.posisi != null)
+          Marker(
+            point: lokasi.posisi!,
+            width: 22,
+            height: 22,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+              ),
+            ),
+          ),
+      ]),
+    );
+  }
+}
+
+/// Peta pandang (tanpa memilih titik) lengkap dengan tombol "Lokasi saya" realtime.
+class PetaDenganLokasi extends StatefulWidget {
+  final LatLng pusat;
+  final double zoom;
+  final double tinggi;
+  final List<Marker> penanda;
+  final bool geser;
+  final VoidCallback? onTap;
+  const PetaDenganLokasi({
+    super.key,
+    required this.pusat,
+    required this.penanda,
+    this.zoom = 15,
+    this.tinggi = 150,
+    this.geser = true,
+    this.onTap,
+  });
+
+  @override
+  State<PetaDenganLokasi> createState() => _PetaDenganLokasiState();
+}
+
+class _PetaDenganLokasiState extends State<PetaDenganLokasi> {
+  final MapController _map = MapController();
+  late final LokasiLangsung _gps = LokasiLangsung(
+      onPosisi: (p, pertama) {
+        if (pertama) _map.move(p, 16);
+      });
+
+  @override
+  void dispose() {
+    _gps.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: widget.tinggi,
+      child: Stack(children: [
+        FlutterMap(
+          mapController: _map,
+          options: MapOptions(
+            initialCenter: widget.pusat,
+            initialZoom: widget.zoom,
+            interactionOptions: InteractionOptions(
+                flags: widget.geser
+                    ? InteractiveFlag.all & ~InteractiveFlag.rotate
+                    : InteractiveFlag.pinchZoom | InteractiveFlag.drag),
+            onTap: widget.onTap == null ? null : (_, __) => widget.onTap!(),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.talagasari_hub',
+            ),
+            MarkerLayer(markers: widget.penanda),
+            LokasiSayaLayer(lokasi: _gps),
+          ],
+        ),
+        Positioned(right: 8, top: 8, child: TombolLokasiSaya(lokasi: _gps)),
+      ]),
+    );
+  }
+}
+
+/// Pemilih titik (pin) bersama: pengaduan, jasa, pesanan.
+/// Tombol "Lokasi saya" = pin mengikuti GPS secara realtime; ketuk peta atau
+/// "Cari alamat" untuk memilih titik sendiri.
 class PemilihPeta extends StatefulWidget {
   final LatLng titik;
   final ValueChanged<LatLng> onChanged;
   final ValueChanged<String>? onAlamat;
   final double tinggi;
   final Color warna;
+  final bool ikutiAwal; // langsung ikuti GPS saat dibuka
   const PemilihPeta({
     super.key,
     required this.titik,
@@ -948,6 +1194,7 @@ class PemilihPeta extends StatefulWidget {
     this.onAlamat,
     this.tinggi = 210,
     this.warna = Colors.red,
+    this.ikutiAwal = false,
   });
 
   @override
@@ -957,63 +1204,89 @@ class PemilihPeta extends StatefulWidget {
 class _PemilihPetaState extends State<PemilihPeta> {
   final MapController _map = MapController();
   late LatLng _titik = widget.titik;
-  bool _cariGps = false;
+  bool _ikuti = false;
+  bool _alamatDiminta = false;
+  late final LokasiLangsung _gps = LokasiLangsung(onPosisi: (p, pertama) {
+    if (!_ikuti) return;
+    _set(p, pindah: pertama || true);
+    if (pertama && !_alamatDiminta && widget.onAlamat != null) {
+      _alamatDiminta = true;
+      _alamatDari(p);
+    }
+  });
 
-  void _set(LatLng p, {bool pindah = false}) {
-    setState(() => _titik = p);
-    if (pindah) _map.move(p, 17);
-    widget.onChanged(p);
-  }
-
-  Future<void> _gps() async {
-    setState(() => _cariGps = true);
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) {
-        await Geolocator.openLocationSettings();
-        Get.snackbar('GPS mati', 'Nyalakan GPS, lalu tekan "Lokasi saya" lagi.',
-            snackPosition: SnackPosition.BOTTOM);
-        return;
-      }
-      var izin = await Geolocator.checkPermission();
-      if (izin == LocationPermission.denied) {
-        izin = await Geolocator.requestPermission();
-      }
-      if (izin == LocationPermission.denied ||
-          izin == LocationPermission.deniedForever) {
-        Get.snackbar('Izin lokasi ditolak',
-            'Izinkan lokasi di pengaturan aplikasi, atau pilih lewat "Cari alamat".',
-            snackPosition: SnackPosition.BOTTOM);
-        return;
-      }
-      final pos = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
-          timeLimit: const Duration(seconds: 12));
-      _set(LatLng(pos.latitude, pos.longitude), pindah: true);
-    } catch (_) {
-      Get.snackbar('Gagal', 'Lokasi belum ditemukan. Coba lagi di tempat terbuka.',
-          snackPosition: SnackPosition.BOTTOM);
-    } finally {
-      if (mounted) setState(() => _cariGps = false);
+  @override
+  void initState() {
+    super.initState();
+    if (widget.ikutiAwal) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _mulaiIkuti());
     }
   }
 
-  Future<List<Map<String, dynamic>>> _cari(String q) async {
+  @override
+  void dispose() {
+    _gps.dispose();
+    super.dispose();
+  }
+
+  void _set(LatLng p, {bool pindah = false}) {
+    if (!mounted) return;
+    setState(() => _titik = p);
+    if (pindah) _map.move(p, _map.camera.zoom < 16 ? 17 : _map.camera.zoom);
+    widget.onChanged(p);
+  }
+
+  Future<void> _mulaiIkuti() async {
+    setState(() => _ikuti = true);
+    await _gps.mulai();
+    if (!_gps.aktif && mounted) setState(() => _ikuti = false);
+  }
+
+  void _berhentiIkuti() {
+    _gps.berhenti();
+    setState(() => _ikuti = false);
+  }
+
+  Future<String?> _http(Uri uri) async {
     final c = HttpClient()..userAgent = 'TalagasariHub/1.0 (aplikasi desa)';
     try {
-      final uri = Uri.https('nominatim.openstreetmap.org', '/search', {
-        'q': q,
-        'format': 'json',
-        'limit': '6',
-        'countrycodes': 'id',
-      });
       final req = await c.getUrl(uri).timeout(const Duration(seconds: 10));
       final res = await req.close().timeout(const Duration(seconds: 10));
-      final body = await res.transform(utf8.decoder).join();
+      return await res.transform(utf8.decoder).join();
+    } catch (_) {
+      return null;
+    } finally {
+      c.close();
+    }
+  }
+
+  Future<void> _alamatDari(LatLng p) async {
+    final body = await _http(Uri.https('nominatim.openstreetmap.org', '/reverse', {
+      'lat': '${p.latitude}',
+      'lon': '${p.longitude}',
+      'format': 'json',
+      'zoom': '18',
+    }));
+    if (body == null) return;
+    try {
+      final m = jsonDecode(body) as Map<String, dynamic>;
+      final nama = '${m['display_name'] ?? ''}';
+      if (nama.isNotEmpty) widget.onAlamat?.call(nama);
+    } catch (_) {}
+  }
+
+  Future<List<Map<String, dynamic>>> _cari(String q) async {
+    final body = await _http(Uri.https('nominatim.openstreetmap.org', '/search', {
+      'q': q,
+      'format': 'json',
+      'limit': '6',
+      'countrycodes': 'id',
+    }));
+    if (body == null) return [];
+    try {
       return (jsonDecode(body) as List).cast<Map<String, dynamic>>();
     } catch (_) {
       return [];
-    } finally {
-      c.close();
     }
   }
 
@@ -1024,79 +1297,71 @@ class _PemilihPetaState extends State<PemilihPeta> {
     await showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setD) => AlertDialog(
-          title: const Text('Cari alamat'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              TextField(
-                controller: ctrl,
-                autofocus: true,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: 'Contoh: Talagasari Cikupa',
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.search),
-                    onPressed: () => ctrl.text.trim().isEmpty
-                        ? null
-                        : _jalankan(ctrl.text.trim(), setD, (r) {
-                            hasil = r;
-                            loading = false;
-                            sudah = true;
-                          }, () => loading = true),
+        builder: (ctx, setD) {
+          Future<void> jalan() async {
+            final q = ctrl.text.trim();
+            if (q.isEmpty) return;
+            setD(() => loading = true);
+            final r = await _cari(q);
+            setD(() {
+              hasil = r;
+              loading = false;
+              sudah = true;
+            });
+          }
+
+          return AlertDialog(
+            title: const Text('Cari alamat'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Contoh: Talagasari Cikupa',
+                    suffixIcon: IconButton(icon: const Icon(Icons.search), onPressed: jalan),
+                  ),
+                  onSubmitted: (_) => jalan(),
+                ),
+                const SizedBox(height: 8),
+                if (loading) const LinearProgressIndicator(),
+                if (sudah && hasil.isEmpty && !loading)
+                  const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Text('Tidak ditemukan. Coba kata lain atau ketuk peta.'),
+                  ),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: hasil
+                        .map((h) => ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.place_outlined),
+                              title: Text('${h['display_name']}',
+                                  maxLines: 3, overflow: TextOverflow.ellipsis),
+                              onTap: () {
+                                final p = LatLng(double.parse('${h['lat']}'),
+                                    double.parse('${h['lon']}'));
+                                Navigator.pop(ctx);
+                                if (_ikuti) _berhentiIkuti();
+                                _set(p, pindah: true);
+                                widget.onAlamat?.call('${h['display_name']}');
+                              },
+                            ))
+                        .toList(),
                   ),
                 ),
-                onSubmitted: (v) => v.trim().isEmpty
-                    ? null
-                    : _jalankan(v.trim(), setD, (r) {
-                        hasil = r;
-                        loading = false;
-                        sudah = true;
-                      }, () => loading = true),
-              ),
-              const SizedBox(height: 8),
-              if (loading) const LinearProgressIndicator(),
-              if (sudah && hasil.isEmpty && !loading)
-                const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text('Tidak ditemukan. Coba kata lain atau ketuk peta.'),
-                ),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: hasil
-                      .map((h) => ListTile(
-                            dense: true,
-                            leading: const Icon(Icons.place_outlined),
-                            title: Text('${h['display_name']}',
-                                maxLines: 3, overflow: TextOverflow.ellipsis),
-                            onTap: () {
-                              final p = LatLng(
-                                  double.parse('${h['lat']}'),
-                                  double.parse('${h['lon']}'));
-                              Navigator.pop(ctx);
-                              _set(p, pindah: true);
-                              widget.onAlamat?.call('${h['display_name']}');
-                            },
-                          ))
-                      .toList(),
-                ),
-              ),
-            ]),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Tutup')),
-          ],
-        ),
+              ]),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Tutup')),
+            ],
+          );
+        },
       ),
     );
-  }
-
-  Future<void> _jalankan(String q, void Function(void Function()) setD,
-      void Function(List<Map<String, dynamic>>) selesai, VoidCallback mulai) async {
-    setD(mulai);
-    final r = await _cari(q);
-    setD(() => selesai(r));
   }
 
   @override
@@ -1108,64 +1373,295 @@ class _PemilihPetaState extends State<PemilihPeta> {
           borderRadius: BorderRadius.circular(12),
           child: SizedBox(
             height: widget.tinggi,
-            child: FlutterMap(
-              mapController: _map,
-              options: MapOptions(
-                initialCenter: _titik,
-                initialZoom: 16,
-                onTap: (_, p) => _set(p),
-                interactionOptions: const InteractionOptions(
-                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.talagasari_hub',
+            child: Stack(children: [
+              FlutterMap(
+                mapController: _map,
+                options: MapOptions(
+                  initialCenter: _titik,
+                  initialZoom: 16,
+                  onTap: (_, p) {
+                    if (_ikuti) _berhentiIkuti();
+                    _set(p);
+                  },
+                  interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
                 ),
-                MarkerLayer(markers: [
-                  Marker(
-                    point: _titik,
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.topCenter,
-                    child: Icon(Icons.location_on, size: 44, color: widget.warna),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.talagasari_hub',
                   ),
-                ]),
-                const RichAttributionWidget(attributions: [
-                  TextSourceAttribution('© OpenStreetMap contributors'),
-                ]),
-              ],
-            ),
+                  LokasiSayaLayer(lokasi: _gps),
+                  MarkerLayer(markers: [
+                    Marker(
+                      point: _titik,
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.topCenter,
+                      child: Icon(Icons.location_on, size: 44, color: widget.warna),
+                    ),
+                  ]),
+                  const RichAttributionWidget(attributions: [
+                    TextSourceAttribution('© OpenStreetMap contributors'),
+                  ]),
+                ],
+              ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: ListenableBuilder(
+                  listenable: _gps,
+                  builder: (_, __) => Material(
+                    color: _ikuti ? Colors.blue.shade700 : Colors.white,
+                    elevation: 3,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _ikuti ? _berhentiIkuti : _mulaiIkuti,
+                      child: Padding(
+                        padding: const EdgeInsets.all(9),
+                        child: _gps.mencari
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2))
+                            : Icon(Icons.my_location,
+                                size: 20, color: _ikuti ? Colors.white : Colors.black87),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ]),
           ),
         ),
         const SizedBox(height: 6),
         Row(children: [
           Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _cariGps ? null : _gps,
-              icon: _cariGps
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.my_location, size: 18),
-              label: const Text('Lokasi saya'),
+            child: ElevatedButton.icon(
+              onPressed: _ikuti ? _berhentiIkuti : _mulaiIkuti,
+              icon: Icon(_ikuti ? Icons.gps_fixed : Icons.my_location, size: 18, color: Colors.white),
+              label: Text(_ikuti ? 'Mengikuti lokasi (ketuk: berhenti)' : 'Lokasi saya (realtime)',
+                  style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                  overflow: TextOverflow.ellipsis),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: _ikuti ? Colors.blue.shade700 : Colors.green.shade700),
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: _dialogCari,
-              icon: const Icon(Icons.search, size: 18),
-              label: const Text('Cari alamat'),
-            ),
+          OutlinedButton.icon(
+            onPressed: _dialogCari,
+            icon: const Icon(Icons.search, size: 18),
+            label: const Text('Cari alamat'),
           ),
         ]),
         const SizedBox(height: 4),
         Text(
-            'Ketuk peta untuk memindahkan pin. ${_titik.latitude.toStringAsFixed(5)}, ${_titik.longitude.toStringAsFixed(5)}',
+            _ikuti
+                ? 'Pin mengikuti posisi GPS Anda. Ketuk peta untuk mengunci titik lain.'
+                : 'Ketuk peta untuk memindahkan pin. ${_titik.latitude.toStringAsFixed(5)}, ${_titik.longitude.toStringAsFixed(5)}',
             style: const TextStyle(fontSize: 11, color: Colors.black54)),
       ],
     );
   }
+}
+
+/// Alamat lengkap dalam batas Desa Talagasari. Desa, kecamatan, kabupaten, dan
+/// provinsi TERKUNCI (tidak bisa diubah); warga mengisi kampung, RT, RW, jalan/patokan.
+class AlamatDesaCtrl {
+  static const String tetap = 'Desa Talagasari, Kec. Cikupa, Kab. Tangerang, Banten';
+  final kampung = TextEditingController();
+  final rt = TextEditingController();
+  final rw = TextEditingController();
+  final jalan = TextEditingController();
+
+  void isiDari({String jalanTeks = '', String rtTeks = '', String rwTeks = ''}) {
+    var j = jalanTeks.trim();
+    if (j.endsWith(tetap)) j = j.substring(0, j.length - tetap.length).trim();
+    if (j.endsWith(',')) j = j.substring(0, j.length - 1);
+    jalan.text = j;
+    rt.text = rtTeks.replaceAll(RegExp(r'[^0-9]'), '');
+    rw.text = rwTeks.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
+  String get teks {
+    final k = kampung.text.trim();
+    return [
+      if (jalan.text.trim().isNotEmpty) jalan.text.trim(),
+      if (k.isNotEmpty) (k.toLowerCase().startsWith('kp') ? k : 'Kp. $k'),
+      if (rt.text.trim().isNotEmpty || rw.text.trim().isNotEmpty)
+        'RT ${rt.text.trim()}/RW ${rw.text.trim()}',
+      tetap,
+    ].join(', ');
+  }
+
+  String? galat() {
+    if (jalan.text.trim().length < 5) {
+      return 'Isi nama jalan atau patokan (minimal 5 huruf).';
+    }
+    if (rt.text.trim().isEmpty || rw.text.trim().isEmpty) {
+      return 'RT dan RW wajib diisi.';
+    }
+    return null;
+  }
+
+  void dispose() {
+    kampung.dispose();
+    rt.dispose();
+    rw.dispose();
+    jalan.dispose();
+  }
+}
+
+class BlokAlamatDesa extends StatelessWidget {
+  final AlamatDesaCtrl c;
+  const BlokAlamatDesa({super.key, required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Row(children: [
+          const Icon(Icons.lock_outline, size: 16, color: Colors.black54),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(AlamatDesaCtrl.tetap,
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          ),
+        ]),
+      ),
+      const Padding(
+        padding: EdgeInsets.only(top: 3, bottom: 8),
+        child: Text('Wilayah dikunci: layanan ini hanya untuk Desa Talagasari.',
+            style: TextStyle(fontSize: 11, color: Colors.black54)),
+      ),
+      Row(children: [
+        Expanded(
+          flex: 3,
+          child: TextField(
+            controller: c.kampung,
+            decoration: const InputDecoration(
+                labelText: 'Kampung / Dusun', hintText: 'Contoh: Kp. Talagasari'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextField(
+            controller: c.rt,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            maxLength: 3,
+            decoration: const InputDecoration(labelText: 'RT', counterText: ''),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextField(
+            controller: c.rw,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            maxLength: 3,
+            decoration: const InputDecoration(labelText: 'RW', counterText: ''),
+          ),
+        ),
+      ]),
+      const SizedBox(height: 8),
+      TextField(
+        controller: c.jalan,
+        maxLines: 2,
+        decoration: const InputDecoration(
+          labelText: 'Nama jalan / gang / patokan',
+          hintText: 'Contoh: Jl. Mawar No. 5, depan masjid Al-Ikhlas',
+        ),
+      ),
+    ]);
+  }
+}
+
+/// Dialog pemilik mengajukan penghapusan: pilih alasan + catatan wajib (min. 10 huruf).
+/// Mengembalikan teks alasan, atau null bila dibatalkan.
+Future<String?> dialogAlasanHapus({
+  required String judul,
+  required String penjelasan,
+  required List<String> opsi,
+}) async {
+  String pilih = opsi.first;
+  final cat = TextEditingController();
+  String? galat;
+  final hasil = await Get.dialog<String>(StatefulBuilder(
+    builder: (ctx, setD) => AlertDialog(
+      title: Text(judul),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(penjelasan, style: const TextStyle(fontSize: 13, height: 1.4)),
+            const SizedBox(height: 12),
+            const Text('Alasan:', style: TextStyle(fontWeight: FontWeight.bold)),
+            DropdownButton<String>(
+              value: pilih,
+              isExpanded: true,
+              items: [for (final a in opsi) DropdownMenuItem(value: a, child: Text(a))],
+              onChanged: (v) => setD(() => pilih = v ?? pilih),
+            ),
+            TextField(
+              controller: cat,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                  labelText: 'Jelaskan alasannya (wajib)',
+                  hintText: 'Contoh: usaha sudah tutup sejak bulan lalu'),
+            ),
+            if (galat != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(galat!, style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
+        TextButton(
+          onPressed: () {
+            if (cat.text.trim().length < 10) {
+              setD(() => galat = 'Jelaskan alasan minimal 10 huruf.');
+              return;
+            }
+            Get.back(result: '$pilih — ${cat.text.trim()}');
+          },
+          child: Text('Ajukan', style: TextStyle(color: Colors.red.shade700)),
+        ),
+      ],
+    ),
+  ));
+  return hasil;
+}
+
+/// Admin menyetujui penghapusan: boleh menulis keterangan (opsional).
+Future<String?> dialogKeteranganSetuju(String judul) async {
+  final cat = TextEditingController(text: 'Penghapusan disetujui.');
+  final hasil = await Get.dialog<String>(AlertDialog(
+    title: Text(judul),
+    content: TextField(
+      controller: cat,
+      maxLines: 3,
+      decoration: const InputDecoration(labelText: 'Keterangan untuk pemilik'),
+    ),
+    actions: [
+      TextButton(onPressed: () => Get.back(), child: const Text('Batal')),
+      ElevatedButton(
+          onPressed: () => Get.back(
+              result: cat.text.trim().isEmpty ? 'Penghapusan disetujui.' : cat.text.trim()),
+          child: const Text('Setujui hapus', style: TextStyle(color: Colors.white))),
+    ],
+  ));
+  return hasil;
 }

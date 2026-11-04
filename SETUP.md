@@ -130,3 +130,12 @@ Semua notifikasi pesanan muncul di dalam aplikasi. Chat otomatis berisi ringkasa
    - `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION`, `POST_NOTIFICATIONS`
 3. iOS: `NSLocationWhenInUseUsageDescription` di Info.plist.
 4. Batasan sistem: aplikasi tidak bisa menyalakan GPS atau melewati izin lokasi tanpa persetujuan. SOS tetap terkirim memakai lokasi terakhir; GPS aktif diminta lewat pengaturan.
+
+## 8j. Lokasi realtime, pengaduan lengkap, hapus jasa/lowongan
+1. Deploy `firestore.rules` terbaru (hapus jasa/lowongan lewat pengajuan; kolom `hapus_*`).
+2. Jika "Lokasi saya" tetap gagal: pastikan izin lokasi ada di `AndroidManifest.xml` (bagian 8i), GPS HP menyala, dan izin lokasi aplikasi = "Izinkan". Aplikasi menampilkan pesan penyebabnya dan membuka pengaturan.
+3. Query baru Firestore: `penyedia_jasa` dan `lowongan_warga` dengan `where hapus_status == 'diajukan'` (satu field, tidak butuh indeks).
+4. Admin: tab baru "Hapus" berisi permintaan hapus jasa/lowongan (setuju/tolak + keterangan).
+
+## 8k. Wajib deploy ulang rules
+Pengajuan hapus lowongan hanya berhasil setelah `firestore.rules` terbaru dipublish di Firebase Console.

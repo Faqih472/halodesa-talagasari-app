@@ -29,6 +29,7 @@ import '../core/models_extra.dart';
 import '../core/ui_helpers.dart';
 import 'chat_view.dart';
 import 'verification_view.dart' show wajibVerifikasi;
+import 'info_sosial.dart' show GaleriFoto;
 
 // ─────────────────────────────────────────────────────────────
 // PEMBANTU UMUM (khusus file ini)
@@ -169,6 +170,10 @@ class _TabJasaViewState extends State<TabJasaView> {
   final ServiceController _svc = Get.find<ServiceController>();
   final OrderController _ord = Get.find<OrderController>();
   final MapController _map = MapController();
+  late final LokasiLangsung _gps = LokasiLangsung(
+      onPosisi: (p, pertama) {
+        if (pertama) _map.move(p, 15);
+      });
   final TextEditingController _cari = TextEditingController();
   bool _petaBesar = false;
   int _mode = 0; // 0 = Cari Jasa, 1 = Butuh Pekerja
@@ -183,6 +188,7 @@ class _TabJasaViewState extends State<TabJasaView> {
 
   @override
   void dispose() {
+    _gps.dispose();
     _map.dispose();
     _cari.dispose();
     super.dispose();
@@ -379,6 +385,7 @@ class _TabJasaViewState extends State<TabJasaView> {
                             userAgentPackageName: 'com.example.talagasari_hub',
                           ),
                           MarkerLayer(markers: _penanda(list)),
+                          LokasiSayaLayer(lokasi: _gps),
                           MarkerLayer(markers: [
                             Marker(
                               point: posisi,
@@ -408,14 +415,7 @@ class _TabJasaViewState extends State<TabJasaView> {
                         top: 10,
                         child: Column(
                           children: [
-                            _tombolPeta(Icons.my_location, 'Lokasi saya', () async {
-                              await _auth.updateLokasiOtomatis();
-                              final u = _auth.currentUser.value;
-                              if (u != null) {
-                                _map.move(LatLng(u.lokasiLat, u.lokasiLng),
-                                    _map.camera.zoom);
-                              }
-                            }),
+                            TombolLokasiSaya(lokasi: _gps),
                             const SizedBox(height: 8),
                             _tombolPeta(
                                 _petaBesar ? Icons.fullscreen_exit : Icons.fullscreen,
@@ -1687,32 +1687,19 @@ class _JasaDetailViewState extends State<JasaDetailView> {
         children: [
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-            child: SizedBox(
-              height: 150,
-              child: FlutterMap(
-                options: MapOptions(
-                  initialCenter: titik,
-                  initialZoom: 15,
-                  interactionOptions:
-                      const InteractionOptions(flags: InteractiveFlag.none),
-                  onTap: (_, __) => bukaUri(uriPeta(s.lokasiLat, s.lokasiLng)),
+            child: PetaDenganLokasi(
+              pusat: titik,
+              zoom: 15,
+              tinggi: 170,
+              penanda: [
+                Marker(
+                  point: titik,
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.topCenter,
+                  child: Icon(Icons.location_on, size: 40, color: k),
                 ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.example.talagasari_hub',
-                  ),
-                  MarkerLayer(markers: [
-                    Marker(
-                      point: titik,
-                      width: 40,
-                      height: 40,
-                      alignment: Alignment.topCenter,
-                      child: Icon(Icons.location_on, size: 40, color: k),
-                    ),
-                  ]),
-                ],
-              ),
+              ],
             ),
           ),
           ListTile(
@@ -2680,8 +2667,8 @@ class _FormJasaViewState extends State<FormJasaView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         PemilihPeta(
-          key: ValueKey('${_in.lat}_${_in.lng}'),
           titik: titik,
+          ikutiAwal: widget.existing == null,
           warna: k,
           onChanged: (p) => _in.lat == p.latitude && _in.lng == p.longitude
               ? null
@@ -3510,6 +3497,7 @@ class _BuatPesananViewState extends State<BuatPesananView> {
                       LatLng(_auth.currentUser.value?.lokasiLat ?? s.lokasiLat,
                           _auth.currentUser.value?.lokasiLng ?? s.lokasiLng),
                   tinggi: 170,
+                  ikutiAwal: true,
                   onChanged: (p) => _titikAntar = p,
                   onAlamat: (a) => setState(() => _cAlamat.text = a),
                 ),
@@ -5240,13 +5228,25 @@ class _DsbRingkasan extends StatelessWidget {
                           svc.errorMsg.value);
                     },
                   ),
-                if (!saya.diblokir && !saya.dikunci)
+                if (saya.hapusStatus == 'diajukan')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text('Pengajuan hapus menunggu keputusan Admin.',
+                        style: TextStyle(fontSize: 12.5, color: Colors.orange.shade900)),
+                  ),
+                if (saya.hapusStatus == 'ditolak')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text('Hapus ditolak Admin: ${saya.hapusKeputusan}',
+                        style: TextStyle(fontSize: 12.5, color: Colors.red.shade800)),
+                  ),
+                if (!saya.diblokir && !saya.dikunci && saya.hapusStatus != 'diajukan')
                   Align(
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
                       onPressed: () => dialogHapusJasa(saya),
                       icon: Icon(Icons.delete_outline, size: 18, color: Colors.red.shade700),
-                      label: Text('Hapus jasa ini',
+                      label: Text('Ajukan hapus jasa ini',
                           style: TextStyle(color: Colors.red.shade700)),
                     ),
                   ),
@@ -6545,6 +6545,10 @@ class _FormLowonganViewState extends State<FormLowonganView> {
   final _syarat = TextEditingController();
   final _upah = TextEditingController();
   final _alamat = TextEditingController();
+  final AlamatDesaCtrl _almt = AlamatDesaCtrl();
+  LatLng? _titikKerja;
+  List<File> _fotoBaru = [];
+  List<String> _fotoLama = [];
   final _wa = TextEditingController();
   String _kategori = 'tukang';
   String _jenis = 'harian';
@@ -6569,6 +6573,9 @@ class _FormLowonganViewState extends State<FormLowonganView> {
       _upah.text = e.upah > 0 ? RibuanFormatter.format(e.upah) : '';
       _upahManual = true;
       _alamat.text = e.alamat;
+      _almt.isiDari(jalanTeks: e.alamat);
+      if (e.lat != 0 || e.lng != 0) _titikKerja = LatLng(e.lat, e.lng);
+      _fotoLama = List<String>.from(e.fotoList);
       _wa.text = e.whatsapp;
       _kategori = e.kategori;
       _jenis = e.jenis;
@@ -6579,6 +6586,10 @@ class _FormLowonganViewState extends State<FormLowonganView> {
       _batas = e.batas;
     } else {
       _alamat.text = u?.alamatLengkap ?? '';
+      _almt.isiDari(
+          jalanTeks: u?.alamatLengkap ?? '',
+          rtTeks: u?.alamatRt ?? '',
+          rwTeks: u?.alamatRw ?? '');
       _wa.text = u?.nomorTelepon ?? '';
       _terapkanPatokan(paksa: true);
     }
@@ -6597,6 +6608,7 @@ class _FormLowonganViewState extends State<FormLowonganView> {
 
   @override
   void dispose() {
+    _almt.dispose();
     for (final x in [_judul, _desk, _syarat, _upah, _alamat, _wa]) {
       x.dispose();
     }
@@ -6649,8 +6661,8 @@ class _FormLowonganViewState extends State<FormLowonganView> {
       galat = 'Judul terlalu singkat. Tulis jelas, contoh: "Butuh 3 kuli bangunan harian".';
     } else if (_desk.text.trim().length < 30) {
       galat = 'Jelaskan pekerjaannya minimal 30 huruf: apa yang dikerjakan, jam kerja, dan tempatnya.';
-    } else if (_alamat.text.trim().length < 5) {
-      galat = 'Isi tempat kerja atau alamatnya.';
+    } else if (_almt.galat() != null) {
+      galat = _almt.galat();
     } else if (_wa.text.replaceAll(RegExp(r'[^0-9]'), '').length < 9) {
       galat = 'Isi nomor WhatsApp yang bisa dihubungi.';
     } else if (_mulai == null) {
@@ -6673,10 +6685,14 @@ class _FormLowonganViewState extends State<FormLowonganView> {
       upah: _upahAngka,
       satuanUpah: _satuan,
       upahNego: _nego,
-      alamat: _alamat.text,
+      alamat: _almt.teks,
       whatsapp: _wa.text,
       mulai: _mulai,
       batas: _batas,
+      lat: _titikKerja?.latitude,
+      lng: _titikKerja?.longitude,
+      fotoBaru: _fotoBaru,
+      fotoLama: _fotoLama,
     );
     if (ok) Get.back();
     showSnack(ok,
@@ -6919,7 +6935,33 @@ class _FormLowonganViewState extends State<FormLowonganView> {
             isThreeLine: true,
             trailing: TextButton(onPressed: () => _tanggal(false), child: const Text('Pilih')),
           ),
-          _t(_alamat, 'Tempat kerja', 'Contoh: Kp. Talagasari RT 02/RW 03, Cikupa', len: 150),
+          const Padding(
+            padding: EdgeInsets.only(top: 8, bottom: 6),
+            child: Text('Tempat kerja', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          BlokAlamatDesa(c: _almt),
+          const SizedBox(height: 10),
+          const Text('Tandai lokasi di peta', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          const SizedBox(height: 6),
+          PemilihPeta(
+            titik: _titikKerja ??
+                LatLng(_auth.currentUser.value?.lokasiLat ?? -6.239265,
+                    _auth.currentUser.value?.lokasiLng ?? 106.5302),
+            ikutiAwal: widget.existing == null,
+            onChanged: (p) => _titikKerja = p,
+          ),
+          const SizedBox(height: 12),
+          FotoPicker(
+            maks: 3,
+            label: 'Foto pendukung (opsional, sampai 3)',
+            bantuan: 'Contoh: foto lokasi proyek atau gambaran pekerjaan. Dikecilkan otomatis.',
+            fotoLama: _fotoLama,
+            onChanged: (baru, lama) {
+              _fotoBaru = baru;
+              _fotoLama = lama;
+            },
+          ),
+          const SizedBox(height: 8),
           _t(_wa, 'Nomor WhatsApp', 'Contoh: 081234567890', len: 16, angka: true),
           const SizedBox(height: 4),
           Obx(() => SizedBox(
@@ -6983,18 +7025,34 @@ class _LowonganDetailViewState extends State<LowonganDetailView> {
   }
 
   Future<void> _hapus() async {
-    final y = await Get.dialog<bool>(AlertDialog(
-      title: const Text('Hapus lowongan?'),
-      content: const Text('Lowongan dan semua lamaran di dalamnya akan dihapus. Tindakan ini tidak bisa dibatalkan.'),
-      actions: [
-        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
-        TextButton(onPressed: () => Get.back(result: true), child: const Text('Hapus')),
+    final l = _terbaru;
+    final admin = Get.find<AuthController>().role == 'admin' && l.uid != Get.find<AuthController>().currentUser.value?.uid;
+    if (!admin && l.hapusStatus == 'diajukan') {
+      showSnack(false, '', 'Pengajuan hapus sudah dikirim. Tunggu keputusan Admin.');
+      return;
+    }
+    if (admin) {
+      final a = await pilihAlasanTolak('lowongan', judul: 'Hapus lowongan (alasan)');
+      if (a == null) return;
+      final ok = await _c.putuskanHapus(l, setuju: true, keterangan: 'Dihapus Admin: $a');
+      if (ok) Get.back();
+      showSnack(ok, 'Lowongan dihapus.', _c.errorMsg.value);
+      return;
+    }
+    final alasan = await dialogAlasanHapus(
+      judul: 'Ajukan hapus lowongan',
+      penjelasan: 'Lowongan baru dihapus setelah Admin menyetujui. Riwayat lamaran tetap tersimpan.',
+      opsi: const [
+        'Pekerja sudah didapat',
+        'Pekerjaan dibatalkan',
+        'Salah isi, ingin buat ulang',
+        'Alasan lain',
       ],
-    ));
-    if (y != true) return;
-    final ok = await _c.hapus(_terbaru);
-    if (ok) Get.back();
-    showSnack(ok, 'Lowongan dihapus.', _c.errorMsg.value);
+    );
+    if (alasan == null) return;
+    final ok = await _c.hapus(l, alasan: alasan);
+    showSnack(ok, 'Pengajuan hapus dikirim ke Admin.', _c.errorMsg.value);
+    if (mounted) setState(() {});
   }
 
   Future<void> _blokir() async {
@@ -7156,6 +7214,11 @@ class _LowonganDetailViewState extends State<LowonganDetailView> {
                         : 'Alasan ditutup: ${l.alasan}',
                     style: TextStyle(color: Colors.red.shade700, height: 1.4)),
               ),
+            if (l.fotoList.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: GaleriFoto(foto: l.fotoList),
+              ),
             kartu(
               margin: const EdgeInsets.only(top: 12),
               child: Column(
@@ -7171,6 +7234,26 @@ class _LowonganDetailViewState extends State<LowonganDetailView> {
                   if (l.mulai != null)
                     _barisInfo(Icons.play_circle_outline,
                         'Mulai bekerja ${AppUtils.formatTanggal(l.mulai!)}'),
+                  if (l.lat != 0 || l.lng != 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: PetaDenganLokasi(
+                          pusat: LatLng(l.lat, l.lng),
+                          tinggi: 170,
+                          penanda: [
+                            Marker(
+                              point: LatLng(l.lat, l.lng),
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.topCenter,
+                              child: Icon(Icons.location_on, size: 40, color: Colors.red.shade700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -7825,46 +7908,23 @@ class _FilterKategoriBar extends StatelessWidget {
 // HAPUS JASA OLEH PEMILIK
 // ═════════════════════════════════════════════════════════════
 Future<void> dialogHapusJasa(ServiceModel s) async {
-  const alasan = [
-    'Usaha tutup / berhenti',
-    'Pindah, tidak melayani lagi',
-    'Salah daftar, ingin buat ulang',
-    'Alasan lain',
-  ];
-  String pilih = alasan.first;
-  final ya = await Get.dialog<bool>(StatefulBuilder(
-    builder: (ctx, setD) => AlertDialog(
-      title: const Text('Hapus jasa ini?'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('"${s.nama}" akan hilang dari pencarian dan tidak bisa dipesan lagi. '
-              'Riwayat pesanan lama tetap tersimpan. Penghapusan tidak bisa dibatalkan.',
-              style: const TextStyle(height: 1.4)),
-          const SizedBox(height: 8),
-          Text('Hanya libur atau sakit? Lebih baik matikan saja lewat "Tampilkan jasa saya" supaya bisa dibuka lagi.',
-              style: TextStyle(fontSize: 12.5, color: Colors.orange.shade900, height: 1.35)),
-          const SizedBox(height: 12),
-          const Text('Alasan menghapus:', style: TextStyle(fontWeight: FontWeight.bold)),
-          DropdownButton<String>(
-            value: pilih,
-            isExpanded: true,
-            items: [for (final a in alasan) DropdownMenuItem(value: a, child: Text(a))],
-            onChanged: (v) => setD(() => pilih = v ?? pilih),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
-        TextButton(
-            onPressed: () => Get.back(result: true),
-            child: Text('Hapus', style: TextStyle(color: Colors.red.shade700))),
-      ],
-    ),
-  ));
-  if (ya != true) return;
   final svc = Get.find<ServiceController>();
-  final ok = await svc.hapusJasa(s, alasan: pilih);
-  showSnack(ok, 'Jasa sudah dihapus.', svc.errorMsg.value);
+  if (s.hapusStatus == 'diajukan') {
+    showSnack(false, '', 'Pengajuan hapus sudah dikirim. Tunggu keputusan Admin.');
+    return;
+  }
+  final alasan = await dialogAlasanHapus(
+    judul: 'Ajukan hapus jasa',
+    penjelasan: '"${s.nama}" baru dihapus setelah Admin menyetujui. '
+        'Selama menunggu jasa tetap tampil. Hanya libur atau sakit? Lebih baik matikan sementara lewat "Tampilkan jasa saya".',
+    opsi: const [
+      'Usaha tutup / berhenti',
+      'Pindah, tidak melayani lagi',
+      'Salah daftar, ingin buat ulang',
+      'Alasan lain',
+    ],
+  );
+  if (alasan == null) return;
+  final ok = await svc.hapusJasa(s, alasan: alasan);
+  showSnack(ok, 'Pengajuan hapus dikirim ke Admin.', svc.errorMsg.value);
 }

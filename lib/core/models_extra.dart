@@ -1108,6 +1108,12 @@ class LowonganModel {
   final String status; // aktif | ditutup | blokir
   final String alasan;
   final bool disetujui;
+  final String hapusStatus; // '' | 'diajukan' | 'ditolak' | 'disetujui'
+  final String hapusAlasan;
+  final String hapusKeputusan;
+  final List<String> fotoList;
+  final double lat;
+  final double lng;
   final DateTime createdAt;
 
   LowonganModel({
@@ -1132,6 +1138,12 @@ class LowonganModel {
     this.status = 'aktif',
     this.alasan = '',
     this.disetujui = true,
+    this.hapusStatus = '',
+    this.hapusAlasan = '',
+    this.hapusKeputusan = '',
+    this.fotoList = const [],
+    this.lat = 0,
+    this.lng = 0,
     required this.createdAt,
   });
 
@@ -1159,6 +1171,12 @@ class LowonganModel {
       status: d['status'] ?? 'aktif',
       alasan: d['alasan'] ?? '',
       disetujui: d['disetujui'] ?? true,
+      hapusStatus: d['hapus_status'] ?? '',
+      hapusAlasan: d['hapus_alasan'] ?? '',
+      hapusKeputusan: d['hapus_keputusan'] ?? '',
+      fotoList: List<String>.from(d['foto_list'] ?? const []),
+      lat: (d['lat'] ?? 0).toDouble(),
+      lng: (d['lng'] ?? 0).toDouble(),
       createdAt: _ts(d['created_at']) ?? DateTime.now(),
     );
   }
