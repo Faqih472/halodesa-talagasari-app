@@ -149,16 +149,13 @@ class SosController extends GetxController {
 
   /// Kirim SOS. Wajib memilih [jenis]; keterangan dan foto opsional.
   Future<bool> kirimSos({
-    required String jenis,
+    String jenis = 'umum',
     String keterangan = '',
     File? foto,
   }) async {
     final user = _authCtrl.currentUser.value;
     if (user == null) return false;
-    if (!SosModel.labelJenis.containsKey(jenis)) {
-      errorMsg.value = 'Pilih dulu apa yang terjadi.';
-      return false;
-    }
+    if (!SosModel.labelJenis.containsKey(jenis)) jenis = 'umum';
     try {
       sending.value = true;
       errorMsg.value = '';
@@ -210,6 +207,30 @@ class SosController extends GetxController {
       return false;
     } finally {
       sending.value = false;
+    }
+  }
+
+  /// Melengkapi SOS yang sudah terkirim (opsional): jenis, keterangan, foto.
+  Future<bool> lengkapi({String jenis = '', String keterangan = '', File? foto}) async {
+    final id = sosAktifId.value;
+    if (id == null) return false;
+    try {
+      final data = <String, dynamic>{};
+      if (SosModel.labelJenis.containsKey(jenis) && jenis != 'umum') data['jenis'] = jenis;
+      if (keterangan.trim().isNotEmpty) data['keterangan'] = keterangan.trim();
+      if (foto != null) {
+        final enc = await ImageUtil.encode(foto);
+        if (enc == null) {
+          errorMsg.value = 'Foto terlalu besar.';
+          return false;
+        }
+        data['foto'] = enc;
+      }
+      if (data.isEmpty) return true;
+      await _firestore.collection('sos').doc(id).update(data);
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 

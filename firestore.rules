@@ -260,7 +260,7 @@ service cloud.firestore {
       allow update: if isStaff() || (login() && resource.data.uid == request.auth.uid && (
         // pemilik: perbarui titik GPS / menyatakan sudah aman
         (request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['lat','lng','akurasi','sumber','posisi_at','status','updated_at'])
+           .hasOnly(['lat','lng','akurasi','sumber','posisi_at','status','updated_at','jenis','keterangan','foto'])
          && resource.data.status in ['baru','diproses','aman']
          && (request.resource.data.status == resource.data.status
              || request.resource.data.status == 'aman'))

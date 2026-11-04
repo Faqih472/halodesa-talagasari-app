@@ -88,7 +88,7 @@ class SosModel {
     this.posisiAt,
     this.akurasi = 0,
     this.sumber = 'tidak_ada',
-    this.jenis = 'lainnya',
+    this.jenis = 'umum',
     this.keterangan = '',
     this.foto = '',
     this.petugas = '',
@@ -103,6 +103,7 @@ class SosModel {
   bool get aktif => status != 'ditangani';
 
   static const Map<String, String> labelJenis = {
+    'umum': 'Darurat (belum dijelaskan)',
     'medis': 'Medis / Sakit parah',
     'kebakaran': 'Kebakaran',
     'kejahatan': 'Kejahatan / Pencurian',
@@ -133,7 +134,7 @@ class SosModel {
       posisiAt: _ts(d['posisi_at']),
       akurasi: (d['akurasi'] ?? 0).toDouble(),
       sumber: d['sumber'] ?? 'tidak_ada',
-      jenis: d['jenis'] ?? 'lainnya',
+      jenis: d['jenis'] ?? 'umum',
       keterangan: d['keterangan'] ?? '',
       foto: d['foto'] ?? '',
       petugas: d['petugas'] ?? '',

@@ -182,7 +182,7 @@ class _SosWargaState extends State<_SosWarga>
     super.initState();
     _ctrl.siapkanLokasi();
     _anim = AnimationController(
-        vsync: this, duration: const Duration(seconds: 3))
+        vsync: this, duration: const Duration(seconds: 2))
       ..addStatusListener((s) {
         if (s == AnimationStatus.completed) _kirim();
       });
@@ -196,12 +196,8 @@ class _SosWargaState extends State<_SosWarga>
   }
 
   Future<void> _kirim() async {
-    if (_jenis.isEmpty) {
-      _anim.reset();
-      showSnack(false, '', 'Pilih dulu apa yang terjadi (langkah 1).');
-      return;
-    }
-    final ok = await _ctrl.kirimSos(jenis: _jenis, keterangan: _ket.text, foto: _foto);
+    final ok = await _ctrl.kirimSos(
+        jenis: _jenis.isEmpty ? 'umum' : _jenis, keterangan: _ket.text, foto: _foto);
     if (!mounted) return;
     _anim.reset();
     if (ok) {
@@ -298,39 +294,7 @@ class _SosWargaState extends State<_SosWarga>
             style: const TextStyle(
                 fontSize: 13, color: AppTheme.textSecondary, height: 1.5)),
         const SizedBox(height: 14),
-        const Text('Langkah 1 — Apa yang terjadi? (wajib)',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-        const SizedBox(height: 6),
-        Wrap(spacing: 8, runSpacing: 4, children: [
-          for (final e in SosModel.labelJenis.entries)
-            ChoiceChip(
-              avatar: Icon(_ikon[e.key], size: 16),
-              label: Text(e.value, style: const TextStyle(fontSize: 12)),
-              selected: _jenis == e.key,
-              selectedColor: Colors.red.shade100,
-              onSelected: (_) => setState(() => _jenis = e.key),
-            ),
-        ]),
-        const SizedBox(height: 12),
-        const Text('Langkah 2 — Keterangan singkat dan foto (opsional)',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
-        const SizedBox(height: 6),
-        TextField(
-          controller: _ket,
-          maxLines: 2,
-          maxLength: 200,
-          decoration: const InputDecoration(
-            hintText: 'Contoh: ibu saya pingsan di rumah, butuh ambulans',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        FotoPicker(
-          maks: 1,
-          label: 'Foto kejadian (opsional)',
-          onChanged: (baru, _) => _foto = baru.isNotEmpty ? baru.first : null,
-        ),
-        const SizedBox(height: 8),
-        const Text('Langkah 3 — Tahan tombol merah selama 3 detik',
+        const Text('Tahan tombol merah 2 detik. Langsung terkirim, tanpa isi apa pun.',
             textAlign: TextAlign.center,
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
         const SizedBox(height: 14),
@@ -340,10 +304,6 @@ class _SosWargaState extends State<_SosWarga>
             return GestureDetector(
               onTapDown: (_) {
                 if (kirim) return;
-                if (_jenis.isEmpty) {
-                  showSnack(false, '', 'Pilih dulu apa yang terjadi (langkah 1).');
-                  return;
-                }
                 _anim.forward();
               },
               onTapUp: (_) {
@@ -361,7 +321,7 @@ class _SosWargaState extends State<_SosWarga>
                     alignment: Alignment.center,
                     clipBehavior: Clip.none,
                     children: [
-                      if (!kirim && _jenis.isNotEmpty)
+                      if (!kirim)
                         const DenyutRing(warna: Color(0xFFD32F2F), ukuran: 190),
                       SizedBox(
                         width: 220,
@@ -377,11 +337,11 @@ class _SosWargaState extends State<_SosWarga>
                         width: 180,
                         height: 180,
                         decoration: BoxDecoration(
-                          color: _jenis.isEmpty ? Colors.grey.shade500 : merah,
+                          color: merah,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                                color: merah.withOpacity(_jenis.isEmpty ? 0 : 0.4),
+                                color: merah.withOpacity(0.4),
                                 blurRadius: 18,
                                 spreadRadius: 2),
                           ],
@@ -394,7 +354,7 @@ class _SosWargaState extends State<_SosWarga>
                             Text(
                                 kirim
                                     ? 'Mencari lokasi & mengirim...'
-                                    : (_jenis.isEmpty ? 'Pilih dulu jenisnya' : 'sos_hold'.tr),
+                                    : 'sos_hold'.tr,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                     color: Colors.white,
@@ -418,6 +378,72 @@ class _SosWargaState extends State<_SosWarga>
         StreamBuilder<List<SosModel>>(
           stream: _ctrl.streamSaya(),
           builder: (_, snap) => _status(snap.data ?? const []),
+        ),
+        const SizedBox(height: 22),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('Mau menambah keterangan? Boleh sebelum atau SESUDAH SOS terkirim. Tidak wajib.',
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
+        const SizedBox(height: 8),
+        const Text('Jenis kejadian (opsional)',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+        const SizedBox(height: 6),
+        Wrap(spacing: 8, runSpacing: 4, children: [
+          for (final e in SosModel.labelJenis.entries)
+            ChoiceChip(
+              avatar: Icon(_ikon[e.key], size: 16),
+              label: Text(e.value, style: const TextStyle(fontSize: 12)),
+              selected: _jenis == e.key,
+              selectedColor: Colors.red.shade100,
+              onSelected: (_) => setState(() => _jenis = e.key),
+            ),
+        ]),
+        const SizedBox(height: 12),
+        const Text('Keterangan singkat dan foto (opsional)',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _ket,
+          maxLines: 2,
+          maxLength: 200,
+          decoration: const InputDecoration(
+            hintText: 'Contoh: ibu saya pingsan di rumah, butuh ambulans',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        FotoPicker(
+          maks: 1,
+          label: 'Foto kejadian (opsional)',
+          onChanged: (baru, _) => _foto = baru.isNotEmpty ? baru.first : null,
+        ),
+        Obx(() => _ctrl.sosAktifId.value == null
+            ? const SizedBox.shrink()
+            : Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final ok = await _ctrl.lengkapi(
+                        jenis: _jenis, keterangan: _ket.text, foto: _foto);
+                    if (ok && mounted) {
+                      setState(() {
+                        _ket.clear();
+                        _foto = null;
+                      });
+                    }
+                    showSnack(ok, 'Keterangan ditambahkan ke SOS Anda.', _ctrl.errorMsg.value);
+                  },
+                  icon: const Icon(Icons.send, size: 16, color: Colors.white),
+                  label: const Text('Kirim keterangan ke petugas',
+                      style: TextStyle(color: Colors.white)),
+                ),
+              )),
+          ]),
         ),
         const SizedBox(height: 24),
         SectionTitle('sos_numbers'.tr),

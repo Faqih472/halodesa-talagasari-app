@@ -64,3 +64,10 @@ Buka / Penuh / Tutup + catatan + buka otomatis pada tanggal tertentu. Profil tet
 - SOS: jenis darurat wajib, keterangan + foto opsional, titik GPS segar (posisi lama tidak dipercaya), peta live di Admin, konfirmasi "sudah aman", Admin tutup kasus wajib hasil + catatan, penilaian warga.
 - Tambah Info: lokasi opsional (pin + alamat terkunci Talagasari), tampil di detail dengan rute.
 - Ikon adaptif full dan manifest izin lokasi di android_patch/.
+
+## Ikon baru
+- Ikon adaptif memakai logo "TALAGASARI HUB" (latar hijau penuh, teks di zona aman, tidak terpotong).
+
+## SOS instan
+- Tombol SOS di urutan pertama, tahan 2 detik langsung terkirim tanpa isi apa pun.
+- Jenis, keterangan, dan foto opsional: bisa diisi sebelum atau sesudah SOS terkirim.
