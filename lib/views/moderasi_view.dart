@@ -15,7 +15,12 @@ import '../core/app_contact.dart';
 import '../core/core.dart';
 import '../core/models.dart';
 import '../core/ui_helpers.dart';
+import '../core/models_extra.dart' show LowonganModel;
+import 'admin_tools_view.dart' show warnaKategori;
 import 'chat_view.dart';
+import 'info_sosial.dart' show GaleriFoto, InfoAksi, catatDilihat;
+import 'jasa_view.dart' show JasaDetailView, LowonganDetailView;
+import 'lapak_view.dart' show KartuLapak, LapakModel;
 
 // ─────────────────────────────────────────────────────────────
 // REAKSI EMOJI (ala WhatsApp / Facebook)
@@ -617,10 +622,55 @@ void bukaProfil(String uid, {String nama = ''}) {
   Get.to(() => ProfilPublikView(uid: uid, namaAwal: nama));
 }
 
-class ProfilPublikView extends StatelessWidget {
+class ProfilPublikView extends StatefulWidget {
   final String uid;
   final String namaAwal;
   const ProfilPublikView({super.key, required this.uid, this.namaAwal = ''});
+
+  @override
+  State<ProfilPublikView> createState() => _ProfilPublikViewState();
+}
+
+class _ProfilPublikViewState extends State<ProfilPublikView> {
+  final db = FirebaseFirestore.instance;
+  int _tab = 0;
+  bool _muat = true;
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _info = [];
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _jasa = [];
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _lapak = [];
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _lowongan = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _ambil();
+  }
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> _q(
+      String koleksi, String field, String status, {String? statusField}) async {
+    try {
+      final r = await db.collection(koleksi).where(field, isEqualTo: widget.uid).limit(60).get();
+      return r.docs.where((d) => d.data()[statusField ?? 'status'] == status).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> _ambil() async {
+    final h = await Future.wait([
+      _q('announcements', 'authorId', 'published'),
+      _q('penyedia_jasa', 'uid_penyedia', 'aktif'),
+      _q('lapak_umkm', 'uid', 'aktif'),
+      _q('lowongan_warga', 'uid', 'aktif'),
+    ]);
+    _info = h[0]
+      ..sort((a, b) => ((b.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0)
+          .compareTo((a.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0));
+    _jasa = h[1];
+    _lapak = h[2];
+    _lowongan = h[3];
+    if (mounted) setState(() => _muat = false);
+  }
 
   Future<void> _chat(UserModel u) async {
     try {
@@ -639,33 +689,318 @@ class ProfilPublikView extends StatelessWidget {
     }
   }
 
+  String _lama(DateTime t) {
+    final h = DateTime.now().difference(t).inDays;
+    if (h < 1) return 'hari ini';
+    if (h < 30) return '$h hari lalu';
+    if (h < 365) return '${h ~/ 30} bulan lalu';
+    return '${h ~/ 365} tahun ${(h % 365) ~/ 30} bulan lalu';
+  }
+
+  int _usia(DateTime l) {
+    final n = DateTime.now();
+    var u = n.year - l.year;
+    if (n.month < l.month || (n.month == l.month && n.day < l.day)) u--;
+    return u;
+  }
+
+  Widget _stat(String angka, String label, int idx) {
+    final aktif = _tab == idx;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _tab = idx),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(children: [
+            Text(angka,
+                style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                    color: aktif ? Colors.green.shade800 : Colors.black87)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: aktif ? FontWeight.bold : FontWeight.normal,
+                    color: aktif ? Colors.green.shade800 : AppTheme.textSecondary)),
+            const SizedBox(height: 4),
+            Container(
+                height: 3,
+                width: 28,
+                decoration: BoxDecoration(
+                    color: aktif ? Colors.green.shade700 : Colors.transparent,
+                    borderRadius: BorderRadius.circular(2))),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _baris(IconData ic, String l, String v) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(ic, size: 19, color: AppTheme.textSecondary),
+          const SizedBox(width: 10),
+          SizedBox(
+              width: 108,
+              child: Text(l, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
+          Expanded(child: Text(v, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500))),
+        ]),
+      );
+
+  void _bukaInfo(NewsModel n) {
+    catatDilihat(n.id);
+    Get.bottomSheet(
+      DraggableScrollableSheet(
+        initialChildSize: 0.8,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (_, sc) => Container(
+          decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+          child: ListView(controller: sc, padding: const EdgeInsets.all(16), children: [
+            Center(
+                child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 12),
+            if (n.semuaFoto.isNotEmpty) GaleriFoto(foto: n.semuaFoto),
+            const SizedBox(height: 10),
+            Text(n.judul, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+                '${NewsModel.labelKategori(n.kategori)} · ${AppUtils.formatTanggal(n.publishedAt ?? n.createdAt)}',
+                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            const SizedBox(height: 10),
+            Text(n.isi, style: const TextStyle(fontSize: 14.5, height: 1.5)),
+            if (n.punyaLokasi) ...[
+              const SizedBox(height: 12),
+              if (n.lokasiNama.isNotEmpty)
+                Text('📍 ${n.lokasiNama}', style: const TextStyle(fontSize: 13)),
+            ],
+            const SizedBox(height: 10),
+            InfoAksi(news: n),
+          ]),
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Widget _kosong(String t) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 30),
+        child: Center(
+            child: Text(t,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppTheme.textSecondary))),
+      );
+
+  List<Widget> _isiTab(bool sendiri) {
+    if (_muat) {
+      return [const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))];
+    }
+    switch (_tab) {
+      case 0:
+        if (_info.isEmpty) {
+          return [_kosong(sendiri ? 'Anda belum memposting info.' : 'Belum ada postingan info.')];
+        }
+        return [
+          for (final d in _info)
+            Builder(builder: (_) {
+              final n = NewsModel.fromFirestore(d);
+              final m = d.data();
+              final suka = (m['jumlah_suka'] ?? 0) as int;
+              final kom = (m['jumlah_komentar'] ?? 0) as int;
+              final w = warnaKategori(n.kategori);
+              return InkWell(
+                onTap: () => _bukaInfo(n),
+                child: kartu(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                            color: w.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                        child: Text(NewsModel.labelKategori(n.kategori),
+                            style: TextStyle(fontSize: 11, color: w, fontWeight: FontWeight.w700)),
+                      ),
+                      const Spacer(),
+                      Text(AppUtils.formatRelatif(n.publishedAt ?? n.createdAt),
+                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                    ]),
+                    const SizedBox(height: 6),
+                    Text(n.judul,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 3),
+                    Text(n.isi,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13, height: 1.4)),
+                    if (n.semuaFoto.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                            height: 130,
+                            width: double.infinity,
+                            child: ImageUtil.image(n.semuaFoto.first, fit: BoxFit.cover)),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Text('👍 $suka', style: const TextStyle(fontSize: 12.5)),
+                      const SizedBox(width: 14),
+                      Text('💬 $kom', style: const TextStyle(fontSize: 12.5)),
+                      if (n.fotoList.length > 1) ...[
+                        const SizedBox(width: 14),
+                        Text('🖼 ${n.fotoList.length}', style: const TextStyle(fontSize: 12.5)),
+                      ],
+                      if (n.punyaLokasi) ...[
+                        const SizedBox(width: 14),
+                        const Icon(Icons.place, size: 15, color: Colors.red),
+                      ],
+                    ]),
+                  ]),
+                ),
+              );
+            }),
+        ];
+      case 1:
+        if (_jasa.isEmpty) return [_kosong('Belum ada jasa yang aktif.')];
+        return [
+          for (final d in _jasa)
+            Builder(builder: (_) {
+              final s = ServiceModel.fromFirestore(d);
+              return InkWell(
+                onTap: () => Get.to(() => JasaDetailView(service: s)),
+                child: kartu(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(children: [
+                    const Icon(Icons.handyman_outlined, color: Colors.green),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(s.namaUsaha.trim().isNotEmpty ? s.namaUsaha : AppUtils.labelKategoriJasa(s.kategori),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
+                        Text(AppUtils.labelKategoriJasa(s.kategori),
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        if (s.ratingCount > 0)
+                          Row(children: [
+                            const Icon(Icons.star, size: 14, color: Colors.amber),
+                            Text(' ${s.ratingAvg.toStringAsFixed(1)} (${s.ratingCount} ulasan)',
+                                style: const TextStyle(fontSize: 12)),
+                          ]),
+                      ]),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ]),
+                ),
+              );
+            }),
+        ];
+      case 2:
+        if (_lapak.isEmpty) return [_kosong('Belum ada lapak usaha.')];
+        return [for (final d in _lapak) KartuLapak(l: LapakModel.dari(d), saya: '')];
+      default:
+        if (_lowongan.isEmpty) return [_kosong('Belum ada lowongan yang aktif.')];
+        return [
+          for (final d in _lowongan)
+            Builder(builder: (_) {
+              final l = LowonganModel.fromFirestore(d);
+              return InkWell(
+                onTap: () => Get.to(() => LowonganDetailView(lowongan: l)),
+                child: kartu(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(children: [
+                    const Icon(Icons.groups_outlined, color: Colors.green),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(l.judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
+                        Text(
+                            '${l.upah > 0 ? '${rupiah(l.upah)} ${l.satuanUpah}' : 'Upah dibicarakan'} · butuh ${l.jumlahOrang} orang',
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        Text('Batas: ${AppUtils.formatTanggal(l.batas)}',
+                            style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                      ]),
+                    ),
+                    const Icon(Icons.chevron_right),
+                  ]),
+                ),
+              );
+            }),
+        ];
+    }
+  }
+
+  Widget _panelAdmin(UserModel u) {
+    return FutureBuilder<List<dynamic>>(
+      future: Future.wait([
+        db.collection('laporan_konten').where('target_uid', isEqualTo: u.uid).limit(100).get(),
+        db.collection('riwayat_moderasi').where('uid', isEqualTo: u.uid).limit(20).get(),
+      ]).then((v) => v).catchError((_) => <dynamic>[]),
+      builder: (_, s) {
+        final lap = (s.data != null && s.data!.length == 2)
+            ? (s.data![0] as QuerySnapshot<Map<String, dynamic>>).docs
+            : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+        final riw = (s.data != null && s.data!.length == 2)
+            ? (s.data![1] as QuerySnapshot<Map<String, dynamic>>).docs
+            : <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+        return kartu(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.admin_panel_settings_outlined, color: Colors.red.shade700),
+              const SizedBox(width: 6),
+              const Text('Data khusus Admin', style: TextStyle(fontWeight: FontWeight.bold)),
+            ]),
+            const SizedBox(height: 6),
+            _baris(Icons.email_outlined, 'Email', u.email),
+            _baris(Icons.phone_outlined, 'Telepon', u.nomorTelepon.isEmpty ? '-' : u.nomorTelepon),
+            _baris(Icons.home_work_outlined, 'Alamat lengkap',
+                u.alamatLengkap.isEmpty ? '-' : u.alamatLengkap),
+            if (u.alamatPatokan.isNotEmpty) _baris(Icons.flag_outlined, 'Patokan', u.alamatPatokan),
+            _baris(Icons.flag_circle_outlined, 'Laporan diterima', '${lap.length}'),
+            _baris(Icons.gavel_outlined, 'Riwayat sanksi',
+                riw.isEmpty ? 'Belum pernah' : '${riw.where((e) => e.data()['aksi'] == 'bekukan').length} kali dibekukan'),
+            for (final r in riw.take(5))
+              Padding(
+                padding: const EdgeInsets.only(left: 29, top: 2),
+                child: Text(
+                    '• ${r.data()['aksi'] == 'bekukan' ? 'Beku ${(r.data()['durasi_hari'] ?? 0) == 0 ? 'permanen' : labelDurasi((r.data()['durasi_hari'] ?? 0) as int)}' : 'Dibuka'}: ${r.data()['alasan'] ?? ''}',
+                    style: const TextStyle(fontSize: 12)),
+              ),
+          ]),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final auth = Get.find<AuthController>();
-    final me = auth.currentUser.value;
+    final me = Get.find<AuthController>().currentUser.value;
     final bool admin = me?.role == 'admin';
-    final bool sendiri = me?.uid == uid;
+    final bool sendiri = me?.uid == widget.uid;
     final Color primary = AppTheme.primaryColor(me?.role ?? 'warga');
-    final db = FirebaseFirestore.instance;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: primary,
-        title: Text(namaAwal.isEmpty ? 'Profil' : namaAwal),
+        title: Text(widget.namaAwal.isEmpty ? 'Profil' : widget.namaAwal),
         actions: [
           if (!sendiri)
             PopupMenuButton<String>(
               onSelected: (v) async {
-                final d = await db.collection('users').doc(uid).get();
-                final u = d.exists ? UserModel.fromFirestore(d) : null;
-                if (u == null) return;
+                final d = await db.collection('users').doc(widget.uid).get();
+                if (!d.exists) return;
+                final u = UserModel.fromFirestore(d);
                 if (v == 'lapor') {
                   await laporkan(
-                      tipe: 'profil',
-                      targetId: u.uid,
-                      targetUid: u.uid,
-                      targetNama: u.nama);
+                      tipe: 'profil', targetId: u.uid, targetUid: u.uid, targetNama: u.nama);
                 } else if (v == 'bekukan') {
                   await dialogBekukan(uid: u.uid, nama: u.nama);
                 } else if (v == 'buka') {
@@ -698,7 +1033,7 @@ class ProfilPublikView extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: db.collection('users').doc(uid).snapshots(),
+        stream: db.collection('users').doc(widget.uid).snapshots(),
         builder: (context, snap) {
           if (snap.hasError) {
             return const EmptyState(
@@ -714,64 +1049,64 @@ class ProfilPublikView extends StatelessWidget {
                 subtitle: 'Akun ini mungkin sudah dihapus.');
           }
           final u = UserModel.fromFirestore(snap.data!);
-          return ListView(padding: const EdgeInsets.only(bottom: 30), children: [
-            const SizedBox(height: 18),
-            Center(
-              child: CircleAvatar(
-                radius: 48,
-                backgroundColor: primary.withOpacity(0.15),
-                backgroundImage:
-                    u.fotoUrl.isNotEmpty ? ImageUtil.provider(u.fotoUrl) : null,
-                child: u.fotoUrl.isEmpty
-                    ? Text(AppUtils.inisial(u.nama),
-                        style: TextStyle(
-                            fontSize: 30, fontWeight: FontWeight.bold, color: primary))
-                    : null,
+          final totalSuka =
+              _info.fold<int>(0, (a, d) => a + ((d.data()['jumlah_suka'] ?? 0) as int));
+          return ListView(padding: const EdgeInsets.only(bottom: 40), children: [
+            // ── Sampul + avatar ──
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 22, 16, 18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [primary, primary.withOpacity(0.65)]),
               ),
-            ),
-            const SizedBox(height: 10),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Flexible(
-                child: Text(u.nama,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              ),
-              if (u.isVerified)
-                const Padding(
-                  padding: EdgeInsets.only(left: 6),
-                  child: Icon(Icons.verified, color: Colors.blue, size: 20),
-                ),
-            ]),
-            const SizedBox(height: 6),
-            Wrap(alignment: WrapAlignment.center, spacing: 6, children: [
-              Chip(
-                  label: Text(AppTheme.labelRole(u.role),
-                      style: const TextStyle(fontSize: 12)),
-                  visualDensity: VisualDensity.compact),
-              if (u.isVerified)
-                Chip(
-                    label: const Text('KTP terverifikasi', style: TextStyle(fontSize: 12)),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: Colors.blue.shade50),
-              if (admin && u.terbekukan)
-                Chip(
-                    label: const Text('DIBEKUKAN', style: TextStyle(fontSize: 12, color: Colors.white)),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: Colors.red.shade700),
-            ]),
-            if (u.bio.trim().isNotEmpty)
-              kartu(child: Text(u.bio, style: const TextStyle(fontSize: 14, height: 1.4))),
-            kartu(
               child: Column(children: [
-                _baris(Icons.event_available_outlined, 'Bergabung',
-                    AppUtils.formatTanggal(u.createdAt)),
-                if (u.alamatDusun.trim().isNotEmpty)
-                  _baris(Icons.home_outlined, 'Kampung / Dusun', u.alamatDusun),
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: primary.withOpacity(0.15),
+                    backgroundImage: u.fotoUrl.isNotEmpty ? ImageUtil.provider(u.fotoUrl) : null,
+                    child: u.fotoUrl.isEmpty
+                        ? Text(AppUtils.inisial(u.nama),
+                            style: TextStyle(
+                                fontSize: 32, fontWeight: FontWeight.bold, color: primary))
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Flexible(
+                    child: Text(u.nama,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 21, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                  if (u.isVerified)
+                    const Padding(
+                        padding: EdgeInsets.only(left: 6),
+                        child: Icon(Icons.verified, color: Colors.white, size: 21)),
+                ]),
+                if (u.namaPanggilan.trim().isNotEmpty)
+                  Text('"${u.namaPanggilan}"',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                const SizedBox(height: 8),
+                Wrap(alignment: WrapAlignment.center, spacing: 6, runSpacing: 4, children: [
+                  _lencana(AppTheme.labelRole(u.role), Icons.badge_outlined),
+                  if (u.isVerified) _lencana('KTP terverifikasi', Icons.verified_user_outlined),
+                  if (_jasa.isNotEmpty) _lencana('Penyedia jasa', Icons.handyman_outlined),
+                  if (_lapak.isNotEmpty) _lencana('Pemilik usaha', Icons.storefront_outlined),
+                  if (admin && u.terbekukan)
+                    _lencana('DIBEKUKAN', Icons.block, merah: true),
+                ]),
               ]),
             ),
+            // ── Tombol aksi ──
             if (!sendiri)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: Row(children: [
                   Expanded(
                     child: ElevatedButton.icon(
@@ -788,102 +1123,93 @@ class ProfilPublikView extends StatelessWidget {
                         foregroundColor: Colors.red.shade700,
                         side: BorderSide(color: Colors.red.shade700)),
                     onPressed: () => laporkan(
-                        tipe: 'profil',
-                        targetId: u.uid,
-                        targetUid: u.uid,
-                        targetNama: u.nama),
+                        tipe: 'profil', targetId: u.uid, targetUid: u.uid, targetNama: u.nama),
                     icon: const Icon(Icons.flag_outlined),
                     label: const Text('Laporkan'),
                   ),
                 ]),
               ),
-            _DaftarMilik(uid: uid),
+            // ── Tentang ──
+            kartu(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Tentang',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5)),
+                const SizedBox(height: 4),
+                if (u.bio.trim().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(u.bio, style: const TextStyle(fontSize: 14, height: 1.45)),
+                  )
+                else
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 6),
+                    child: Text('Belum menulis bio.',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                  ),
+                _baris(Icons.event_available_outlined, 'Bergabung',
+                    '${AppUtils.formatTanggal(u.createdAt)} (${_lama(u.createdAt)})'),
+                if (u.jenisKelamin.isNotEmpty)
+                  _baris(Icons.wc_outlined, 'Jenis kelamin', u.jenisKelamin),
+                if (u.tanggalLahir != null)
+                  _baris(Icons.cake_outlined, 'Usia', '${_usia(u.tanggalLahir!)} tahun'),
+                _baris(Icons.location_city_outlined, 'Domisili',
+                    'Desa Talagasari, Kec. Cikupa'),
+                if (u.alamatDusun.trim().isNotEmpty)
+                  _baris(Icons.home_outlined, 'Kampung / Dusun', u.alamatDusun),
+                if (u.alamatRt.isNotEmpty || u.alamatRw.isNotEmpty)
+                  _baris(Icons.signpost_outlined, 'RT / RW', 'RT ${u.alamatRt} / RW ${u.alamatRw}'),
+                _baris(
+                    u.isVerified ? Icons.verified_outlined : Icons.pending_outlined,
+                    'Status warga',
+                    u.isVerified
+                        ? 'Warga terverifikasi (KTP Talagasari)'
+                        : 'Belum diverifikasi'),
+                if (!admin)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 6),
+                    child: Text(
+                        'Nomor telepon dan alamat lengkap disembunyikan demi privasi. Hubungi lewat Kirim pesan.',
+                        style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                  ),
+              ]),
+            ),
+            if (admin) _panelAdmin(u),
+            // ── Statistik + tab ──
+            kartu(
+              padding: EdgeInsets.zero,
+              child: Column(children: [
+                Row(children: [
+                  _stat('${_info.length}', 'Postingan', 0),
+                  _stat('${_jasa.length}', 'Jasa', 1),
+                  _stat('${_lapak.length}', 'Lapak', 2),
+                  _stat('${_lowongan.length}', 'Lowongan', 3),
+                ]),
+                if (_info.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text('👍 $totalSuka reaksi diterima dari postingan',
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  ),
+              ]),
+            ),
+            ..._isiTab(sendiri),
           ]);
         },
       ),
     );
   }
 
-  Widget _baris(IconData ic, String l, String v) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(children: [
-          Icon(ic, size: 18, color: AppTheme.textSecondary),
-          const SizedBox(width: 8),
-          Text('$l: ', style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
-          Expanded(child: Text(v, style: const TextStyle(fontSize: 13.5))),
+  Widget _lencana(String t, IconData ic, {bool merah = false}) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+        decoration: BoxDecoration(
+            color: merah ? Colors.red.shade700 : Colors.white.withOpacity(0.22),
+            borderRadius: BorderRadius.circular(14)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(ic, size: 14, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(t, style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600)),
         ]),
       );
-}
-
-/// Jasa dan lapak UMKM milik pengguna (hanya yang aktif).
-class _DaftarMilik extends StatelessWidget {
-  final String uid;
-  const _DaftarMilik({required this.uid});
-
-  Future<List<String>> _jasa() async {
-    try {
-      final q = await FirebaseFirestore.instance
-          .collection('penyedia_jasa')
-          .where('uid_penyedia', isEqualTo: uid)
-          .limit(20)
-          .get();
-      return q.docs
-          .where((d) => d.data()['status'] == 'aktif')
-          .map((d) => '${d.data()['nama'] ?? 'Jasa'}')
-          .toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  Future<List<String>> _lapak() async {
-    try {
-      final q = await FirebaseFirestore.instance
-          .collection('lapak_umkm')
-          .where('uid', isEqualTo: uid)
-          .limit(20)
-          .get();
-      return q.docs
-          .where((d) => d.data()['status'] == 'aktif')
-          .map((d) => '${d.data()['nama'] ?? 'Lapak'}')
-          .toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  Widget _blok(String judul, IconData ic, List<String> isi) {
-    if (isi.isEmpty) return const SizedBox.shrink();
-    return kartu(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(ic, size: 18),
-          const SizedBox(width: 6),
-          Text(judul, style: const TextStyle(fontWeight: FontWeight.bold)),
-        ]),
-        const SizedBox(height: 6),
-        for (final n in isi)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Text('• $n', style: const TextStyle(fontSize: 13.5)),
-          ),
-      ]),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(children: [
-      FutureBuilder<List<String>>(
-        future: _jasa(),
-        builder: (_, s) => _blok('Jasa yang ditawarkan', Icons.handyman_outlined, s.data ?? const []),
-      ),
-      FutureBuilder<List<String>>(
-        future: _lapak(),
-        builder: (_, s) => _blok('Lapak UMKM', Icons.storefront_outlined, s.data ?? const []),
-      ),
-    ]);
-  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1267,10 +1593,27 @@ class AturanKomunitasView extends StatelessWidget {
             'Jangan memakai nama atau foto orang lain. Jangan menyebar alamat, nomor HP, atau foto orang lain tanpa izin.'),
         _butir(Icons.mark_email_unread_outlined, Colors.orange.shade800, 'Spam',
             'Jangan mengirim promosi atau pesan berulang yang tidak sesuai dengan fiturnya.'),
-        _judul('3. Cara melapor'),
+        _judul('3. Aturan khusus per fitur'),
+        _butir(Icons.campaign_outlined, Colors.green.shade700, 'Info Beranda',
+            'Isi harus benar, terjadi di Talagasari, dan bermanfaat bagi warga. Foto harus asli (bukan curian). Dilarang beriklan di info atau menyindir orang lain.'),
+        _butir(Icons.chat_bubble_outline, Colors.green.shade700, 'Chat',
+            'Bicara sopan. Dilarang mengirim pesan berulang yang mengganggu, merayu, menekan, atau meminta uang, kode OTP, PIN, dan data pribadi.'),
+        _butir(Icons.handyman_outlined, Colors.green.shade700, 'Jasa (tukang, bengkel, servis, salon, laundry, dll.)',
+            'Layanan dan harga harus sesuai deskripsi. Datang sesuai janji. Dilarang membatalkan sepihak tanpa kabar, menaikkan harga seenaknya setelah dipesan, atau memakai foto portofolio milik orang lain. Hanya untuk jasa yang dikerjakan di Talagasari.'),
+        _butir(Icons.groups_outlined, Colors.green.shade700, 'Lowongan (Butuh Pekerja)',
+            'Pekerjaan harus nyata dan di Talagasari, upah dan syarat ditulis jelas. Dilarang meminta uang pendaftaran, MLM/investasi bodong, atau pekerjaan terlarang.'),
+        _butir(Icons.storefront_outlined, Colors.green.shade700, 'Lapak UMKM (jual barang & makanan)',
+            'Barang sesuai foto dan deskripsi, harga jelas, makanan layak dan aman. Tandai "habis" bila stok kosong. Dilarang menjual barang terlarang, barang curian, atau berjualan dari luar Talagasari. Bedanya dengan Jasa: Lapak = menjual BARANG, Jasa = menawarkan TENAGA/keahlian.'),
+        _butir(Icons.star_half_outlined, Colors.green.shade700, 'Ulasan dan rating',
+            'Beri ulasan hanya setelah benar-benar memakai/membeli, jujur dan sopan. Dilarang ulasan palsu, membayar ulasan, atau menjatuhkan pesaing.'),
+        _butir(Icons.report_problem_outlined, Colors.green.shade700, 'Pengaduan',
+            'Untuk masalah nyata di desa dengan data yang benar. Dilarang mengadukan karena dendam atau mencemarkan nama seseorang.'),
+        _butir(Icons.sos_outlined, Colors.green.shade700, 'SOS Darurat',
+            'Hanya untuk keadaan darurat sungguhan. SOS iseng atau palsu menghambat bantuan bagi warga yang benar-benar butuh dan dapat dibekukan.'),
+        _judul('4. Cara melapor'),
         _butir(Icons.flag_outlined, Colors.blue.shade700, 'Ketuk tanda ⋮ atau tahan pesan',
             'Pada info, komentar, chat, profil, jasa, lowongan, dan lapak ada pilihan "Laporkan". Pilih alasan lalu kirim. Admin yang memeriksa; pelapor tidak diketahui yang dilaporkan.'),
-        _judul('4. Sanksi dari Admin'),
+        _judul('5. Sanksi dari Admin'),
         kartu(
           margin: const EdgeInsets.fromLTRB(16, 3, 16, 3),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

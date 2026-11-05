@@ -1,3 +1,8 @@
+## Profil lengkap, aturan per fitur, pemisahan Jasa vs Lapak
+- Profil publik: sampul, statistik, Tentang (usia, domisili, RT/RW, status KTP), tab Postingan/Jasa/Lapak/Lowongan berisi data asli, panel khusus Admin (laporan, riwayat sanksi, kontak).
+- Aturan Komunitas: ditambah aturan khusus per fitur (info, chat, jasa, lowongan, lapak, ulasan, pengaduan, SOS).
+- Lapak = jual BARANG; Jasa = TENAGA/keahlian. Jenis usaha berbau jasa (bengkel, servis, salon, laundry, jahit, katering, sewa, pijat) dihapus dari Lapak.
+
 ## Moderasi, profil, reaksi, aturan, Lapak UMKM
 - Reaksi emoji (👍❤️😂😮😢🙏🔥👏) di info, komentar, dan chat (tahan untuk memilih).
 - Profil publik (dari info, komentar, chat, jasa, lowongan, lapak) + tombol Laporkan.

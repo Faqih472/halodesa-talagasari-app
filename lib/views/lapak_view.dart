@@ -77,26 +77,18 @@ const List<KelompokLapak> kelompokLapak = [
         'Gas 3 kg = 22000; Galon isi ulang = 6000; Beras 25 kg = 320000'),
   ]),
   KelompokLapak('fashion', 'Fashion & Pakaian', Icons.checkroom, Color(0xFFAD1457),
-      'Toko baju, sepatu, tas, hijab, jahit dan konveksi.', [
+      'Toko baju, sepatu, tas, hijab. (Jahit & permak ada di Cari Jasa.)', [
     JenisLapak('toko_baju', 'Toko baju', 'Toko Baju Anugerah',
         'Kaos anak = 45000; Kemeja pria = 95000; Gamis = 150000'),
     JenisLapak('sepatu_tas', 'Sepatu, sandal & tas', 'Toko Sepatu Berkah',
         'Sandal jepit = 25000; Sepatu sekolah = 120000'),
     JenisLapak('hijab_aksesoris', 'Hijab & aksesoris', 'Hijab Cantik Teh Lia',
         'Pashmina = 35000; Jilbab instan = 45000'),
-    JenisLapak('jahit_konveksi', 'Jahit & konveksi', 'Penjahit Bu Aminah',
-        'Permak celana = 20000; Jahit kemeja = 150000; Seragam (pesanan)'),
   ]),
-  KelompokLapak('otomotif', 'Otomotif & Bengkel', Icons.two_wheeler, Color(0xFF37474F),
-      'Bengkel motor/mobil, tambal ban, cuci kendaraan, suku cadang.', [
-    JenisLapak('bengkel_motor', 'Bengkel motor', 'Bengkel Motor Jaya',
-        'Ganti oli = 45000; Servis ringan = 60000; Ganti kampas rem = 50000'),
-    JenisLapak('bengkel_mobil', 'Bengkel mobil', 'Bengkel Mobil Sinar',
-        'Servis berkala (mulai) = 250000; Ganti aki = 650000'),
-    JenisLapak('tambal_ban', 'Tambal ban', 'Tambal Ban 24 Jam Pak Eko',
-        'Tambal ban motor = 15000; Tambal ban mobil = 30000; Pompa angin = 3000'),
-    JenisLapak('cuci_kendaraan', 'Cuci motor & mobil', 'Cuci Steam Pak Bayu',
-        'Cuci motor = 15000; Cuci mobil = 40000'),
+  KelompokLapak('otomotif', 'Otomotif: Suku Cadang & Kendaraan', Icons.two_wheeler, Color(0xFF37474F),
+      'Menjual suku cadang, oli, helm, atau kendaraan bekas. (Bengkel & tambal ban ada di Cari Jasa.)', [
+    JenisLapak('kendaraan_bekas', 'Motor / sepeda bekas', 'Jual Beli Motor Bekas Pak Anto',
+        'Motor bekas (sesuai unit, nego); Sepeda anak = 450000'),
     JenisLapak('sparepart', 'Suku cadang & aksesoris', 'Toko Sparepart Mandiri',
         'Oli 1 L = 55000; Kampas rem = 40000; Helm = 120000'),
   ]),
@@ -112,28 +104,20 @@ const List<KelompokLapak> kelompokLapak = [
         'Lampu LED = 25000; Kabel per meter = 6000; Pipa PVC = 30000'),
   ]),
   KelompokLapak('elektronik', 'Elektronik & Digital', Icons.devices_other, Color(0xFF1565C0),
-      'Servis HP, konter pulsa, fotokopi, toko elektronik.', [
-    JenisLapak('servis_hp', 'Servis HP & laptop', 'Servis HP Cepat Sinar',
-        'Ganti layar (mulai) = 250000; Ganti baterai = 120000; Instal ulang = 75000'),
+      'Konter pulsa, fotokopi, toko elektronik. (Servis HP/TV ada di Cari Jasa.)', [
     JenisLapak('konter', 'Konter pulsa & paket data', 'Konter Pulsa Mandiri',
         'Pulsa 10rb = 12000; Token listrik 50rb = 52500; Paket data'),
     JenisLapak('fotokopi_print', 'Fotokopi & print', 'Fotokopi Cepat Jaya',
         'Fotokopi per lembar = 300; Print warna = 1500; Jilid = 5000'),
     JenisLapak('toko_elektronik', 'Toko elektronik', 'Toko Elektronik Surya',
         'Kipas angin = 250000; Setrika = 120000; Lampu emergency = 80000'),
-    JenisLapak('servis_elektronik', 'Servis elektronik rumah', 'Servis TV & Kulkas Pak Wawan',
-        'Servis TV (mulai) = 100000; Servis kulkas (mulai) = 150000'),
   ]),
-  KelompokLapak('kecantikan', 'Kesehatan & Kecantikan', Icons.spa_outlined, Color(0xFF00897B),
-      'Salon, barbershop, jamu, kosmetik, pijat.', [
-    JenisLapak('salon_barber', 'Salon & barbershop', 'Barbershop Rapi Jaya',
-        'Potong rambut pria = 20000; Creambath = 50000; Rias pengantin (nego)'),
+  KelompokLapak('kecantikan', 'Jamu, Herbal & Kosmetik', Icons.spa_outlined, Color(0xFF00897B),
+      'Jamu, herbal, dan kosmetik. (Salon & pijat ada di Cari Jasa.)', [
     JenisLapak('jamu_herbal', 'Jamu & herbal', 'Jamu Gendong Mbok Yem',
         'Kunyit asam = 5000; Beras kencur = 5000; Jamu pegal linu = 7000'),
     JenisLapak('kosmetik', 'Kosmetik & perawatan', 'Toko Kosmetik Cantik',
         'Bedak = 25000; Sabun wajah = 30000'),
-    JenisLapak('pijat', 'Pijat & refleksi', 'Pijat Refleksi Bu Marni',
-        'Pijat 1 jam = 80000; Bekam = 100000'),
   ]),
   KelompokLapak('pertanian', 'Pertanian, Peternakan & Perikanan', Icons.agriculture_outlined, Color(0xFF558B2F),
       'Bibit, pupuk, tanaman hias, ternak, ikan.', [
@@ -146,19 +130,10 @@ const List<KelompokLapak> kelompokLapak = [
     JenisLapak('perikanan', 'Ikan & budidaya', 'Kolam Lele Barokah',
         'Bibit lele per 100 = 40000; Lele konsumsi per kg = 28000'),
   ]),
-  KelompokLapak('jasa_usaha', 'Layanan Usaha Rumahan', Icons.local_laundry_service_outlined, Color(0xFF5E35B1),
-      'Laundry, percetakan, sablon, sewa perlengkapan acara.', [
-    JenisLapak('laundry', 'Laundry', 'Laundry Bersih Wangi',
-        'Cuci setrika per kg = 7000; Cuci saja per kg = 5000; Bedcover = 25000'),
-    JenisLapak('percetakan', 'Percetakan, sablon & undangan', 'Sablon Kaos Kreatif',
-        'Sablon kaos satuan = 55000; Undangan 100 lembar = 250000'),
-    JenisLapak('sewa', 'Sewa tenda, kursi & perlengkapan', 'Sewa Tenda Pak Hasan',
-        'Tenda 4x6 = 250000; Kursi per buah = 2000; Sound system = 400000'),
-    JenisLapak('katering_acara', 'Katering acara & hajatan', 'Katering Bu Haji Imas',
-        'Nasi box (min 50) = 25000; Prasmanan per orang = 40000'),
-  ]),
   KelompokLapak('kerajinan', 'Kerajinan, Oleh-oleh & Mainan', Icons.palette_outlined, Color(0xFFF9A825),
       'Kerajinan tangan, makanan khas, souvenir, mainan anak.', [
+    JenisLapak('percetakan', 'Percetakan, sablon & undangan', 'Sablon Kaos Kreatif',
+        'Sablon kaos satuan = 55000; Undangan 100 lembar = 250000'),
     JenisLapak('kerajinan', 'Kerajinan tangan', 'Anyaman Bambu Mak Isah',
         'Keranjang = 35000; Tempat tisu = 25000'),
     JenisLapak('oleh_oleh', 'Makanan khas & oleh-oleh', 'Keripik Singkong Bu Nining',
@@ -390,9 +365,11 @@ class PanduanLapakView extends StatelessWidget {
       body: ListView(padding: const EdgeInsets.only(bottom: 30), children: [
         _j('Apa itu Lapak UMKM?'),
         _p('Lapak UMKM adalah etalase online untuk usaha warga Desa Talagasari. Siapa saja yang punya usaha kecil (warung, toko, bengkel, dagangan keliling, usaha rumahan) bisa memasang lapaknya di sini supaya dikenal tetangga, lalu pembeli bisa melihat daftar produk, jam buka, lokasi, dan memesan lewat chat.'),
-        _kotak('Beda dengan fitur Jasa', [
-          '• Jasa = keahlian/tenaga (tukang, teknisi, guru les). Dipesan lalu dikerjakan.',
-          '• Lapak = barang dagangan atau usaha tetap (nasi uduk, toko baju, toko buah, bengkel).',
+        _kotak('Beda Lapak dan Jasa (penting)', [
+          '• LAPAK = Anda MENJUAL BARANG atau makanan. Pembeli datang atau minta diantar, bayar, barang diterima. Contoh: nasi uduk, toko baju, toko buah, toko bangunan, sparepart.',
+          '• JASA = Anda MENAWARKAN TENAGA atau keahlian. Pelanggan memesan lalu Anda mengerjakan. Contoh: tukang, bengkel/tambal ban, servis HP, salon, laundry, jahit, katering acara, sewa tenda.',
+          '• Satu usaha bisa punya dua-duanya. Contoh: toko HP menjual HP (Lapak) dan menerima servis (Jasa).',
+          '• Tidak yakin? Tanya: "yang dibeli orang itu BARANG atau PEKERJAAN saya?" Barang → Lapak. Pekerjaan → Jasa.',
         ], Colors.blue.shade700),
         _j('Contoh nyata'),
         _kotak('Nasi uduk pagi', [
@@ -401,8 +378,8 @@ class PanduanLapakView extends StatelessWidget {
         _kotak('Toko buah', [
           'Pak Dedi punya toko buah. Ia memasang foto toko, mengisi harga jeruk, apel, pisang per kg, jam buka 07.00–20.00, lalu menandai lokasi di peta. Pembeli bisa chat untuk pesan dan minta diantar.',
         ], Colors.green.shade700),
-        _kotak('Bengkel motor', [
-          'Bengkel Jaya mengisi layanan: ganti oli 45.000, servis ringan 60.000. Foto bengkel, jam buka, dan nomor WhatsApp. Warga yang motornya mogok bisa langsung chat dan datang.',
+        _kotak('Toko sparepart motor', [
+          'Toko Sparepart Mandiri menjual oli 55.000, kampas rem 40.000, helm 120.000. Bengkel yang memperbaiki motor memasang usahanya di Cari Jasa (kategori Bengkel), bukan di Lapak.',
         ], Colors.blueGrey.shade700),
         _j('Cara membuka lapak (5 langkah)'),
         _p('1. Buka tab Jasa → pilih "Lapak UMKM" → tekan tombol "Buka Lapak".\n'
@@ -565,7 +542,7 @@ class _LapakTabState extends State<LapakTab> {
                       subtitle:
                           'Belum ada lapak yang cocok. Jadilah yang pertama membuka lapak di kategori ini.'),
                 ),
-              for (final l in list) _KartuLapak(l: l, saya: uid),
+              for (final l in list) KartuLapak(l: l, saya: uid),
             ]);
           },
         ),
@@ -621,14 +598,14 @@ class _PanduanLapakRingkas extends StatelessWidget {
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-                'Tempat warga Talagasari memasang usahanya (warung, toko, bengkel, dagangan keliling) dan tempat warga lain berbelanja dari tetangga sendiri.',
+                'Tempat warga Talagasari menjual BARANG dan makanan (warung, toko, dagangan keliling). Kalau yang ditawarkan tenaga/keahlian (tukang, bengkel, servis, salon, laundry), pakai "Cari Jasa".',
                 style: TextStyle(fontSize: 13, height: 1.4)),
             const SizedBox(height: 8),
             const Text('Contoh:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             const Text(
                 '• Mau sarapan: cari "Makanan & Minuman", pilih Nasi Uduk Bu Ani, tekan + pada menu, lalu "Pesan lewat Chat".\n'
                 '• Punya toko buah: tekan "Buka Lapak", isi harga, foto, dan jam buka.\n'
-                '• Motor bocor ban: cari "Tambal ban", lihat yang buka sekarang.',
+                '• Motor bocor ban? Itu pekerjaan, cari di tab Cari Jasa (kategori Bengkel).',
                 style: TextStyle(fontSize: 13, height: 1.45)),
             const SizedBox(height: 6),
             Row(children: [
@@ -644,10 +621,10 @@ class _PanduanLapakRingkas extends StatelessWidget {
   }
 }
 
-class _KartuLapak extends StatelessWidget {
+class KartuLapak extends StatelessWidget {
   final LapakModel l;
   final String saya;
-  const _KartuLapak({required this.l, required this.saya});
+  const KartuLapak({required this.l, required this.saya});
 
   @override
   Widget build(BuildContext context) {
@@ -1652,6 +1629,15 @@ class _LapakFormViewState extends State<LapakFormView> {
           child: const Text(
               'Isi 7 langkah di bawah. Tidak perlu terburu-buru: contoh akan muncul di setiap kolom. Lapak hanya untuk usaha di Desa Talagasari.',
               style: TextStyle(fontSize: 13, height: 1.4)),
+        ),
+        Container(
+          margin: const EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+              color: Colors.amber.shade50, borderRadius: BorderRadius.circular(10)),
+          child: const Text(
+              'Lapak untuk usaha yang MENJUAL BARANG atau makanan. Bila Anda menawarkan TENAGA/keahlian (tukang, bengkel, servis HP, salon, laundry, jahit, katering acara), pasang di tab "Cari Jasa".',
+              style: TextStyle(fontSize: 12.5, height: 1.4)),
         ),
         _langkah(1, 'Pilih jenis usaha',
             'Pilih kelompok dulu, lalu jenis yang paling mirip dengan usaha Anda. Contoh: jualan nasi uduk → "Makanan & Minuman" → "Sarapan pagi".'),
