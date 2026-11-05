@@ -2,13 +2,17 @@
 // chat_view.dart — ChatListView + ChatRoomView
 // ============================================================
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
 import '../controllers/auth_controller.dart';
 import '../controllers/chat_controller.dart';
 import '../core/core.dart';
+import 'moderasi_view.dart';
+import '../core/ui_helpers.dart' show showSnack;
 import '../core/models.dart';
 
 /// Ikon Obrolan di AppBar (dengan badge pesan belum dibaca). Hanya warga.
@@ -299,13 +303,36 @@ class _ChatRoomViewState extends State<ChatRoomView> {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(widget.namaLawan,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 16)),
+              child: GestureDetector(
+                onTap: () => bukaProfil(widget.otherUid, nama: widget.namaLawan),
+                child: Text(widget.namaLawan,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 16)),
+              ),
             ),
           ],
         ),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (v) {
+              if (v == 'profil') {
+                bukaProfil(widget.otherUid, nama: widget.namaLawan);
+              } else {
+                laporkan(
+                  tipe: 'profil',
+                  targetId: widget.otherUid,
+                  targetUid: widget.otherUid,
+                  targetNama: widget.namaLawan,
+                );
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(value: 'profil', child: Text('Lihat profil')),
+              PopupMenuItem(value: 'lapor', child: Text('Laporkan pengguna ini')),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -403,8 +430,94 @@ class _ChatRoomViewState extends State<ChatRoomView> {
     );
   }
 
+  Future<void> _menuPesan(MessageModel m, bool saya) async {
+    final ref = FirebaseFirestore.instance
+        .collection('chat_rooms')
+        .doc(widget.roomId)
+        .collection('messages')
+        .doc(m.id);
+    final mine = m.reaksi[_authCtrl.currentUser.value?.uid ?? ''];
+    await Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
+        decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        child: SafeArea(
+          top: false,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Wrap(alignment: WrapAlignment.center, spacing: 2, children: [
+              for (final e in daftarEmoji)
+                InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () {
+                    Get.back();
+                    setReaksiDoc(ref, e == mine ? null : e);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: e == mine ? Colors.blue.shade50 : null),
+                    child: Text(e, style: const TextStyle(fontSize: 28)),
+                  ),
+                ),
+            ]),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.copy),
+              title: const Text('Salin pesan'),
+              onTap: () {
+                Get.back();
+                Clipboard.setData(ClipboardData(text: m.isi));
+                showSnack(true, 'Pesan disalin.', '');
+              },
+            ),
+            if (!saya)
+              ListTile(
+                leading: const Icon(Icons.flag_outlined, color: Colors.red),
+                title: const Text('Laporkan pesan ini',
+                    style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Get.back();
+                  laporkan(
+                    tipe: 'chat',
+                    targetId: m.id,
+                    targetUid: widget.otherUid,
+                    targetNama: widget.namaLawan,
+                    cuplikan: m.isi,
+                  );
+                },
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBubble(MessageModel m, bool saya, Color primaryColor) {
     final String jam = DateFormat('HH:mm').format(m.waktu);
+    return Align(
+      alignment: saya ? Alignment.centerRight : Alignment.centerLeft,
+      child: GestureDetector(
+        onLongPress: () => _menuPesan(m, saya),
+        child: Column(
+          crossAxisAlignment: saya ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _isiBubble(m, saya, primaryColor, jam),
+            if (m.reaksi.isNotEmpty)
+              Transform.translate(
+                offset: const Offset(0, -6),
+                child: lencanaReaksi(m.reaksi),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _isiBubble(MessageModel m, bool saya, Color primaryColor, String jam) {
     return Align(
       alignment: saya ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(

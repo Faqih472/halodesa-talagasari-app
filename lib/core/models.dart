@@ -36,6 +36,16 @@ class UserModel {
   final String alamatDusun;
   final String alamatPatokan;
 
+  // ─── Pembekuan akun (diatur Admin) ───────────────────────
+  final bool suspendPermanen;
+  final DateTime? suspendSampai;
+  final String suspendAlasan;
+
+  /// True bila akun sedang dibekukan (permanen, atau masa bekunya belum lewat).
+  bool get terbekukan =>
+      suspendPermanen ||
+      (suspendSampai != null && suspendSampai!.isAfter(DateTime.now()));
+
   UserModel({
     required this.uid,
     required this.nama,
@@ -58,6 +68,9 @@ class UserModel {
     this.alamatRw = '',
     this.alamatDusun = '',
     this.alamatPatokan = '',
+    this.suspendPermanen = false,
+    this.suspendSampai,
+    this.suspendAlasan = '',
   });
 
   /// Buat UserModel dari dokumen Firestore
@@ -85,6 +98,9 @@ class UserModel {
       alamatRw: data['alamat_rw'] ?? '',
       alamatDusun: data['alamat_dusun'] ?? '',
       alamatPatokan: data['alamat_patokan'] ?? '',
+      suspendPermanen: data['suspend_permanen'] == true,
+      suspendSampai: (data['suspend_sampai'] as Timestamp?)?.toDate(),
+      suspendAlasan: data['suspend_alasan'] ?? '',
     );
   }
 
@@ -1279,6 +1295,7 @@ class MessageModel {
   final String isi;
   final DateTime waktu;
   final bool sudahDibaca;
+  final Map<String, String> reaksi; // uid -> emoji
 
   MessageModel({
     required this.id,
@@ -1286,6 +1303,7 @@ class MessageModel {
     required this.isi,
     required this.waktu,
     required this.sudahDibaca,
+    this.reaksi = const {},
   });
 
   factory MessageModel.fromFirestore(DocumentSnapshot doc) {
@@ -1296,6 +1314,10 @@ class MessageModel {
       isi: data['isi'] ?? '',
       waktu: (data['waktu'] as Timestamp?)?.toDate() ?? DateTime.now(),
       sudahDibaca: data['sudahDibaca'] ?? false,
+      reaksi: (data['reaksi'] is Map)
+          ? Map<String, String>.from((data['reaksi'] as Map)
+              .map((k, v) => MapEntry('$k', '$v')))
+          : const {},
     );
   }
 }

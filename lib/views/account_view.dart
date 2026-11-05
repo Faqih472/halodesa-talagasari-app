@@ -34,6 +34,8 @@ import 'verification_view.dart' show KtpVerifikasiView, VerifiedBadge;
 import 'profile_view.dart' show TabMyRequestView;
 import 'admin_tools_view.dart' show AuditLogView;
 import 'feedback_view.dart';
+import 'lapak_view.dart' show PanduanLapakView;
+import 'moderasi_view.dart' show AturanKomunitasView, bukaProfil;
 
 // ─────────────────────────────────────────────────────────────
 // Helper bersama
@@ -193,6 +195,11 @@ class TabSettingsView extends StatelessWidget {
                     _actionTile(Icons.person_outline, 'acc_account'.tr,
                         'acc_account_sub'.tr, primary,
                         onTap: () => Get.to(() => const ProfilSayaView())),
+                    _actionTile(Icons.visibility_outlined, 'Profil publik saya',
+                        'Lihat profil Anda seperti yang dilihat warga lain', primary,
+                        onTap: () => bukaProfil(
+                            Get.find<AuthController>().currentUser.value?.uid ?? '',
+                            nama: 'Profil saya')),
                     _actionTile(Icons.home_outlined, 'acc_address'.tr,
                         'acc_address_sub'.tr, primary,
                         onTap: () => Get.to(() => const AlamatSayaView())),
@@ -268,6 +275,13 @@ class TabSettingsView extends StatelessWidget {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 200),
                 child: Column(children: [
+                  _actionTile(Icons.rule_folder_outlined, 'Aturan Komunitas',
+                      'Apa yang boleh dan tidak boleh. Ranah: Desa Talagasari saja',
+                      primary,
+                      onTap: () => Get.to(() => const AturanKomunitasView())),
+                  _actionTile(Icons.storefront_outlined, 'Panduan Lapak UMKM',
+                      'Cara membuka usaha dan berbelanja dari warga', primary,
+                      onTap: () => Get.to(() => const PanduanLapakView())),
                   _actionTile(Icons.support_agent_outlined,
                       'acc_help_center'.tr, 'acc_help_center_sub'.tr, primary,
                       onTap: () => Get.to(() => const PusatBantuanView())),

@@ -14,6 +14,7 @@ import '../controllers/chat_controller.dart' show NotificationController;
 import '../core/core.dart';
 import '../core/models.dart';
 import '../core/ui_helpers.dart';
+import 'moderasi_view.dart';
 import 'verification_view.dart' show wajibVerifikasi;
 
 // ── Simpan (bookmark) — disimpan di perangkat ──
@@ -110,7 +111,8 @@ class _GaleriFotoState extends State<GaleriFoto> {
   }
 }
 
-// ── Baris aksi: Suka · Komentar · Simpan · Bagikan ──
+// ── Baris aksi: Reaksi · Komentar · Simpan · Bagikan ──
+// Reaksi ala Facebook/WhatsApp: ketuk = 👍, tahan = pilih emoji lain.
 class InfoAksi extends StatelessWidget {
   final NewsModel news;
   const InfoAksi({super.key, required this.news});
@@ -118,19 +120,25 @@ class InfoAksi extends StatelessWidget {
   DocumentReference<Map<String, dynamic>> get _ref =>
       FirebaseFirestore.instance.collection('announcements').doc(news.id);
 
-  Future<void> _suka(bool sudah) async {
+  /// emoji == null → hapus reaksi. [lama] = reaksi sebelumnya (null bila belum ada).
+  Future<void> _reaksi(String? lama, String? emoji) async {
     final uid = Get.find<AuthController>().currentUser.value?.uid;
     if (uid == null) return;
     try {
-      final b = FirebaseFirestore.instance.batch();
       final s = _ref.collection('suka').doc(uid);
-      if (sudah) {
+      if (emoji == null) {
+        final b = FirebaseFirestore.instance.batch();
         b.delete(s);
+        b.update(_ref, {'jumlah_suka': FieldValue.increment(-1)});
+        await b.commit();
+      } else if (lama == null) {
+        final b = FirebaseFirestore.instance.batch();
+        b.set(s, {'at': Timestamp.now(), 'emoji': emoji});
+        b.update(_ref, {'jumlah_suka': FieldValue.increment(1)});
+        await b.commit();
       } else {
-        b.set(s, {'at': Timestamp.now()});
+        await s.update({'emoji': emoji});
       }
-      b.update(_ref, {'jumlah_suka': FieldValue.increment(sudah ? -1 : 1)});
-      await b.commit();
     } catch (_) {
       showSnack(false, '', 'Gagal. Periksa koneksi internet.');
     }
@@ -142,11 +150,12 @@ class InfoAksi extends StatelessWidget {
     showSnack(true, 'Teks disalin. Tempel di WhatsApp atau aplikasi lain.', '');
   }
 
-  Widget _tombol(IconData ic, String teks, Color c, VoidCallback f) {
+  Widget _tombol(IconData ic, String teks, Color c, VoidCallback f, {VoidCallback? tahan}) {
     return Expanded(
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
         onTap: f,
+        onLongPress: tahan,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -164,6 +173,11 @@ class InfoAksi extends StatelessWidget {
     );
   }
 
+  Widget _header(String me) {
+    if (news.authorId.isEmpty) return const SizedBox.shrink();
+    return _PenulisInfo(news: news, saya: me);
+  }
+
   @override
   Widget build(BuildContext context) {
     final uid = Get.find<AuthController>().currentUser.value?.uid ?? '';
@@ -175,11 +189,27 @@ class InfoAksi extends StatelessWidget {
         final int kom = (d['jumlah_komentar'] ?? 0) as int;
         final int lihat = (d['dilihat'] ?? 0) as int;
         return Column(children: [
+          _header(uid),
           if (suka > 0 || kom > 0 || lihat > 0)
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Row(children: [
-                if (suka > 0) Text('👍 $suka  ', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                if (suka > 0)
+                  StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                    stream: _ref.collection('suka').limit(100).snapshots(),
+                    builder: (_, ss) {
+                      final hitung = <String, int>{};
+                      for (final x in ss.data?.docs ?? const []) {
+                        final e = '${x.data()['emoji'] ?? '👍'}';
+                        hitung[e] = (hitung[e] ?? 0) + 1;
+                      }
+                      final urut = hitung.entries.toList()
+                        ..sort((a, b) => b.value.compareTo(a.value));
+                      final ikon = urut.isEmpty ? '👍' : urut.take(3).map((e) => e.key).join();
+                      return Text('$ikon $suka  ',
+                          style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary));
+                    },
+                  ),
                 if (kom > 0) Text('$kom komentar  ', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 const Spacer(),
                 if (lihat > 0)
@@ -192,12 +222,36 @@ class InfoAksi extends StatelessWidget {
             stream: _ref.collection('suka').doc(uid).snapshots(),
             builder: (context, ss) {
               final sudah = ss.data?.exists ?? false;
+              final String? emoji =
+                  sudah ? '${ss.data!.data()?['emoji'] ?? '👍'}' : null;
+              Future<void> pilih() async {
+                final e = await pilihEmoji(sekarang: emoji);
+                if (e != null) await _reaksi(emoji, e);
+              }
+
               return Row(children: [
-                _tombol(
-                    sudah ? Icons.thumb_up : Icons.thumb_up_alt_outlined,
-                    'Suka',
-                    sudah ? Colors.blue.shade700 : AppTheme.textSecondary,
-                    () => _suka(sudah)),
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => _reaksi(emoji, sudah ? null : '👍'),
+                    onLongPress: pilih,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        sudah
+                            ? Text(emoji!, style: const TextStyle(fontSize: 18))
+                            : const Icon(Icons.thumb_up_alt_outlined,
+                                size: 19, color: AppTheme.textSecondary),
+                        const SizedBox(width: 4),
+                        Text(sudah ? 'Reaksi' : 'Suka',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: sudah ? Colors.blue.shade700 : AppTheme.textSecondary)),
+                      ]),
+                    ),
+                  ),
+                ),
                 _tombol(Icons.chat_bubble_outline, 'Komentar',
                     AppTheme.textSecondary, () => bukaKomentar(news)),
                 Obx(() {
@@ -217,9 +271,120 @@ class InfoAksi extends StatelessWidget {
               ]);
             },
           ),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: EdgeInsets.only(left: 6, bottom: 2),
+              child: Text('Tahan tombol Suka untuk memilih emoji lain',
+                  style: TextStyle(fontSize: 10.5, color: AppTheme.textSecondary)),
+            ),
+          ),
         ]);
       },
     );
+  }
+}
+
+// ── Pembuat info: ketuk untuk melihat profil, ⋮ untuk laporkan ──
+class _PenulisInfo extends StatefulWidget {
+  final NewsModel news;
+  final String saya;
+  const _PenulisInfo({required this.news, required this.saya});
+
+  @override
+  State<_PenulisInfo> createState() => _PenulisInfoState();
+}
+
+class _PenulisInfoState extends State<_PenulisInfo> {
+  static final Map<String, Map<String, dynamic>> _cache = {};
+  Map<String, dynamic>? _d;
+
+  @override
+  void initState() {
+    super.initState();
+    _d = _cache[widget.news.authorId];
+    if (_d == null) _muat();
+  }
+
+  Future<void> _muat() async {
+    try {
+      final x = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.news.authorId)
+          .get();
+      final m = x.data();
+      if (m != null) {
+        _cache[widget.news.authorId] = {
+          'nama': m['nama'] ?? 'Warga',
+          'role': m['role'] ?? 'warga',
+          'foto': m['foto_url'] ?? '',
+        };
+        if (mounted) setState(() => _d = _cache[widget.news.authorId]);
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nama = '${_d?['nama'] ?? '...'}';
+    final peran = '${_d?['role'] ?? 'warga'}';
+    final foto = '${_d?['foto'] ?? ''}';
+    final milik = widget.saya == widget.news.authorId;
+    return Row(children: [
+      Expanded(
+        child: InkWell(
+          onTap: () => bukaProfil(widget.news.authorId, nama: nama),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(children: [
+              CircleAvatar(
+                radius: 13,
+                backgroundColor: Colors.grey.shade200,
+                backgroundImage: foto.isNotEmpty ? ImageUtil.provider(foto) : null,
+                child: foto.isEmpty
+                    ? Text(AppUtils.inisial(nama), style: const TextStyle(fontSize: 10))
+                    : null,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(nama,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+              ),
+              if (peran != 'warga')
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Text(AppTheme.labelRole(peran),
+                      style: TextStyle(fontSize: 10.5, color: Colors.green.shade800)),
+                ),
+            ]),
+          ),
+        ),
+      ),
+      if (!milik)
+        PopupMenuButton<String>(
+          padding: EdgeInsets.zero,
+          icon: const Icon(Icons.more_vert, size: 18, color: AppTheme.textSecondary),
+          onSelected: (v) {
+            if (v == 'profil') {
+              bukaProfil(widget.news.authorId, nama: nama);
+            } else {
+              laporkan(
+                tipe: 'info',
+                targetId: widget.news.id,
+                targetUid: widget.news.authorId,
+                targetNama: nama,
+                cuplikan: widget.news.judul,
+                targetPath: 'announcements/${widget.news.id}',
+              );
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(value: 'profil', child: Text('Lihat profil')),
+            PopupMenuItem(value: 'lapor', child: Text('Laporkan info ini')),
+          ],
+        ),
+    ]);
   }
 }
 
@@ -326,10 +491,13 @@ Future<void> bukaKomentar(NewsModel news) async {
                           children: [
                             Row(children: [
                               Flexible(
-                                child: Text('${d['nama'] ?? 'Warga'}',
+                                child: GestureDetector(
+                                  onTap: () => bukaProfil('${d['uid'] ?? ''}',
+                                      nama: '${d['nama'] ?? ''}'),
+                                  child: Text('${d['nama'] ?? 'Warga'}',
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w700,
-                                        fontSize: 13)),
+                                        fontSize: 13))),
                               ),
                               if (peran != 'warga')
                                 Padding(
@@ -369,6 +537,49 @@ Future<void> bukaKomentar(NewsModel news) async {
                             const SizedBox(height: 4),
                             Text('${d['isi'] ?? ''}',
                                 style: const TextStyle(fontSize: 13.5)),
+                            const SizedBox(height: 4),
+                            Row(children: [
+                              Builder(builder: (_) {
+                                final reaksi = bacaReaksi(d['reaksi']);
+                                final uidSaya = auth.currentUser.value?.uid ?? '';
+                                final mine = reaksi[uidSaya];
+                                return InkWell(
+                                  onTap: () =>
+                                      setReaksiDoc(docs[i].reference, mine == null ? '👍' : null),
+                                  onLongPress: () async {
+                                    final e = await pilihEmoji(sekarang: mine);
+                                    if (e != null) await setReaksiDoc(docs[i].reference, e);
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                                    child: Text(mine ?? 'Suka 👍',
+                                        style: TextStyle(
+                                            fontSize: mine != null ? 17 : 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.blue.shade700)),
+                                  ),
+                                );
+                              }),
+                              const SizedBox(width: 8),
+                              lencanaReaksi(bacaReaksi(d['reaksi'])),
+                              const Spacer(),
+                              if (!milik)
+                                InkWell(
+                                  onTap: () => laporkan(
+                                    tipe: 'komentar',
+                                    targetId: docs[i].id,
+                                    targetUid: '${d['uid'] ?? ''}',
+                                    targetNama: '${d['nama'] ?? 'Warga'}',
+                                    cuplikan: '${d['isi'] ?? ''}',
+                                    targetPath: 'announcements/${news.id}/komentar/${docs[i].id}',
+                                  ),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(2),
+                                    child: Text('Laporkan',
+                                        style: TextStyle(fontSize: 11, color: Colors.red)),
+                                  ),
+                                ),
+                            ]),
                           ]),
                     );
                   },

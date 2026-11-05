@@ -27,6 +27,7 @@ import 'letter_view.dart';
 import 'admin_tools_view.dart';
 import 'info_form_view.dart';
 import 'info_sosial.dart';
+import 'moderasi_view.dart' show PenjagaBekuan;
 import '../controllers/village_controller.dart' show RetensiService;
 
 // ============================================================
@@ -66,7 +67,7 @@ class _MainLayoutViewState extends State<MainLayoutView> {
     final AuthController authCtrl = Get.find<AuthController>();
     final MainController mainCtrl = Get.find<MainController>();
 
-    return Obx(() {
+    return PenjagaBekuan(child: Obx(() {
       final String role = authCtrl.role;
       final bool isStaff = authCtrl.isStaff;
 
@@ -88,7 +89,7 @@ class _MainLayoutViewState extends State<MainLayoutView> {
           ),
         ),
       );
-    });
+    }));
   }
 
   // ─────────────────────────────────────────────────────────

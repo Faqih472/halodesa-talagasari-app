@@ -30,6 +30,8 @@ import '../core/ui_helpers.dart';
 import 'chat_view.dart';
 import 'verification_view.dart' show wajibVerifikasi;
 import 'info_sosial.dart' show GaleriFoto;
+import 'lapak_view.dart' show LapakTab;
+import 'moderasi_view.dart' show bukaProfil, laporkan;
 
 // ─────────────────────────────────────────────────────────────
 // PEMBANTU UMUM (khusus file ini)
@@ -274,13 +276,14 @@ class _TabJasaViewState extends State<TabJasaView> {
         backgroundColor: AppTheme.background,
         appBar: AppBar(
           backgroundColor: primary,
-          title: Text(_mode == 0 ? 'Cari Jasa Lokal' : 'Butuh Pekerja'),
+          title: Text(_mode == 0 ? 'Cari Jasa Lokal' : _mode == 1 ? 'Butuh Pekerja' : 'Lapak UMKM'),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(44),
             child: Row(children: [
               for (final e in [
                 [0, 'Cari Jasa', Icons.handyman_outlined],
                 [1, 'Butuh Pekerja', Icons.groups_outlined],
+                [2, 'Lapak UMKM', Icons.storefront_outlined],
               ])
                 Expanded(
                   child: InkWell(
@@ -352,7 +355,9 @@ class _TabJasaViewState extends State<TabJasaView> {
             const ChatAction(),
           ],
         ),
-        body: _mode == 1
+        body: _mode == 2
+            ? LapakTab(primary: primary)
+            : _mode == 1
             ? LowonganTab(primary: primary)
             : RefreshIndicator(
           color: primary,
@@ -1273,8 +1278,19 @@ class _JasaDetailViewState extends State<JasaDetailView> {
                   _portofolio(s),
                   _judulSeksi('Ulasan', ikon: Icons.rate_review_outlined),
                   _ulasan(s, milikSaya, admin),
+                  if (!milikSaya) ...[
+                    const SizedBox(height: 14),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () =>
+                            bukaProfil(s.uidPenyedia, nama: s.namaPenyedia),
+                        icon: const Icon(Icons.person_search_outlined, size: 18),
+                        label: const Text('Lihat profil penyedia'),
+                      ),
+                    ),
+                  ],
                   if (!milikSaya && !staff) ...[
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 4),
                     Center(
                       child: TextButton.icon(
                         onPressed: () => _dialogLapor(s),
@@ -7283,6 +7299,23 @@ class _LowonganDetailViewState extends State<LowonganDetailView> {
                     icon: const Icon(Icons.chat_bubble_outline),
                     onPressed: () =>
                         _bukaChat(uid: l.uid, nama: l.namaPemberi, foto: l.fotoPemberi),
+                  ),
+                  IconButton(
+                    tooltip: 'Lihat profil',
+                    icon: const Icon(Icons.person_search_outlined),
+                    onPressed: () => bukaProfil(l.uid, nama: l.namaPemberi),
+                  ),
+                  IconButton(
+                    tooltip: 'Laporkan lowongan',
+                    icon: Icon(Icons.flag_outlined, color: Colors.red.shade700),
+                    onPressed: () => laporkan(
+                      tipe: 'lowongan',
+                      targetId: l.id,
+                      targetUid: l.uid,
+                      targetNama: '${l.judul} (${l.namaPemberi})',
+                      cuplikan: l.deskripsi,
+                      targetPath: 'lowongan_warga/${l.id}',
+                    ),
                   ),
                   IconButton(
                     tooltip: 'WhatsApp',

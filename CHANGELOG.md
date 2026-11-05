@@ -1,3 +1,12 @@
+## Moderasi, profil, reaksi, aturan, Lapak UMKM
+- Reaksi emoji (👍❤️😂😮😢🙏🔥👏) di info, komentar, dan chat (tahan untuk memilih).
+- Profil publik (dari info, komentar, chat, jasa, lowongan, lapak) + tombol Laporkan.
+- Laporan 13 kategori ke Admin; Admin bisa bekukan akun 1 hari–1 tahun/permanen dengan alasan, buka lagi, dan riwayat.
+- Layar 'Akun dibekukan' otomatis; aktif lagi saat masa habis.
+- Aturan Komunitas + Panduan Lapak di menu Akun.
+- Lapak UMKM (tab ketiga di Jasa): 12 kelompok/50+ jenis, produk+harga, jam buka, pesan lewat chat, ulasan bintang, peta opsional, moderasi Admin.
+- firestore.rules diperbarui (WAJIB deploy ulang).
+
 ## Perbaikan halaman error (peta)
 - Tombol 'Cari alamat' di PemilihPeta diberi minimumSize sendiri (tema tombol lebar tak terbatas membuat Row crash) → memperbaiki Tambah/Edit Jasa, Pesan, Tambah Lowongan, Buat Pengaduan.
 - Label peta '(opsional)' di jasa, lowongan, pengaduan.

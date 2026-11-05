@@ -16,6 +16,8 @@ import 'admin_tools_view.dart' show LaporanJasaTab, FotoStaffTab, LowonganStaffT
 import 'complaint_view.dart';
 import 'info_form_view.dart';
 import 'jasa_view.dart' show AdminJasaTab;
+import 'lapak_view.dart' show LapakStaffTab;
+import 'moderasi_view.dart' show ModerasiTab;
 import 'verification_view.dart';
 
 // ============================================================
@@ -93,6 +95,8 @@ class _TabManageViewState extends State<TabManageView> {
               tabBadge('Lowongan', Get.find<LowonganController>().antrian.length),
               tabBadge('Foto', Get.find<FotoProfilController>().antrian.length),
               tabBadge('Hapus', serviceCtrl.antrianHapus.length + Get.find<LowonganController>().antrianHapus.length),
+              const Tab(text: 'Laporan & Blokir'),
+              const Tab(text: 'Lapak UMKM'),
             ]
           : [
               const Tab(text: 'Informasi'),
@@ -108,6 +112,8 @@ class _TabManageViewState extends State<TabManageView> {
               const LowonganStaffTab(),
               const FotoStaffTab(),
               const HapusStaffTab(),
+              const ModerasiTab(),
+              const LapakStaffTab(),
             ]
           : [
               infoList,

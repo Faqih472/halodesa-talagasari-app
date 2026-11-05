@@ -147,3 +147,9 @@ Penyebab "Lokasi gagal" di semua peta: `AndroidManifest.xml` belum punya izin lo
 3. Jangan jalankan flutter_launcher_icons (sudah dinonaktifkan di pubspec).
 4. Hapus aplikasi lama dari HP, lalu `flutter clean` dan `flutter run` (izin lokasi baru hanya terbaca setelah build ulang).
 5. Deploy `firestore.rules` terbaru (SOS: warga bisa membaca SOS sendiri dan menilai).
+
+
+## 8m. Moderasi & Lapak UMKM
+1. Deploy ulang `firestore.rules` (Firebase Console → Firestore → Rules → Publish).
+2. Koleksi baru otomatis: `laporan_konten`, `riwayat_moderasi`, `lapak_umkm`.
+3. Admin: tab 'Laporan & Blokir' dan 'Lapak UMKM'.
