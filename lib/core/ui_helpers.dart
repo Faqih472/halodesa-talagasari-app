@@ -1560,12 +1560,14 @@ class _PemilihPetaState extends State<PemilihPeta> {
                   style: const TextStyle(color: Colors.white, fontSize: 12.5),
                   overflow: TextOverflow.ellipsis),
               style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(0, 44),
                   backgroundColor: _ikuti ? Colors.blue.shade700 : Colors.green.shade700),
             ),
           ),
           const SizedBox(width: 8),
           OutlinedButton.icon(
             onPressed: _dialogCari,
+            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
             icon: const Icon(Icons.search, size: 18),
             label: const Text('Cari alamat'),
           ),

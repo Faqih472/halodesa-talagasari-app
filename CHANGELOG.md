@@ -1,3 +1,7 @@
+## Perbaikan halaman error (peta)
+- Tombol 'Cari alamat' di PemilihPeta diberi minimumSize sendiri (tema tombol lebar tak terbatas membuat Row crash) → memperbaiki Tambah/Edit Jasa, Pesan, Tambah Lowongan, Buat Pengaduan.
+- Label peta '(opsional)' di jasa, lowongan, pengaduan.
+
 # CHANGELOG — Pembaruan Talagasari Hub
 
 ## Terbaru: Jasa + Butuh Pekerja

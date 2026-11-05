@@ -771,7 +771,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text('cmp_map'.tr,
+                const Text('Tandai lokasi di peta (opsional)',
                     style: const TextStyle(
                         fontWeight: FontWeight.w600, fontSize: 13)),
                 const SizedBox(height: 8),

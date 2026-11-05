@@ -2666,6 +2666,9 @@ class _FormJasaViewState extends State<FormJasaView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text('Lokasi di peta (opsional)',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        const SizedBox(height: 6),
         PemilihPeta(
           titik: titik,
           warna: k,
@@ -6939,7 +6942,7 @@ class _FormLowonganViewState extends State<FormLowonganView> {
           ),
           BlokAlamatDesa(c: _almt),
           const SizedBox(height: 10),
-          const Text('Tandai lokasi di peta', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          const Text('Tandai lokasi di peta (opsional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
           const SizedBox(height: 6),
           PemilihPeta(
             titik: _titikKerja ??
