@@ -18,6 +18,7 @@ import 'info_form_view.dart';
 import 'jasa_view.dart' show AdminJasaTab;
 import 'lapak_view.dart' show LapakStaffTab;
 import 'moderasi_view.dart' show ModerasiTab;
+import 'info_saya_view.dart' show RevisiInfoTab;
 import 'verification_view.dart';
 
 // ============================================================
@@ -97,10 +98,12 @@ class _TabManageViewState extends State<TabManageView> {
               tabBadge('Hapus', serviceCtrl.antrianHapus.length + Get.find<LowonganController>().antrianHapus.length),
               const Tab(text: 'Laporan & Blokir'),
               const Tab(text: 'Lapak UMKM'),
+              const Tab(text: 'Revisi Info'),
             ]
           : [
               const Tab(text: 'Informasi'),
               tabBadge('tab_complaint'.tr, cmpCtrl.antrian.length),
+              const Tab(text: 'Revisi Info'),
             ];
       final List<Widget> views = isAdmin
           ? [
@@ -114,10 +117,12 @@ class _TabManageViewState extends State<TabManageView> {
               const HapusStaffTab(),
               const ModerasiTab(),
               const LapakStaffTab(),
+              const RevisiInfoTab(),
             ]
           : [
               infoList,
               const PengaduanStaffTab(),
+              const RevisiInfoTab(),
             ];
 
       return DefaultTabController(

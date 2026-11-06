@@ -254,7 +254,12 @@ class NewsModel {
   final double lat; // lokasi opsional (0 = tanpa lokasi)
   final double lng;
   final String lokasiNama;
+  // Pengajuan perubahan oleh pembuat (warga) — menunggu persetujuan Admin/Kades
+  final String revisiStatus; // '' | diajukan | menunggu_kades | ditolak
+  final String revisiCatatan; // alasan penolakan
+  final Map<String, dynamic> revisi; // isi perubahan yang diajukan
   bool get punyaLokasi => lat != 0 || lng != 0;
+  bool get adaRevisi => revisiStatus == 'diajukan' || revisiStatus == 'menunggu_kades';
 
   /// Semua foto: memakai foto_list, atau foto_url lama bila foto_list kosong.
   List<String> get semuaFoto =>
@@ -276,6 +281,9 @@ class NewsModel {
     this.lat = 0,
     this.lng = 0,
     this.lokasiNama = '',
+    this.revisiStatus = '',
+    this.revisiCatatan = '',
+    this.revisi = const {},
   });
 
   factory NewsModel.fromFirestore(DocumentSnapshot doc) {
@@ -292,6 +300,9 @@ class NewsModel {
       lat: (data['lat'] ?? 0).toDouble(),
       lng: (data['lng'] ?? 0).toDouble(),
       lokasiNama: data['lokasi_nama'] ?? '',
+      revisiStatus: data['revisi_status'] ?? '',
+      revisiCatatan: data['revisi_catatan'] ?? '',
+      revisi: data['revisi'] is Map ? Map<String, dynamic>.from(data['revisi'] as Map) : const {},
       alasanPenolakan: data['alasan_penolakan'],
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       publishedAt: (data['published_at'] as Timestamp?)?.toDate(),

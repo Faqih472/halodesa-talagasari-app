@@ -1,286 +1,365 @@
-# Talagasari Hub
+<p align="center">
+  <img src="docs/img/banner.png" alt="Banner Talagasari Hub" width="100%">
+</p>
 
-Platform komunitas terpadu Desa Talagasari: informasi warga, pengaduan, surat online, dan layanan jasa lokal berbasis lokasi dalam satu aplikasi Flutter.
+<h1 align="center">Talagasari Hub</h1>
 
-![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)
-![Dart](https://img.shields.io/badge/Dart-%3E%3D3.0-0175C2?logo=dart)
-![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20Firestore-FFCA28?logo=firebase)
-![State](https://img.shields.io/badge/State-GetX-8A2BE2)
+<p align="center">
+  Aplikasi komunitas terpadu untuk warga <b>Desa Talagasari, Kecamatan Cikupa, Kabupaten Tangerang, Banten</b>.<br>
+  Informasi desa, SOS darurat, pengaduan, layanan jasa lokal, lowongan, lapak UMKM, suara warga, agenda, dan surat online dalam satu aplikasi.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter" alt="Flutter">
+  <img src="https://img.shields.io/badge/Dart-%3E%3D3.0-0175C2?logo=dart" alt="Dart">
+  <img src="https://img.shields.io/badge/Firebase-Auth%20%7C%20Firestore-FFCA28?logo=firebase" alt="Firebase">
+  <img src="https://img.shields.io/badge/State-GetX-8A2BE2" alt="GetX">
+  <img src="https://img.shields.io/badge/Peta-OpenStreetMap-7EBC6F" alt="OpenStreetMap">
+  <img src="https://img.shields.io/badge/Biaya-Gratis%20(Spark)-success" alt="Gratis">
+</p>
+
+> Proyek ini dibuat sebagai bagian dari skripsi. Backend hanya memakai **Firebase Authentication** dan **Cloud Firestore** (paket gratis Spark). Tanpa Firebase Storage, tanpa Cloud Functions, tanpa API key peta.
+
+---
 
 ## Daftar Isi
 
-1. [Tentang Proyek](#tentang-proyek)
-2. [Fitur Utama](#fitur-utama)
-3. [Peran Pengguna](#peran-pengguna)
-4. [Teknologi](#teknologi)
-5. [Struktur Proyek](#struktur-proyek)
-6. [Prasyarat](#prasyarat)
-7. [Instalasi](#instalasi)
-8. [Konfigurasi](#konfigurasi)
-9. [Aturan Keamanan Firestore](#aturan-keamanan-firestore)
-10. [Membuat Akun Admin dan Kades](#membuat-akun-admin-dan-kades)
-11. [Alur Kerja Fitur](#alur-kerja-fitur)
-12. [Koleksi Firestore](#koleksi-firestore)
-13. [Skenario Pengujian Cepat](#skenario-pengujian-cepat)
-14. [Catatan Penting](#catatan-penting)
-15. [Pemecahan Masalah](#pemecahan-masalah)
-16. [Kontribusi](#kontribusi)
+1. [Tampilan Aplikasi](#1-tampilan-aplikasi)
+2. [Fitur Lengkap](#2-fitur-lengkap)
+3. [Peran Pengguna](#3-peran-pengguna)
+4. [Arsitektur](#4-arsitektur)
+5. [Struktur Proyek](#5-struktur-proyek)
+6. [Instalasi dan Menjalankan](#6-instalasi-dan-menjalankan)
+7. [Konfigurasi Firebase](#7-konfigurasi-firebase)
+8. [Membuat Akun Admin dan Kades](#8-membuat-akun-admin-dan-kades)
+9. [Alur Kerja Fitur](#9-alur-kerja-fitur)
+10. [Aturan Komunitas](#10-aturan-komunitas)
+11. [Koleksi Firestore](#11-koleksi-firestore)
+12. [Izin Android](#12-izin-android)
+13. [Build APK](#13-build-apk)
+14. [Skenario Uji Cepat](#14-skenario-uji-cepat)
+15. [Pemecahan Masalah](#15-pemecahan-masalah)
+16. [Keterbatasan](#16-keterbatasan)
+17. [Kontribusi dan Lisensi](#17-kontribusi-dan-lisensi)
 
-## Tentang Proyek
+---
 
-Talagasari Hub menghubungkan warga, admin desa, dan kepala desa (kades) dalam satu aplikasi. Warga dapat membaca informasi desa, melapor, mengajukan surat, serta mencari dan memesan jasa dari sesama warga. Admin dan kades memverifikasi, menyaring, dan memutuskan tindak lanjut.
+## 1. Tampilan Aplikasi
 
-Seluruh data disimpan di Firebase (Authentication dan Cloud Firestore). Aplikasi **tidak memakai Firebase Storage maupun Cloud Functions**: foto disimpan dalam ukuran kecil sebagai teks di Firestore, sehingga dapat dijalankan tanpa biaya tambahan.
+### Ilustrasi layar
 
-## Fitur Utama
+![Ilustrasi layar](docs/img/ilustrasi-layar.png)
 
-### Informasi Desa
-- Pengajuan informasi oleh warga wajib disetujui admin.
-- Masa berlaku 3 hari sampai 12 bulan, atau kustom (maksimal 1 tahun).
-- Informasi yang melewati tanggal berlaku otomatis tidak tampil.
-- Admin atau kades dapat memperpanjang masa berlaku (total sisa maksimal 12 bulan).
+> Gambar di atas adalah **ilustrasi** untuk menjelaskan tata letak, bukan tangkapan layar asli aplikasi.
 
-### Verifikasi Identitas
-- Warga mengisi nama, NIK, dan alamat, lalu mengambil 2 foto lewat kamera di dalam aplikasi (selfie memegang KTP dengan garis panduan, dan foto KTP saja).
-- Admin mencocokkan data, lalu warga mendapat lencana **Terverifikasi**.
-- Foto hanya dapat dibaca pemilik dan admin, dan dihapus otomatis setelah admin memutuskan.
+### Tangkapan layar asli
+
+Letakkan screenshot dari HP kamu di folder `docs/screenshots/` dengan nama berikut, lalu hapus tanda komentar pada tabel di bawah (hapus `<!--` dan `-->`).
+
+| Berkas | Isi layar |
+|---|---|
+| `01-beranda.png` | Beranda (daftar info, filter, tombol Info Saya) |
+| `02-info-saya.png` | Halaman Info Saya |
+| `03-ajukan-perubahan.png` | Formulir Ajukan Perubahan Info |
+| `04-sos.png` | Tombol SOS |
+| `05-pengaduan.png` | Formulir Pengaduan |
+| `06-jasa.png` | Cari Jasa (daftar dan peta) |
+| `07-lowongan.png` | Butuh Pekerja |
+| `08-lapak.png` | Lapak UMKM |
+| `09-suara-warga.png` | Suara Warga (polling) |
+| `10-agenda.png` | Agenda Desa |
+| `11-surat.png` | Surat online |
+| `12-profil-publik.png` | Profil publik warga |
+| `13-admin.png` | Panel Admin |
+
+<!--
+<p align="center">
+  <img src="docs/screenshots/01-beranda.png" width="22%">
+  <img src="docs/screenshots/02-info-saya.png" width="22%">
+  <img src="docs/screenshots/04-sos.png" width="22%">
+  <img src="docs/screenshots/06-jasa.png" width="22%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/08-lapak.png" width="22%">
+  <img src="docs/screenshots/09-suara-warga.png" width="22%">
+  <img src="docs/screenshots/10-agenda.png" width="22%">
+  <img src="docs/screenshots/13-admin.png" width="22%">
+</p>
+-->
+
+---
+
+## 2. Fitur Lengkap
+
+### Beranda dan Informasi Desa
+- Daftar informasi warga dan pemerintah desa, dengan **filter kategori**.
+- Tampilan mirip media sosial: **reaksi emoji**, komentar (dengan reaksi), jumlah dilihat, foto banyak, lokasi di peta (opsional).
+- Nama pembuat bisa diketuk untuk membuka **profil publik**. Menu ⋮ untuk **melaporkan** info.
+- Warga mengajukan info lewat **Ajukan Info**. Info baru wajib disetujui Admin. Kategori sensitif (kesehatan, ketenagakerjaan, bantuan sosial) hanya Kepala Desa yang dapat menerbitkan.
+- Masa berlaku info: 3 hari sampai 12 bulan. Info yang lewat tanggal otomatis tidak tampil.
+
+### Info Saya dan Ubah Info dengan Persetujuan Admin
+- Tombol **👤 Info Saya** di Beranda menampilkan seluruh info yang pernah diunggah akun tersebut.
+- **Cari** judul atau isi, dan **filter status**: Semua, Sedang tayang, Menunggu persetujuan, Perubahan diajukan, Ditolak.
+- Info yang sudah tayang bisa diubah lewat **Ajukan perubahan** (wajib mengisi alasan). **Info lama tetap tayang** sampai Admin menyetujui.
+- Admin melihat tab **Revisi Info** berisi perbandingan **Sebelum → Sesudah** (judul, isi, kategori, jumlah foto, lokasi). Pilihan: Setujui atau Tolak (alasan wajib).
+- Perubahan pada kategori sensitif hanya dapat diputuskan Kepala Desa.
+- Pembuat info menerima notifikasi dan melihat alasan penolakan di Info Saya.
+
+![Alur persetujuan](docs/img/alur-persetujuan.png)
+
+### SOS Darurat
+- Tombol SOS mengirim **lokasi realtime** ke admin dan petugas desa. Hanya SOS yang memakai lokasi otomatis.
 
 ### Pengaduan
-- Warga membuat pengaduan dengan foto dan lokasi.
-- Admin menyaring: kasus ringan diproses admin, kasus berat (keamanan atau kekerasan) diteruskan ke kades.
-- Setelah selesai, pelapor memberi rating.
-- Peta sebaran pengaduan dengan filter kategori dan rentang waktu (7 hari, 30 hari, semua).
-
-### Surat Online
-- Alur: warga mengajukan, admin memeriksa, kades menyetujui, warga mencetak PDF.
-- Surat ditandatangani basah dan dicap di kantor desa, lalu admin menekan **Sudah ditandatangani**.
-- Kode surat dapat dicek keasliannya lewat halaman Cek Surat.
+- Formulir terstruktur dengan kategori, foto, dan lokasi opsional.
+- Admin menyaring: pengaduan ringan diproses Admin, pengaduan berat diteruskan ke Kepala Desa. Pelapor memberi penilaian setelah selesai.
 
 ### Layanan Jasa Lokal
-- Pencarian dan filter: kategori, buka sekarang, terverifikasi, rating, jarak, harga, favorit.
-- Pengurutan: rekomendasi, terdekat, rating, terlaris, termurah, terbaru.
-- Tampilan daftar atau peta (OpenStreetMap).
-- Profil penyedia: tarif, jadwal mingguan, tanggal libur, katalog layanan, portofolio, ulasan, dan sebaran bintang.
-- Pesanan: pilih paket, tanggal, jam, alamat, dan foto kebutuhan. Mendukung penawaran harga atau jadwal.
-- Status pesanan: menunggu, diterima, dikerjakan, selesai, lalu ulasan.
-- Status penyedia: Buka, Penuh, Tutup. Status otomatis **Penuh** bila pesanan berjalan mencapai kapasitas.
-- Pembayaran dilakukan langsung antara warga dan penyedia (tidak lewat aplikasi).
-- Pelaporan jasa oleh warga. Tiga peringatan membuat jasa otomatis nonaktif.
+Tiga tab dalam satu halaman:
 
-### Layanan Desa Lainnya
-- **SOS**: tombol darurat (tahan 3 detik) yang mengirim notifikasi dan lokasi ke admin dan kades, serta daftar nomor penting.
-- **Polling**: admin membuat polling, warga memilih.
-- **Agenda**: warga mengonfirmasi kehadiran.
-- **Chat**: percakapan antarpengguna, otomatis berisi ringkasan saat pesanan dibuat.
-- **Notifikasi** di dalam aplikasi (tab Notifikasi dan banner saat aplikasi terbuka). Tidak ada push saat aplikasi tertutup.
-- **Umpan balik**: warga menilai aplikasi, jasa, atau layanan; staf meninjau.
-- **Statistik** dan **Log Keputusan** (audit) untuk admin.
+| Tab | Kegunaan |
+|---|---|
+| **Cari Jasa** | Mencari warga yang menawarkan keahlian atau jasa (tukang, servis, les, dan lain-lain). Ada filter, urutan, favorit, daftar dan peta, pesan jasa, ulasan. |
+| **Butuh Pekerja** | Warga atau pemilik usaha memasang lowongan. Wajib disetujui Admin. Ada daftar dan peta. |
+| **Lapak UMKM** | Usaha yang menjual **barang** (nasi uduk, toko baju, toko buah, dan sejenisnya). Ada kategori terstruktur, keranjang, pesan lewat chat, ulasan bintang, peta. |
 
-### Pengaturan dan Aksesibilitas
-- Dua bahasa: Indonesia dan Inggris.
-- Ukuran huruf dapat diubah.
-- Login cepat multi-akun dengan penyimpanan terenkripsi (Keystore/Keychain).
-- Pusat Bantuan (WhatsApp dan telepon admin/kades).
+Perbedaan singkat: **Jasa** = tenaga atau keahlian orang. **Lapak** = barang dagangan dari usaha. **Lowongan** = mencari pekerja.
 
-## Peran Pengguna
+### Lapak UMKM
+- Kelompok dan jenis usaha berbarang, panduan lengkap beserta contoh, formulir 7 langkah, produk dengan harga, keranjang lalu pesan lewat chat, ulasan bintang.
+- Lokasi lapak opsional dan ditandai manual.
 
-| Peran | Warna Tema | Kewenangan Utama |
-|-------|-----------|------------------|
-| Warga (`warga`) | Teal | Membaca informasi, melapor, mengajukan surat, memesan atau menyediakan jasa (setelah verifikasi) |
-| Admin (`admin`) | Biru | Verifikasi KTP, persetujuan informasi dan jasa, moderasi ulasan dan laporan, menyaring pengaduan |
-| Kades (`kades`) | Ungu | Menyetujui surat, menangani pengaduan berat, menerima SOS |
+### Suara Warga (Polling)
+- Kategori, tipe pilihan, template contoh, sasaran RW atau kampung, suara rahasia, hasil per RW, diskusi, keputusan desa, usulan polling dari warga, panduan.
 
-Fitur yang terkunci sebelum verifikasi identitas: membuka jasa, pengaduan, mengajukan informasi, surat online, dan polling.
+### Agenda Desa
+- 11 jenis kegiatan beserta contoh, tampilan Akan datang, Kalender, Rutin, Selesai.
+- RSVP Hadir, Mungkin, Tidak. Kuota, check-in, diskusi, pembatalan dengan alasan, lokasi opsional di peta.
 
-## Teknologi
+### Surat Online
+- Warga mengajukan, Admin memeriksa, Kepala Desa menyetujui, warga mencetak PDF, tanda tangan basah dan stempel di kantor desa, Admin menandai **Sudah ditandatangani**. Kode surat dapat dicek.
 
-| Kebutuhan | Paket |
-|-----------|-------|
-| Framework | Flutter (Dart `>=3.0.0 <4.0.0`) |
-| Backend | `firebase_core`, `firebase_auth`, `cloud_firestore` |
-| State management dan routing | `get` (GetX) |
-| Lokasi dan izin | `geolocator`, `permission_handler` |
-| Peta | `flutter_map`, `latlong2` (OpenStreetMap, tanpa API key) |
-| Gambar dan kamera | `image_picker`, `camera`, `image` |
-| Penyimpanan lokal | `get_storage`, `flutter_secure_storage` |
-| PDF | `pdf`, `printing` |
-| Utilitas | `url_launcher`, `intl`, `flutter_localizations` |
+### Chat
+- Chat antarwarga untuk pesanan jasa dan lapak. Tekan lama pada pesan untuk reaksi emoji, salin, atau laporkan.
 
-## Struktur Proyek
+### Profil Publik
+- Sampul, statistik, tab Postingan, Jasa, Lapak, Lowongan, kartu Tentang. Bisa dibuka dari info Beranda, daftar jasa, lowongan, dan chat.
+
+### Moderasi dan Keamanan Komunitas
+- **Laporkan** info, komentar, pesan, profil, dengan banyak kategori pelanggaran dan alasan lain.
+- Admin: tab **Laporan & Blokir** (laporan masuk, akun dibekukan, riwayat). Pembekuan dengan alasan, kategori, dan durasi (hari, minggu, bulan, atau permanen). Akun yang dibekukan melihat halaman penjelasan.
+- Halaman **Aturan Komunitas** (ranah, larangan, aturan per fitur, cara melapor, sanksi).
+
+### Verifikasi Identitas
+- Data teks dan 2 foto lewat kamera dalam aplikasi. Foto hanya terbaca pemilik dan Admin, dan **dihapus** setelah Admin memutuskan.
+
+### Lokasi
+- Semua peta bertanda **(opsional)** dan ditandai manual: ketuk peta, tombol **Lokasi saya**, atau **Cari alamat**. Lokasi tidak diambil otomatis, kecuali SOS.
+
+### Notifikasi
+- Notifikasi **dalam aplikasi** (tab Notifikasi dan banner saat aplikasi terbuka). Tidak ada push saat aplikasi tertutup.
+
+### Lainnya
+- Dua bahasa (file `translations.dart`), tema warna per peran, Pusat Bantuan (WhatsApp dan telepon), statistik desa, alat Admin (pembersihan data lama, audit log).
+
+---
+
+## 3. Peran Pengguna
+
+| Peran | Kemampuan utama |
+|---|---|
+| **Warga** | Membaca info, mengajukan info dan perubahan info, melapor, SOS, memakai jasa, lowongan, lapak, polling, agenda, surat. |
+| **Admin** | Menyetujui info, jasa, lowongan, lapak, foto profil, KTP; memproses pengaduan; memutuskan revisi info; menangani laporan dan pembekuan akun. |
+| **Kepala Desa (Kades)** | Menerbitkan dan memutuskan info kategori sensitif, menangani pengaduan berat, menyetujui surat. |
+
+---
+
+## 4. Arsitektur
+
+![Arsitektur](docs/img/arsitektur.png)
+
+- **Flutter + GetX** untuk tampilan dan state.
+- **Firebase Authentication** (email dan kata sandi).
+- **Cloud Firestore** dengan `firestore.rules` untuk keamanan per peran. Penghitung (suka, komentar, suara, RSVP) memakai batch.
+- **Foto base64** langsung di Firestore (dikecilkan otomatis), sehingga tanpa Firebase Storage.
+- **Peta OpenStreetMap** lewat `flutter_map`. Pencarian alamat lewat **Nominatim** memakai `dart:io HttpClient`.
+
+Paket utama: `firebase_core`, `firebase_auth`, `cloud_firestore`, `get`, `geolocator`, `permission_handler`, `flutter_map`, `latlong2`, `image_picker`, `camera`, `image`, `get_storage`, `flutter_secure_storage`, `pdf`, `printing`, `url_launcher`, `intl`.
+
+---
+
+## 5. Struktur Proyek
 
 ```
 talagasari_hub/
 ├── lib/
-│   ├── main.dart                 # Titik masuk, binding controller, rute
-│   ├── firebase_options.dart     # Konfigurasi Firebase per platform
-│   ├── core/
-│   │   ├── core.dart             # Tema, util, widget umum, LocalStore, AppSettings
-│   │   ├── models.dart           # Model utama (user, jasa, ulasan, chat, pengaduan, KTP)
-│   │   ├── models_extra.dart     # Model tambahan (SOS, polling, agenda, surat, audit, pesanan)
-│   │   ├── translations.dart     # Terjemahan Indonesia dan Inggris
-│   │   ├── ui_helpers.dart       # Pemilih masa berlaku, pemilih foto, alasan tolak, retensi
-│   │   └── app_contact.dart      # Nomor kontak dan kop surat (WAJIB disesuaikan)
-│   ├── controllers/              # Logika bisnis (GetX)
-│   │   ├── auth_controller.dart
-│   │   ├── data_controller.dart  # Informasi, jasa, pesanan
-│   │   ├── complaint_controller.dart
-│   │   ├── village_controller.dart  # SOS, polling, agenda, surat, audit, retensi
-│   │   ├── chat_controller.dart
-│   │   └── feedback_controller.dart
-│   └── views/                    # Tampilan
-│       ├── auth_view.dart, home_view.dart, account_view.dart, profile_view.dart
-│       ├── jasa_view.dart, chat_view.dart, complaint_view.dart
-│       ├── letter_view.dart, village_view.dart, verification_view.dart
-│       ├── camera_view.dart, feedback_view.dart, stats_view.dart
-│       └── admin_view.dart, admin_tools_view.dart
-├── firestore.rules               # Aturan keamanan Firestore
-├── google-services.json          # Konfigurasi Firebase Android
-├── AndroidManifest.xml           # Izin dan konfigurasi Android
-├── pubspec.yaml                  # Dependensi
-└── SETUP.md                      # Panduan setup dari nol
+│   ├── main.dart
+│   ├── firebase_options.dart
+│   ├── controllers/        # auth, data, chat, complaint, feedback, village
+│   ├── core/               # core, models, models_extra, ui_helpers, translations, app_contact, motif
+│   └── views/
+│       ├── home_view.dart          # Beranda + filter + Info Saya
+│       ├── info_form_view.dart     # Ajukan Info / Ajukan Perubahan
+│       ├── info_saya_view.dart     # Info Saya + tab Revisi Info (Admin/Kades)
+│       ├── info_sosial.dart        # reaksi, komentar, detail info
+│       ├── jasa_view.dart          # Cari Jasa, Butuh Pekerja, Lapak (tab)
+│       ├── lapak_view.dart         # Lapak UMKM
+│       ├── polling_view.dart       # Suara Warga
+│       ├── agenda_view.dart        # Agenda Desa
+│       ├── moderasi_view.dart      # Laporan, pembekuan, profil publik, aturan komunitas
+│       ├── complaint_view.dart     # Pengaduan
+│       ├── letter_view.dart        # Surat online
+│       ├── chat_view.dart
+│       ├── admin_view.dart         # Panel Admin / Kades
+│       ├── account_view.dart
+│       └── ...
+├── assets/                 # ikon, logo desa, font
+├── android_patch/          # AndroidManifest.xml dan res/ (izin + ikon)
+├── docs/img/               # gambar README
+├── firestore.rules         # aturan keamanan (WAJIB di-deploy)
+├── firebase.json
+├── pubspec.yaml
+├── CHANGELOG.md
+└── SETUP.md
 ```
-
-## Prasyarat
-
-1. [Flutter SDK](https://docs.flutter.dev/get-started/install) terpasang (`flutter doctor` tanpa error).
-2. Android Studio atau VS Code, beserta emulator atau HP Android.
-3. Akun [Firebase](https://console.firebase.google.com) dengan satu proyek.
-
-## Instalasi
-
-```bash
-# 1. Salin repositori
-git clone <URL-REPOSITORI>
-cd talagasari_hub
-
-# 2. Pasang dependensi
-flutter pub get
-
-# 3. Jalankan
-flutter run
-```
-
-## Konfigurasi
-
-### 1. Firebase
-1. Buka Firebase Console, pilih proyek.
-2. **Build → Authentication → Sign-in method**: aktifkan **Email/Password**.
-3. **Build → Firestore Database**: buat database bila belum ada.
-4. Pastikan `google-services.json` (Android) dan `lib/firebase_options.dart` sesuai dengan proyek Firebase Anda. Nama paket Android saat ini: `com.example.talagasari_hub`.
-
-### 2. Kontak dan kop surat
-Buka `lib/core/app_contact.dart`, lalu ubah:
-- `adminTelp` dan `kadesTelp` (format `628xxxxxxxxxx`, tanpa `+` dan tanpa `0` di depan).
-- Daftar `nomorPenting` (polisi, ambulans, pemadam kebakaran, dan lain-lain) sesuai daerah.
-- `kopPemerintah`, `kopKecamatan`, `kopDesa`, `kopAlamat` untuk kop surat.
-
-> Nomor di file tersebut saat ini hanya contoh.
-
-### 3. Izin Android
-Kamera dipakai untuk verifikasi identitas. Izin lokasi diperlukan untuk SOS dan peta. Izin diminta saat pertama kali fitur digunakan.
-
-## Aturan Keamanan Firestore
-
-Aturan wajib dipasang ulang setiap kali `firestore.rules` berubah.
-
-1. Firebase Console → **Build → Firestore Database → Rules**.
-2. Hapus seluruh isi kotak aturan.
-3. Salin seluruh isi `firestore.rules` dari repositori, lalu tempel.
-4. Klik **Publish**.
-
-## Membuat Akun Admin dan Kades
-
-1. Daftar 2 akun lewat aplikasi (keduanya awalnya berperan warga).
-2. Firebase Console → **Firestore Database → Data → users** → buka dokumen akun.
-3. Ubah field `role` menjadi `admin` (akun pertama) dan `kades` (akun kedua), lalu simpan.
-4. Login ulang di aplikasi.
-
-## Alur Kerja Fitur
-
-**Pengaduan**: warga membuat → admin menyaring → ringan diproses admin / berat ke kades → selesai → pelapor memberi rating.
-
-**Surat**: warga mengajukan → admin memeriksa → kades menyetujui → warga mencetak PDF → tanda tangan basah dan stempel di kantor desa → admin menekan **Sudah ditandatangani** → surat sah dan masa berlaku mulai dihitung.
-
-**Pesanan jasa**: menunggu → (penawaran harga atau jadwal) → diterima → dikerjakan → selesai (dikonfirmasi pemesan) → ulasan.
-
-**Moderasi jasa**: laporan warga → admin memilih abaikan, peringatan, nonaktifkan, atau blokir. Semua tindakan tercatat di Log Keputusan.
-
-## Koleksi Firestore
-
-| Koleksi | Keterangan |
-|---------|------------|
-| `users` (+ `notifications`) | Akun, peran, notifikasi pengguna |
-| `announcements` | Informasi desa |
-| `penyedia_jasa` (+ `reviews`, `portofolio`) | Profil jasa, ulasan, portofolio |
-| `pesanan_jasa` | Pesanan jasa |
-| `laporan_jasa` | Laporan warga terhadap jasa |
-| `chat_rooms` (+ `messages`) | Percakapan |
-| `pengaduan` (+ `aktivitas`) | Pengaduan dan riwayat aktivitas |
-| `verifikasi_ktp` | Data dan foto verifikasi identitas |
-| `surat`, `surat_verifikasi` | Pengajuan surat dan kode keaslian |
-| `polling` (+ `suara`) | Polling dan suara |
-| `agenda` (+ `hadir`) | Agenda dan kehadiran |
-| `sos` | Kejadian darurat |
-| `audit_log` | Log keputusan |
-| `umpan_balik` | Umpan balik pengguna |
-| `counters`, `meta` | Penomoran dan metadata (khusus staf) |
-
-## Skenario Pengujian Cepat
-
-1. Daftar warga baru, login. Buka jasa: terkunci, muncul ajakan verifikasi.
-2. Akun → Verifikasi Identitas → isi data. Login admin → Kelola → tab KTP → ACC. Warga bertanda Terverifikasi.
-3. Warga membuat pengaduan. Admin ACC. Warga memberi rating setelah selesai.
-4. Warga menahan tombol SOS 3 detik. Admin dan kades menerima notifikasi beserta lokasi.
-5. Admin membuat Polling dan Agenda. Warga memilih dan mengonfirmasi hadir.
-6. Warga mengajukan surat → admin meneruskan → kades menyetujui → warga cetak PDF → admin menandai ditandatangani → cek kode di halaman Surat.
-7. Warga mengajukan informasi bertanggal berlaku → admin ACC → informasi hilang setelah tanggal lewat.
-8. Uji jasa (3 akun: A penyedia, B pemesan, admin):
-   1. A: verifikasi identitas, isi profil jasa, kirim.
-   2. Admin: Kelola → tab Jasa → setujui profil A.
-   3. B: tab Jasa → buka jasa A → Pesan Jasa.
-   4. A: terima (atau ajukan harga) → mulai kerjakan → tandai selesai.
-   5. B: konfirmasi selesai → beri ulasan.
-   6. B: laporkan jasa A → admin: tab Laporan Jasa.
-
-## Catatan Penting
-
-- Kode telah diperiksa dengan analyzer Dart, tetapi belum pernah diuji penuh di perangkat nyata. Laporkan error yang ditemukan lewat Issues.
-- Foto disimpan sebagai teks di Firestore. Bila terlalu besar, aplikasi menampilkan pesan "Foto terlalu besar".
-- Pembersihan data lama berjalan otomatis di perangkat admin atau kades, bukan lewat Cloud Functions.
-- Tombol SOS membutuhkan izin lokasi aktif.
-- Pertimbangkan membatasi API key Firebase di Google Cloud Console sebelum rilis publik.
-- Ganti `com.example.talagasari_hub` dengan ID paket sendiri sebelum dipublikasikan ke Play Store.
-
-## Pemecahan Masalah
-
-| Masalah | Solusi |
-|---------|--------|
-| `flutter pub get` gagal | Jalankan `flutter doctor`, pastikan versi Dart sesuai, lalu ulangi |
-| Login gagal atau data tidak muncul | Pastikan Email/Password aktif dan aturan Firestore sudah di-Publish |
-| `PERMISSION_DENIED` di Firestore | Salin ulang seluruh isi `firestore.rules` dan Publish |
-| Kamera tidak terbuka | Izinkan akses kamera di pengaturan HP |
-| Peta kosong | Periksa koneksi internet (tile OpenStreetMap) |
-| Akun tidak menjadi admin | Ubah field `role` di koleksi `users`, lalu login ulang |
-
-## Kontribusi
-
-1. Fork repositori ini.
-2. Buat cabang: `git checkout -b feat/nama-fitur`.
-3. Commit dengan format [Conventional Commits](https://www.conventionalcommits.org), misalnya `feat(jasa): tambah filter harga`.
-4. Push, lalu buka Pull Request.
 
 ---
 
-Dikembangkan untuk Desa Talagasari, Kecamatan Cikupa, Kabupaten Tangerang, Banten.
+## 6. Instalasi dan Menjalankan
 
-## Desain Visual: "Sawah & Telaga"
+**Prasyarat:** Flutter 3.x (Dart 3.0 atau lebih baru), Android Studio atau VS Code, akun Google, HP Android atau emulator.
 
-Identitas visual khas Desa Talagasari, digambar dengan kode (`lib/core/motif.dart`), tanpa file gambar:
+```bash
+git clone <URL-REPOSITORI-KAMU>
+cd talagasari_hub
+flutter pub get
+flutter run
+```
 
-- **Kawung**: pola batik halus pada header.
-- **Matahari, bukit, dan padi**: pemandangan sawah pada header Beranda dan Login.
-- **Gelombang telaga**: tepi bawah header (arti "talaga").
-- **Pita batik**: hiasan di atas bilah navigasi bawah.
-- **Palet**: hijau padi (warga), biru telaga (admin), ungu wulung (kades), aksen emas padi dan terakota, latar krem hangat.
-- **Font**: Poppins (isi) dan DM Serif Display (judul), keduanya berlisensi OFL, ada di `assets/fonts/`.
-- **Salam Sunda** sesuai waktu: Wilujeng enjing, siang, sonten, wengi.
+---
+
+## 7. Konfigurasi Firebase
+
+1. Buka https://console.firebase.google.com lalu buat proyek.
+2. Tambahkan aplikasi **Android**, unduh `google-services.json`, taruh di `android/app/`.
+3. **Build → Authentication → Sign-in method** lalu aktifkan **Email/Password**.
+4. **Build → Firestore Database** lalu buat database.
+5. Pasang aturan keamanan (**WAJIB**, ulangi setiap `firestore.rules` berubah):
+   1. Firestore Database → tab **Rules**.
+   2. Hapus semua isi, salin seluruh isi `firestore.rules`, tempel.
+   3. Klik **Publish**.
+6. Jika `firebase_options.dart` belum sesuai proyek kamu, jalankan `flutterfire configure`.
+7. Isi nomor kontak dan kop surat di `lib/core/app_contact.dart` (`adminTelp`, `kadesTelp` format `628xxxxxxxxxx`, `nomorPenting`, `kop...`).
+
+Jika Firestore meminta **indeks**, buka tautan yang muncul di pesan error (konsol/log), lalu klik **Create index**.
+
+---
+
+## 8. Membuat Akun Admin dan Kades
+
+1. Daftar 2 akun lewat aplikasi (otomatis menjadi warga).
+2. Firebase Console → **Firestore Database → Data → users**, buka dokumen akun.
+3. Ubah field `role` menjadi `admin` (akun pertama) dan `kades` (akun kedua).
+4. Login ulang di aplikasi.
+
+---
+
+## 9. Alur Kerja Fitur
+
+| Fitur | Alur |
+|---|---|
+| Verifikasi | Akun → Verifikasi Identitas → Admin mencocokkan → lencana Terverifikasi |
+| Info baru | Warga ajukan → Admin setujui → tayang (sensitif: Kades) |
+| Ubah info | Info Saya → Ajukan perubahan + alasan → Revisi Info (Admin/Kades) → tayang atau ditolak dengan alasan |
+| Pengaduan | Warga lapor → Admin saring → ringan: Admin, berat: Kades → selesai → pelapor menilai |
+| Surat | Ajukan → Admin → Kades → cetak PDF → tanda tangan di kantor desa → sah |
+| Lowongan | Warga pasang → Admin setujui → tayang |
+| Laporan konten | Laporkan → Admin tinjau → abaikan, hapus, atau bekukan akun |
+
+---
+
+## 10. Aturan Komunitas
+
+- Ranah aplikasi hanya **Desa Talagasari**.
+- Dilarang: penipuan, ujaran kebencian, konten dewasa, judi, barang atau jasa ilegal, data pribadi orang lain, spam, dan pelanggaran lain yang tercantum di menu **Akun → Aturan Komunitas**.
+- Sanksi bertingkat: peringatan, pembekuan sementara (hari sampai bulan), dan pembekuan permanen.
+
+---
+
+## 11. Koleksi Firestore
+
+| Koleksi | Isi |
+|---|---|
+| `users` | Profil, peran, status verifikasi, data pembekuan |
+| `announcements` (+ `suka`, `komentar`) | Info Beranda; field `revisi`, `revisi_status`, `revisi_catatan` untuk perubahan |
+| `pengaduan` | Pengaduan warga |
+| `jasa`, `lowongan` | Layanan jasa dan lowongan |
+| `lapak_umkm` (+ `ulasan`) | Lapak UMKM |
+| `polling` (+ `suara`, `komentar`), `usulan_polling` | Suara Warga |
+| `agenda` (+ `hadir`, `komentar`) | Agenda Desa |
+| `messages` | Chat |
+| `laporan_konten`, `riwayat_moderasi` | Moderasi |
+| `notifications` | Notifikasi dalam aplikasi |
+
+Nama koleksi lengkap mengikuti `lib/` dan `firestore.rules`.
+
+---
+
+## 12. Izin Android
+
+Salin `android_patch/AndroidManifest.xml` ke `android/app/src/main/AndroidManifest.xml` dan isi `android_patch/res/` ke `android/app/src/main/res/` (izin lokasi, kamera, internet, dan ikon aplikasi).
+
+---
+
+## 13. Build APK
+
+```bash
+flutter build apk --release
+```
+
+Hasil: `build/app/outputs/flutter-apk/app-release.apk`.
+
+---
+
+## 14. Skenario Uji Cepat
+
+1. Daftar akun warga, verifikasi identitas, login sebagai Admin lalu setujui.
+2. Warga: **Ajukan Info** dengan foto. Admin menyetujui. Info tayang di Beranda.
+3. Warga: Beranda → **Info Saya** → **Ajukan perubahan** (isi alasan). Info lama tetap tayang.
+4. Admin: tab **Revisi Info** → cek Sebelum/Sesudah → **Setujui**. Info berubah dan pembuat menerima notifikasi.
+5. Ulangi dan pilih **Tolak**: alasan muncul di Info Saya.
+6. Buka formulir Tambah Lowongan, unggah foto, gulir ke atas lalu ke bawah: foto tetap ada.
+7. Laporkan sebuah komentar, lalu Admin membekukan akun uji pada tab **Laporan & Blokir**.
+
+---
+
+## 15. Pemecahan Masalah
+
+| Masalah | Solusi |
+|---|---|
+| `permission-denied` | Deploy ulang `firestore.rules` terbaru. |
+| Muncul tautan "requires an index" | Klik tautan itu lalu **Create index**. |
+| Peta tidak tampil | Cek internet. Peta memakai tile OpenStreetMap. |
+| Lokasi tidak bisa diambil | Aktifkan GPS dan izinkan lokasi (lihat bagian 12). |
+| "Foto terlalu besar" | Pilih foto lebih kecil atau kurangi jumlah foto. |
+| Gagal build setelah ganti `pubspec.yaml` | `flutter clean` lalu `flutter pub get`. |
+
+---
+
+## 16. Keterbatasan
+
+- Notifikasi hanya dalam aplikasi (tanpa push saat aplikasi tertutup) karena tanpa Cloud Functions.
+- Foto disimpan di Firestore sehingga ukurannya dibatasi.
+- Pembayaran dilakukan langsung antarwarga, tidak lewat aplikasi.
+- Pembersihan data lama berjalan di perangkat Admin/Kades.
+
+---
+
+## 17. Kontribusi dan Lisensi
+
+Saran dan perbaikan dipersilakan lewat Issue atau Pull Request. Riwayat perubahan ada di [CHANGELOG.md](CHANGELOG.md), panduan pemasangan lebih rinci di [SETUP.md](SETUP.md).
+
+Lisensi: belum ditentukan. Tambahkan berkas `LICENSE` sesuai keputusan pemilik proyek.
+
+<p align="center"><img src="docs/img/ikon.png" width="90" alt="Ikon Talagasari Hub"></p>

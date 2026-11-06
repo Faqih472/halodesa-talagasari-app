@@ -159,3 +159,7 @@ Penyebab "Lokasi gagal" di semua peta: `AndroidManifest.xml` belum punya izin lo
 1. Deploy ulang `firestore.rules`.
 2. Koleksi baru otomatis: `usulan_polling`, `polling/*/komentar`, `agenda/*/komentar`.
 3. Data polling/agenda lama tetap terbaca (field baru bersifat opsional).
+
+## 8o. Info Saya & Revisi Info
+1. Deploy ulang `firestore.rules` (Firebase Console -> Firestore -> Rules -> Publish).
+2. Tes: Beranda -> Info Saya -> Ajukan perubahan; Admin -> tab Revisi Info -> Setujui/Tolak.

@@ -624,6 +624,64 @@ class DataController extends GetxController {
     }
   }
 
+  // ─── AJUKAN PERUBAHAN INFO (pembuat = warga) ─────────────
+  // Info asli TETAP tayang. Perubahan disimpan di field `revisi` dan baru
+  // berlaku setelah disetujui Admin (atau Kades bila kategori sensitif).
+  Future<bool> ajukanRevisiInfo(
+    NewsModel n, {
+    required String judul,
+    required String isi,
+    required String kategori,
+    required DateTime berlakuSampai,
+    required String alasanUbah,
+    List<String> fotoLama = const [],
+    List<File> fotoBaruList = const [],
+    double? lat,
+    double? lng,
+    String lokasiNama = '',
+  }) async {
+    try {
+      isSubmitting.value = true;
+      errorMsg.value = '';
+      final u = _authCtrl.currentUser.value;
+      if (u == null || u.uid != n.authorId) {
+        errorMsg.value = 'Hanya pembuat info yang dapat mengajukan perubahan.';
+        return false;
+      }
+      final baruEnc = await _encodeBanyak(fotoBaruList);
+      if (baruEnc == null) return false;
+      final semua = [...fotoLama, ...baruEnc].take(3).toList();
+      await _firestore.collection('announcements').doc(n.id).update({
+        'revisi': {
+          'judul': judul.trim(),
+          'isi': isi.trim(),
+          'kategori': kategori,
+          'berlaku_sampai': Timestamp.fromDate(berlakuSampai),
+          'foto_list': semua,
+          'lat': lat ?? 0,
+          'lng': lng ?? 0,
+          'lokasi_nama': lat == null ? '' : lokasiNama,
+          'alasan_ubah': alasanUbah.trim(),
+          'diajukan_at': Timestamp.now(),
+        },
+        'revisi_status': 'diajukan',
+        'revisi_catatan': '',
+      });
+      final sensitif = AppUtils.isKategoriSensitif(kategori) || AppUtils.isKategoriSensitif(n.kategori);
+      await notifPeran(sensitif ? ['admin', 'kades'] : ['admin'],
+          judul: 'Pengajuan perubahan info',
+          isi: '${u.nama}: ${judul.trim()}',
+          tipe: 'info',
+          targetId: n.id);
+      return true;
+    } catch (e) {
+      errorMsg.value = 'Gagal mengajukan perubahan: $e';
+      return false;
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
   // ─── FILTER ───────────────────────────────────────────────
   List<NewsModel> get filteredNews {
     if (filterKategori.value == 'semua') return publishedNews;

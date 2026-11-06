@@ -329,7 +329,11 @@ class FotoPicker extends StatefulWidget {
   State<FotoPicker> createState() => _FotoPickerState();
 }
 
-class _FotoPickerState extends State<FotoPicker> {
+class _FotoPickerState extends State<FotoPicker> with AutomaticKeepAliveClientMixin {
+  // Tetap hidup saat form di-scroll, agar foto yang sudah dipilih tidak hilang.
+  @override
+  bool get wantKeepAlive => true;
+
   final List<File> _baru = [];
   late List<String> _lama;
 
@@ -414,6 +418,7 @@ class _FotoPickerState extends State<FotoPicker> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final Color primary = Theme.of(context).colorScheme.primary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1318,7 +1323,10 @@ class PemilihPeta extends StatefulWidget {
   State<PemilihPeta> createState() => _PemilihPetaState();
 }
 
-class _PemilihPetaState extends State<PemilihPeta> {
+class _PemilihPetaState extends State<PemilihPeta> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   final MapController _map = MapController();
   late LatLng _titik = widget.titik;
   bool _ikuti = false;
@@ -1480,6 +1488,7 @@ class _PemilihPetaState extends State<PemilihPeta> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -22,6 +22,7 @@ import 'jasa_view.dart';
 import 'account_view.dart';
 import 'profile_view.dart';
 import 'stats_view.dart';
+import 'info_saya_view.dart' show InfoSayaView;
 import 'agenda_view.dart' show AgendaListView;
 import 'village_view.dart';
 import 'letter_view.dart';
@@ -508,7 +509,18 @@ class TabHomeView extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Obx(() => Row(
-          children: filters.map((f) {
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ActionChip(
+                avatar: Icon(Icons.person_outline, size: 16, color: primaryColor),
+                label: const Text('Info Saya', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                backgroundColor: Colors.white,
+                side: BorderSide(color: primaryColor),
+                onPressed: () => Get.to(() => const InfoSayaView()),
+              ),
+            ),
+            ...filters.map((f) {
             final isActive =
                 dataCtrl.filterKategori.value == f['value'];
             return Padding(
@@ -535,7 +547,8 @@ class TabHomeView extends StatelessWidget {
                 backgroundColor: Colors.white,
               ),
             );
-          }).toList(),
+          }),
+          ],
         )),
       ),
     );

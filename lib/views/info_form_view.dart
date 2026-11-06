@@ -29,6 +29,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
   final bool modeEdit = edit != null;
 
   final formKey = GlobalKey<FormState>();
+  final alasanUbahCtrl = TextEditingController();
   final judulCtrl = TextEditingController(text: edit?.judul ?? '');
   final isiCtrl = TextEditingController(text: edit?.isi ?? '');
   final bool awalKustom = (edit?.kategori ?? '').startsWith('custom:');
@@ -58,7 +59,10 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
 
         String judulForm;
         String tombol;
-        if (modeEdit) {
+        if (modeEdit && !staf) {
+          judulForm = 'Ajukan Perubahan Info';
+          tombol = 'Kirim Perubahan ke Admin';
+        } else if (modeEdit) {
           judulForm = 'Ubah Informasi';
           tombol = 'Simpan Perubahan';
         } else if (!staf) {
@@ -276,6 +280,27 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                             height: 1.4),
                       ),
                     ),
+                  if (modeEdit && !staf) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: const Text(
+                          'Info Anda yang sekarang TETAP tayang. Perubahan baru berlaku setelah disetujui Admin (atau Kepala Desa untuk kategori sensitif).',
+                          style: TextStyle(fontSize: 12, height: 1.4)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: alasanUbahCtrl,
+                      maxLines: 2,
+                      maxLength: 200,
+                      decoration: const InputDecoration(
+                          labelText: 'Apa yang Anda ubah dan kenapa? (wajib)',
+                          hintText: 'Contoh: Tanggal acara diundur ke Minggu, foto diganti.'),
+                    ),
+                  ],
                   const SizedBox(height: 18),
                   Obx(() => SizedBox(
                         width: double.infinity,
@@ -298,7 +323,26 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                   final String namaI = pakaiLokasi ? almtInfo.teks : '';
                                   bool ok;
                                   String pesan = 'Berhasil disimpan.';
-                                  if (modeEdit) {
+                                  if (modeEdit && !staf) {
+                                    if (alasanUbahCtrl.text.trim().length < 5) {
+                                      showSnack(false, '', 'Tulis dulu apa yang Anda ubah (minimal 5 huruf).');
+                                      return;
+                                    }
+                                    ok = await dataCtrl.ajukanRevisiInfo(
+                                      edit!,
+                                      judul: judulCtrl.text,
+                                      isi: isiCtrl.text,
+                                      kategori: kategoriFinal(),
+                                      berlakuSampai: berlaku!,
+                                      alasanUbah: alasanUbahCtrl.text,
+                                      fotoLama: fotoLama,
+                                      fotoBaruList: fotoBaru,
+                                      lat: latI,
+                                      lng: lngI,
+                                      lokasiNama: namaI,
+                                    );
+                                    pesan = 'Perubahan dikirim. Info lama tetap tayang sampai disetujui.';
+                                  } else if (modeEdit) {
                                     ok = await dataCtrl.editInformasi(
                                       edit!,
                                       judul: judulCtrl.text,

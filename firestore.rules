@@ -44,6 +44,12 @@ service cloud.firestore {
       allow update: if isKades()
         || (login() && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['jumlah_suka', 'jumlah_komentar', 'dilihat']))
+        // pembuat info mengajukan perubahan (info lama tetap tayang sampai disetujui)
+        || (login() && aktif() && resource.data.authorId == request.auth.uid
+             && resource.data.status == 'published'
+             && request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['revisi', 'revisi_status', 'revisi_catatan'])
+             && request.resource.data.revisi_status == 'diajukan')
         || (isAdmin() && !(request.resource.data.status == 'published'
              && request.resource.data.kategori in ['kesehatan', 'ketenagakerjaan', 'bantuan_sosial']));
       allow delete: if isStaff() || (login() && resource.data.authorId == request.auth.uid);
