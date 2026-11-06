@@ -254,20 +254,54 @@ service cloud.firestore {
     match /counters/{id} { allow read, write: if isKades(); }
 
     // ── Polling & agenda ──
+    // ── Suara Warga (polling): suara rahasia, hasil lewat penghitung di dokumen ──
     match /polling/{id} {
       allow read: if login();
-      allow create, update, delete: if isStaff();
+      allow create, delete: if isStaff();
+      // warga hanya boleh menaikkan penghitung SAAT mengirim suaranya (batch dgn dokumen suara)
+      allow update: if isStaff()
+        || (login() && aktif()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['total', 'hitung', 'per_rw'])
+            && request.time < resource.data.tutup
+            && existsAfter(/databases/$(database)/documents/polling/$(id)/suara/$(request.auth.uid))
+            && !exists(/databases/$(database)/documents/polling/$(id)/suara/$(request.auth.uid)));
       match /suara/{uid} {
+        allow read: if login() && request.auth.uid == uid;   // pilihan orang lain rahasia
+        allow create: if login() && aktif() && request.auth.uid == uid
+          && request.time < get(/databases/$(database)/documents/polling/$(id)).data.tutup;
+      }
+      match /komentar/{kid} {
         allow read: if login();
-        allow create: if login() && request.auth.uid == uid;
+        allow create: if login() && aktif() && request.resource.data.uid == request.auth.uid
+          && request.resource.data.isi.size() <= 300;
+        allow delete: if isStaff() || (login() && resource.data.uid == request.auth.uid);
       }
     }
+    match /usulan_polling/{id} {
+      allow create: if login() && aktif() && request.resource.data.uid == request.auth.uid;
+      allow read: if isStaff() || (login() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isStaff();
+    }
+
+    // ── Agenda Desa ──
     match /agenda/{id} {
       allow read: if login();
-      allow create, update, delete: if isStaff();
+      allow create, delete: if isStaff();
+      allow update: if isStaff()
+        || (login() && aktif()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['rsvp_hadir', 'rsvp_mungkin', 'rsvp_tidak', 'rsvp_checkin']));
       match /hadir/{uid} {
+        allow read: if isStaff() || (login() && request.auth.uid == uid);
+        allow create, update: if login() && aktif() && request.auth.uid == uid;
+        allow delete: if login() && request.auth.uid == uid;
+      }
+      match /komentar/{kid} {
         allow read: if login();
-        allow write: if login() && request.auth.uid == uid;
+        allow create: if login() && aktif() && request.resource.data.uid == request.auth.uid
+          && request.resource.data.isi.size() <= 300;
+        allow delete: if isStaff() || (login() && resource.data.uid == request.auth.uid);
       }
     }
 

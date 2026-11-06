@@ -421,6 +421,7 @@ class _LapakTabState extends State<LapakTab> {
   final _cari = TextEditingController();
   String _kel = 'semua';
   bool _hanyaBuka = false;
+  bool _peta = false;
   String _urut = 'terbaru';
   late final Stream<QuerySnapshot<Map<String, dynamic>>> _stream = FirebaseFirestore.instance
       .collection('lapak_umkm')
@@ -474,14 +475,22 @@ class _LapakTabState extends State<LapakTab> {
       ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(children: [
+        child: Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
           FilterChip(
             label: const Text('Buka sekarang', style: TextStyle(fontSize: 12)),
             selected: _hanyaBuka,
             onSelected: (v) => setState(() => _hanyaBuka = v),
             visualDensity: VisualDensity.compact,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
+          FilterChip(
+            avatar: const Icon(Icons.map_outlined, size: 16),
+            label: const Text('Peta', style: TextStyle(fontSize: 12)),
+            selected: _peta,
+            onSelected: (v) => setState(() => _peta = v),
+            visualDensity: VisualDensity.compact,
+          ),
+          const SizedBox(width: 6),
           DropdownButton<String>(
             value: _urut,
             underline: const SizedBox.shrink(),
@@ -493,7 +502,6 @@ class _LapakTabState extends State<LapakTab> {
             ],
             onChanged: (v) => setState(() => _urut = v ?? 'terbaru'),
           ),
-          const Spacer(),
           TextButton.icon(
             onPressed: () => Get.to(() => const LapakSayaView()),
             icon: const Icon(Icons.store_mall_directory_outlined, size: 18),
@@ -542,7 +550,20 @@ class _LapakTabState extends State<LapakTab> {
                       subtitle:
                           'Belum ada lapak yang cocok. Jadilah yang pertama membuka lapak di kategori ini.'),
                 ),
-              for (final l in list) KartuLapak(l: l, saya: uid),
+              if (_peta)
+                PetaDaftar(
+                  namaItem: 'lapak',
+                  totalItem: list.length,
+                  titik: [
+                    for (final l in list)
+                      if (l.punyaLokasi)
+                        TitikPeta(LatLng(l.lat, l.lng), l.nama, l.namaJenis,
+                            kelompokDari(l.kelompok).warna,
+                            () => Get.to(() => LapakDetailView(id: l.id))),
+                  ],
+                )
+              else
+                for (final l in list) KartuLapak(l: l, saya: uid),
             ]);
           },
         ),

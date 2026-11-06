@@ -22,6 +22,7 @@ import 'jasa_view.dart';
 import 'account_view.dart';
 import 'profile_view.dart';
 import 'stats_view.dart';
+import 'agenda_view.dart' show AgendaListView;
 import 'village_view.dart';
 import 'letter_view.dart';
 import 'admin_tools_view.dart';

@@ -193,10 +193,28 @@ class AgendaModel {
   final String judul;
   final String deskripsi;
   final String lokasi;
-  final DateTime waktu;
+  final DateTime waktu; // waktu mulai
+  final DateTime? selesai;
   final String dibuatOleh;
   final DateTime createdAt;
-  final String fotoUrl; // poster / gambar acara (opsional)
+  final String fotoUrl; // poster lama (1 gambar)
+  final List<String> foto; // sampai 3 gambar
+  final String kategori;
+  final String penyelenggara;
+  final String bawa; // yang perlu dibawa / dipakai
+  final String kontak; // nomor yang bisa dihubungi
+  final int kuota; // 0 = tanpa batas
+  final String ulang; // '' | mingguan | bulanan
+  final double lat;
+  final double lng;
+  final String sasaran; // semua | rw:NN | dusun:nama
+  final bool wajib;
+  final bool batal;
+  final String alasanBatal;
+  final int hadir;
+  final int mungkin;
+  final int tidak;
+  final int checkin;
 
   AgendaModel({
     required this.id,
@@ -204,26 +222,90 @@ class AgendaModel {
     this.deskripsi = '',
     this.lokasi = '',
     required this.waktu,
+    this.selesai,
     this.dibuatOleh = '',
     required this.createdAt,
     this.fotoUrl = '',
+    this.foto = const [],
+    this.kategori = 'lainnya',
+    this.penyelenggara = '',
+    this.bawa = '',
+    this.kontak = '',
+    this.kuota = 0,
+    this.ulang = '',
+    this.lat = 0,
+    this.lng = 0,
+    this.sasaran = 'semua',
+    this.wajib = false,
+    this.batal = false,
+    this.alasanBatal = '',
+    this.hadir = 0,
+    this.mungkin = 0,
+    this.tidak = 0,
+    this.checkin = 0,
   });
 
   factory AgendaModel.fromFirestore(DocumentSnapshot doc) {
     final d = doc.data() as Map<String, dynamic>;
+    int n(String k) => ((d[k] ?? 0) as num).toInt();
     return AgendaModel(
       id: doc.id,
       judul: d['judul'] ?? '',
       deskripsi: d['deskripsi'] ?? '',
       lokasi: d['lokasi'] ?? '',
       waktu: _ts(d['waktu']) ?? DateTime.now(),
+      selesai: _ts(d['selesai']),
       dibuatOleh: d['dibuat_oleh'] ?? '',
       createdAt: _ts(d['created_at']) ?? DateTime.now(),
       fotoUrl: d['foto_url'] ?? '',
+      foto: d['foto_list'] is List ? (d['foto_list'] as List).map((e) => '$e').toList() : const [],
+      kategori: d['kategori'] ?? 'lainnya',
+      penyelenggara: d['penyelenggara'] ?? '',
+      bawa: d['bawa'] ?? '',
+      kontak: d['kontak'] ?? '',
+      kuota: n('kuota'),
+      ulang: d['ulang'] ?? '',
+      lat: ((d['lat'] ?? 0) as num).toDouble(),
+      lng: ((d['lng'] ?? 0) as num).toDouble(),
+      sasaran: d['sasaran'] ?? 'semua',
+      wajib: d['wajib'] == true,
+      batal: d['batal'] == true,
+      alasanBatal: d['alasan_batal'] ?? '',
+      hadir: n('rsvp_hadir'),
+      mungkin: n('rsvp_mungkin'),
+      tidak: n('rsvp_tidak'),
+      checkin: n('rsvp_checkin'),
     );
   }
 
-  bool get lewat => waktu.isBefore(DateTime.now());
+  List<String> get semuaFoto => foto.isNotEmpty ? foto : (fotoUrl.isNotEmpty ? [fotoUrl] : const []);
+  bool get punyaLokasi => lat != 0 || lng != 0;
+  bool get rutin => ulang.isNotEmpty;
+
+  /// Waktu selesai efektif (default: 2 jam setelah mulai).
+  DateTime get akhir => selesai ?? waktu.add(const Duration(hours: 2));
+
+  /// Kegiatan rutin: kemunculan berikutnya (atau sedang berlangsung).
+  DateTime get berikutnya {
+    if (!rutin) return waktu;
+    var t = waktu;
+    final now = DateTime.now();
+    final durasi = akhir.difference(waktu);
+    var guard = 0;
+    while (t.add(durasi).isBefore(now) && guard++ < 1000) {
+      t = ulang == 'mingguan'
+          ? t.add(const Duration(days: 7))
+          : DateTime(t.year, t.month + 1, t.day, t.hour, t.minute);
+    }
+    return t;
+  }
+
+  bool get lewat => !rutin && akhir.isBefore(DateTime.now());
+  bool get berlangsung {
+    final w = berikutnya;
+    final now = DateTime.now();
+    return !batal && now.isAfter(w) && now.isBefore(w.add(akhir.difference(waktu)));
+  }
 }
 
 /// Panduan singkat satu jenis surat (teks untuk warga awam)

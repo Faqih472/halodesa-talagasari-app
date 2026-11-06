@@ -6309,6 +6309,7 @@ class LowonganTab extends StatefulWidget {
 }
 
 class _LowonganTabState extends State<LowonganTab> {
+  bool _peta = false;
   final LowonganController _c = Get.find<LowonganController>();
   final TextEditingController _cari = TextEditingController();
 
@@ -6451,12 +6452,41 @@ class _LowonganTabState extends State<LowonganTab> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
-              child: Text(
-                  _c.isLoading.value && list.isEmpty
-                      ? 'Memuat…'
-                      : '${list.length} lowongan dibuka',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+              child: Row(children: [
+                Expanded(
+                  child: Text(
+                      _c.isLoading.value && list.isEmpty
+                          ? 'Memuat…'
+                          : '${list.length} lowongan dibuka',
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                ),
+                ChoiceChip(
+                    label: const Text('Daftar', style: TextStyle(fontSize: 12)),
+                    selected: !_peta,
+                    onSelected: (_) => setState(() => _peta = false)),
+                const SizedBox(width: 6),
+                ChoiceChip(
+                    avatar: const Icon(Icons.map_outlined, size: 16),
+                    label: const Text('Peta', style: TextStyle(fontSize: 12)),
+                    selected: _peta,
+                    onSelected: (_) => setState(() => _peta = true)),
+              ]),
             ),
+            if (_peta)
+              PetaDaftar(
+                namaItem: 'lowongan',
+                totalItem: list.length,
+                titik: [
+                  for (final l in list)
+                    if (l.lat != 0 || l.lng != 0)
+                      TitikPeta(
+                          LatLng(l.lat, l.lng),
+                          l.judul,
+                          l.upah > 0 ? '${rupiah(l.upah)} ${l.satuanUpah}' : 'Upah dibicarakan',
+                          Colors.green.shade700,
+                          () => Get.to(() => LowonganDetailView(lowongan: l))),
+                ],
+              ),
             if (!_c.isLoading.value && list.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
@@ -6467,6 +6497,7 @@ class _LowonganTabState extends State<LowonganTab> {
                       'Belum ada warga yang mencari pekerja untuk pilihan ini. Anda bisa menjadi yang pertama memasang lowongan.',
                 ),
               ),
+            if (!_peta)
             for (final l in list)
               _KartuLowongan(
                   lowongan: l,

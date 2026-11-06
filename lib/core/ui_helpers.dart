@@ -1782,3 +1782,100 @@ Future<String?> dialogKeteranganSetuju(String judul) async {
   ));
   return hasil;
 }
+
+// ─────────────────────────────────────────────────────────────
+// PETA DAFTAR: banyak titik (lapak, lowongan, dst.). Hanya yang memasang
+// lokasi (opsional) yang muncul. Ketuk pin → kartu ringkas → buka detail.
+// ─────────────────────────────────────────────────────────────
+class TitikPeta {
+  final LatLng titik;
+  final String judul;
+  final String sub;
+  final Color warna;
+  final VoidCallback onBuka;
+  const TitikPeta(this.titik, this.judul, this.sub, this.warna, this.onBuka);
+}
+
+class PetaDaftar extends StatefulWidget {
+  final List<TitikPeta> titik;
+  final int totalItem; // jumlah semua item (termasuk yang tanpa lokasi)
+  final String namaItem; // 'lapak' | 'lowongan'
+  const PetaDaftar({super.key, required this.titik, required this.totalItem, required this.namaItem});
+
+  @override
+  State<PetaDaftar> createState() => _PetaDaftarState();
+}
+
+class _PetaDaftarState extends State<PetaDaftar> {
+  TitikPeta? _pilih;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = widget.titik;
+    final pusat = t.isEmpty
+        ? const LatLng(-6.239265, 106.530200)
+        : LatLng(
+            t.map((e) => e.titik.latitude).reduce((a, b) => a + b) / t.length,
+            t.map((e) => e.titik.longitude).reduce((a, b) => a + b) / t.length);
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+        child: Text(
+            t.isEmpty
+                ? 'Belum ada ${widget.namaItem} yang menandai lokasi di peta (lokasi bersifat opsional).'
+                : '${t.length} dari ${widget.totalItem} ${widget.namaItem} menandai lokasi. Ketuk pin untuk melihat.',
+            style: const TextStyle(fontSize: 12, color: Colors.black54)),
+      ),
+      if (t.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: PetaDenganLokasi(
+              pusat: pusat,
+              zoom: 14,
+              tinggi: 340,
+              penanda: [
+                for (final e in t)
+                  Marker(
+                    point: e.titik,
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.topCenter,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _pilih = e),
+                      child: Icon(Icons.location_on,
+                          size: identical(_pilih, e) ? 46 : 38, color: e.warna),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      if (_pilih != null)
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)]),
+          child: Row(children: [
+            Icon(Icons.location_on, color: _pilih!.warna),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(_pilih!.judul, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(_pilih!.sub, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              ]),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(minimumSize: const Size(80, 40)),
+              onPressed: _pilih!.onBuka,
+              child: const Text('Buka'),
+            ),
+          ]),
+        ),
+    ]);
+  }
+}
