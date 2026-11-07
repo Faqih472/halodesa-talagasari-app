@@ -943,111 +943,118 @@ class PengaduanDetailView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(ComplaintModel.ikonKategori(c.kategori),
-                    size: 18, color: AppTheme.textSecondary),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(ComplaintModel.labelKategori(c.kategori),
-                      style: const TextStyle(
-                          fontSize: 13, color: AppTheme.textSecondary)),
-                ),
-                _statusChip(c.status),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(c.judul,
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Text(
-                '${'cmp_by'.tr} $nama • ${AppUtils.formatTanggalWaktu(c.createdAt)}',
-                style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textSecondary)),
-            if (!sembunyi && c.alamat.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(Icons.location_on_outlined,
-                      size: 14, color: AppTheme.textSecondary),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(c.alamat,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppTheme.textSecondary)),
-                  ),
-                ],
+            // ── Kepala: kategori, status, judul ──
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    colors: [primary, primary.withOpacity(0.78)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(18),
               ),
-            ],
-            if (c.tglKejadian != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                  '${'cmp_date'.tr}: ${AppUtils.formatTanggal(c.tglKejadian!)}',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppTheme.textSecondary)),
-            ],
-            const SizedBox(height: 6),
-            Wrap(spacing: 6, runSpacing: 4, children: [
-              if (c.urgensi != 'biasa')
-                Chip(
-                  label: Text('Urgensi: ${ComplaintModel.labelUrgensi(c.urgensi)}'),
-                  backgroundColor: c.urgensi == 'darurat' ? Colors.red.shade100 : Colors.orange.shade100,
-                  visualDensity: VisualDensity.compact,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                    child: Icon(ComplaintModel.ikonKategori(c.kategori), size: 20, color: Colors.white),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(ComplaintModel.labelKategori(c.kategori),
+                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+                const SizedBox(height: 12),
+                Text(c.judul,
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, height: 1.25)),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                  child: _statusChip(c.status),
                 ),
-              if (c.dampak.isNotEmpty)
-                Chip(
-                  label: Text('Terdampak: ${ComplaintModel.labelDampak(c.dampak)}'),
-                  visualDensity: VisualDensity.compact,
-                ),
-              if (c.sudahLaporRt)
-                const Chip(label: Text('Sudah lapor RT/RW'), visualDensity: VisualDensity.compact),
-            ]),
-            if (c.harapan.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text('Harapan: ${c.harapan}',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-            ],
-            if (c.terlapor.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text('${'cmp_accused'.tr}: ${c.terlapor}',
-                  style: const TextStyle(
-                      fontSize: 12, color: AppTheme.textSecondary)),
-            ],
+              ]),
+            ),
+            const SizedBox(height: 12),
+
+            // ── Info ringkas ──
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(children: [
+                _baris(Icons.person_outline, 'Pelapor', nama),
+                _baris(Icons.schedule, 'Dilaporkan', AppUtils.formatTanggalWaktu(c.createdAt)),
+                if (!sembunyi && c.alamat.isNotEmpty) _baris(Icons.location_on_outlined, 'Lokasi', c.alamat),
+                if (c.tglKejadian != null)
+                  _baris(Icons.event_outlined, 'Tanggal kejadian', AppUtils.formatTanggal(c.tglKejadian!)),
+                if (c.terlapor.isNotEmpty) _baris(Icons.report_outlined, 'Pihak terlapor', c.terlapor),
+                if (c.harapan.isNotEmpty) _baris(Icons.flag_outlined, 'Harapan pelapor', c.harapan),
+              ]),
+            ),
+            if (c.urgensi != 'biasa' || c.dampak.isNotEmpty || c.sudahLaporRt)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Wrap(spacing: 8, runSpacing: 8, children: [
+                  if (c.urgensi != 'biasa')
+                    _pil('Urgensi: ${ComplaintModel.labelUrgensi(c.urgensi)}',
+                        c.urgensi == 'darurat' ? Colors.red.shade700 : Colors.orange.shade800),
+                  if (c.dampak.isNotEmpty)
+                    _pil('Terdampak: ${ComplaintModel.labelDampak(c.dampak)}', Colors.blueGrey.shade700),
+                  if (c.sudahLaporRt) _pil('Sudah lapor RT/RW', Colors.teal.shade700),
+                ]),
+              ),
             if (c.rahasia && role == 'admin')
               Padding(
-                padding: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.only(top: 10),
                 child: Text('cmp_secret_admin_note'.tr,
-                    style: TextStyle(
-                        fontSize: 11.5, color: Colors.orange.shade800)),
+                    style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
               ),
-            const Divider(height: 24),
-            Text(c.isi, style: const TextStyle(fontSize: 15, height: 1.6)),
+
+            // ── Isi laporan ──
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Isi laporan',
+                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppTheme.textSecondary)),
+                const SizedBox(height: 6),
+                Text(c.isi, style: const TextStyle(fontSize: 15, height: 1.6, color: AppTheme.textPrimary)),
+              ]),
+            ),
             if (c.fotoUrls.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 130,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: c.fotoUrls
-                      .map((u) => GestureDetector(
-                            onTap: () => Get.dialog(Dialog(
-                              child: InteractiveViewer(
-                                  child: ImageUtil.image(u, fit: BoxFit.contain)),
-                            )),
-                            child: Container(
-                              width: 130,
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                image: DecorationImage(
-                                    image: ImageUtil.provider(u),
-                                    fit: BoxFit.cover),
-                              ),
-                            ),
-                          ))
-                      .toList(),
-                ),
+              const SizedBox(height: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Column(children: [
+                  for (final u in c.fotoUrls)
+                    GestureDetector(
+                      onTap: () => Get.dialog(Dialog(
+                          child: InteractiveViewer(child: ImageUtil.image(u, fit: BoxFit.contain)))),
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: SizedBox(
+                            width: double.infinity,
+                            height: 220,
+                            child: ImageUtil.image(u, fit: BoxFit.cover)),
+                      ),
+                    ),
+                ]),
               ),
             ],
             if (c.status == 'ditolak' &&
@@ -1121,6 +1128,26 @@ class PengaduanDetailView extends StatelessWidget {
       ),
     );
   }
+
+  Widget _baris(IconData ikon, String label, String nilai) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(ikon, size: 18, color: AppTheme.textSecondary),
+          const SizedBox(width: 10),
+          SizedBox(
+              width: 104,
+              child: Text(label, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
+          Expanded(
+              child: Text(nilai,
+                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary, height: 1.3))),
+        ]),
+      );
+
+  Widget _pil(String t, Color w) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: w.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
+        child: Text(t, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: w)),
+      );
 
   Widget _kotak(Color warna, String judul, String isi) {
     return Container(

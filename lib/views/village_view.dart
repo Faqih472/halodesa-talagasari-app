@@ -2,9 +2,11 @@
 // village_view.dart — Layanan Desa: Hub menu dan SOS (Suara Warga di polling_view, Agenda di agenda_view)
 // ============================================================
 
+import '../controllers/complaint_controller.dart' show ComplaintController;
 import 'dart:async';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' show Marker;
 import 'package:get/get.dart';
@@ -29,7 +31,51 @@ class _Menu {
   final String label;
   final Color warna;
   final VoidCallback onTap;
-  _Menu(this.icon, this.label, this.warna, this.onTap);
+  final Query<Map<String, dynamic>>? q; // antrean live (staf)
+  final int Function()? rx; // antrean dari controller (staf)
+  _Menu(this.icon, this.label, this.warna, this.onTap, {this.q, this.rx});
+}
+
+/// Tanda antrean pada ikon menu (khusus staf): angka merah bila ada, centang hijau bila beres.
+class _TileLencana extends StatelessWidget {
+  final _Menu m;
+  final Widget child;
+  const _TileLencana({required this.m, required this.child});
+
+  Widget _tanda(int n) => Positioned(
+        right: -4,
+        top: -4,
+        child: n > 0
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                    color: Colors.red.shade600,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white, width: 1.5)),
+                child: Text(n > 99 ? '99+' : '$n',
+                    style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold)),
+              )
+            : Container(
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                child: Icon(Icons.check_circle, size: 17, color: Colors.green.shade500)),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    if (m.q != null) {
+      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: m.q!.snapshots(),
+        builder: (_, snap) => Stack(clipBehavior: Clip.none, children: [
+          child,
+          if (snap.hasData) _tanda(snap.data!.size),
+        ]),
+      );
+    }
+    if (m.rx != null) {
+      return Obx(() => Stack(clipBehavior: Clip.none, children: [child, _tanda(m.rx!())]));
+    }
+    return child;
+  }
 }
 
 class LayananDesaSection extends StatelessWidget {
@@ -52,17 +98,22 @@ class LayananDesaSection extends StatelessWidget {
           _Menu(Icons.sos, 'hub_sos'.tr, Colors.red.shade700,
               () => Get.to(() => const SosView())),
         _Menu(Icons.description_outlined, 'hub_letter'.tr, primary,
-            () => Get.to(() => const LetterHomeView())),
+            () => Get.to(() => const LetterHomeView()),
+            rx: staf ? () => Get.find<LetterController>().antrian.length : null),
         _Menu(Icons.how_to_vote_outlined, 'hub_poll'.tr, primary,
-            () => Get.to(() => const PollListView())),
+            () => Get.to(() => const PollListView()),
+            q: staf ? FirebaseFirestore.instance.collection('usulan_polling').where('status', isEqualTo: 'baru').limit(99) : null),
         _Menu(Icons.event_outlined, 'hub_agenda'.tr, primary,
-            () => Get.to(() => const AgendaListView())),
+            () => Get.to(() => const AgendaListView()),
+            q: staf ? FirebaseFirestore.instance.collection('usulan_agenda').where('status', isEqualTo: 'baru').limit(99) : null),
         if (staf)
           _Menu(Icons.sos, 'hub_sos_log'.tr, Colors.red.shade700,
-              () => Get.to(() => const SosView())),
+              () => Get.to(() => const SosView()),
+              q: FirebaseFirestore.instance.collection('sos').where('status', isEqualTo: 'baru').limit(99)),
         if (staf)
           _Menu(Icons.map_outlined, 'hub_complaint_map'.tr, primary,
-              () => Get.to(() => const ComplaintMapView())),
+              () => Get.to(() => const ComplaintMapView()),
+              rx: () => Get.find<ComplaintController>().antrian.length),
       ];
 
       return Container(
@@ -91,7 +142,9 @@ class LayananDesaSection extends StatelessWidget {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Container(
+                                  _TileLencana(
+                                    m: m,
+                                    child: Container(
                                     width: 52,
                                     height: 52,
                                     decoration: BoxDecoration(
@@ -109,7 +162,7 @@ class LayananDesaSection extends StatelessWidget {
                                     ),
                                     child: Icon(m.icon,
                                         color: m.warna, size: 25),
-                                  ),
+                                  )),
                                   const SizedBox(height: 6),
                                   Text(m.label,
                                       maxLines: 2,

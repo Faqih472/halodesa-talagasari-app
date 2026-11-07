@@ -323,36 +323,39 @@ class _AgendaListViewState extends State<AgendaListView> {
   }
 
   Widget _kotakPenjelasan() => Container(
-        margin: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade100)),
-        child: Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            leading: Icon(Icons.lightbulb_outline, color: Colors.green.shade800),
-            title: const Text('Agenda Desa itu apa? Baca di sini',
-                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-            childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-            expandedCrossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                  'Kalender kegiatan resmi Desa Talagasari: kerja bakti, posyandu, pengajian, layanan KTP keliling, bazar, dan lainnya. Anda bisa melihat waktu dan lokasi, memberi tahu panitia bahwa Anda akan hadir, dan bertanya langsung.',
-                  style: TextStyle(fontSize: 13, height: 1.4)),
-              const SizedBox(height: 8),
-              const Text('Contoh:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              const Text(
-                  '• Ada kerja bakti Minggu pagi? Lihat jam, lokasi, dan barang yang dibawa, lalu tekan "Hadir".\n'
-                  '• Anak imunisasi? Cari "Posyandu" untuk jadwal tiap bulan.\n'
-                  '• Mau urus KTP? Cek kapan "Layanan Keliling" datang.',
-                  style: TextStyle(fontSize: 13, height: 1.45)),
-              TextButton(
-                  onPressed: () => Get.to(() => const PanduanAgendaView()),
-                  child: const Text('Panduan lengkap')),
-            ],
-          ),
+          gradient: LinearGradient(
+              colors: [Colors.deepOrange.shade600, Colors.amber.shade700],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.deepOrange.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 5))],
         ),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Agenda Desa',
+                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              const Text('Kalender kegiatan resmi desa. Lihat jadwal, tekan Hadir, dan jangan ketinggalan.',
+                  style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
+              const SizedBox(height: 10),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final t in const ['Kerja bakti', 'Posyandu', 'KTP keliling', 'Bazar UMKM'])
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.22), borderRadius: BorderRadius.circular(14)),
+                    child: Text(t, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                  ),
+              ]),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.calendar_month, size: 56, color: Colors.white54),
+        ]),
       );
 
   List<Widget> _isi(List<AgendaModel> semua) {
@@ -516,10 +519,13 @@ class KartuAgenda extends StatelessWidget {
     return InkWell(
       onTap: () => Get.to(() => AgendaDetailView(id: a.id)),
       child: kartu(
-        padding: const EdgeInsets.all(10),
+        padding: EdgeInsets.zero,
+        child: Container(
+        decoration: BoxDecoration(border: Border(left: BorderSide(color: k.warna, width: 6))),
+        padding: const EdgeInsets.all(12),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Container(
-            width: 54,
+            width: 58,
             padding: const EdgeInsets.symmetric(vertical: 6),
             decoration: BoxDecoration(
                 color: a.batal ? Colors.grey.shade300 : k.warna.withOpacity(0.12),
@@ -547,8 +553,8 @@ class KartuAgenda extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
                       decoration: a.batal ? TextDecoration.lineThrough : null)),
               Text(k.label,
                   style: TextStyle(fontSize: 11.5, color: k.warna, fontWeight: FontWeight.w600)),
@@ -576,6 +582,7 @@ class KartuAgenda extends StatelessWidget {
             ]),
           ),
         ]),
+        ),
       ),
     );
   }
@@ -1248,11 +1255,11 @@ class _AgendaFormViewState extends State<AgendaFormView> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             CircleAvatar(
-                radius: 12,
-                backgroundColor: AppTheme.primaryColor('admin'),
-                child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 12))),
-            const SizedBox(width: 8),
-            Expanded(child: Text(judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5))),
+                radius: 14,
+                backgroundColor: Colors.deepOrange.shade600,
+                child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
+            const SizedBox(width: 10),
+            Expanded(child: Text(judul, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
           ]),
           Padding(
             padding: const EdgeInsets.only(left: 32, top: 2),
@@ -1359,11 +1366,22 @@ class _AgendaFormViewState extends State<AgendaFormView> {
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 40), children: [
         Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
-          child: const Text(
-              'Isi 7 langkah. Bingung? Pilih jenis kegiatan lalu tekan "Pakai contoh": judul, penjelasan, dan barang bawaan terisi otomatis, tinggal Anda ubah.',
-              style: TextStyle(fontSize: 13, height: 1.4)),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [Colors.deepOrange.shade600, Colors.amber.shade700], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(children: [
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Buat Agenda Desa', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                const Text('Isi 7 langkah. Bingung? Pilih jenis kegiatan lalu tekan "Pakai contoh": judul, penjelasan, dan barang bawaan terisi otomatis.', style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
+              ]),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.event_available, size: 46, color: Colors.white54),
+          ]),
         ),
         _langkah(1, 'Jenis kegiatan', 'Pilih yang paling cocok. Warna dan ikon di kalender mengikuti pilihan ini.'),
         Wrap(spacing: 6, children: [

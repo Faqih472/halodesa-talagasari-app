@@ -299,7 +299,8 @@ class EkstraInfo extends StatelessWidget {
 class SebelumSesudah extends StatefulWidget {
   final String sebelum;
   final String sesudah;
-  const SebelumSesudah({super.key, required this.sebelum, required this.sesudah});
+  final double radius;
+  const SebelumSesudah({super.key, required this.sebelum, required this.sesudah, this.radius = 14});
 
   @override
   State<SebelumSesudah> createState() => _SebelumSesudahState();
@@ -321,7 +322,7 @@ class _SebelumSesudahState extends State<SebelumSesudah> {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(widget.radius),
       child: SizedBox(
         height: 230,
         child: LayoutBuilder(builder: (context, c) {
@@ -375,7 +376,8 @@ class _PotongKiri extends CustomClipper<Rect> {
 
 class GaleriMosaik extends StatelessWidget {
   final List<String> foto;
-  const GaleriMosaik({super.key, required this.foto});
+  final double radius;
+  const GaleriMosaik({super.key, required this.foto, this.radius = 14});
 
   Widget _img(String f) => GestureDetector(
         onTap: () => tampilkanFoto(f),
@@ -386,9 +388,9 @@ class GaleriMosaik extends StatelessWidget {
   Widget build(BuildContext context) {
     if (foto.length < 2) return foto.isEmpty ? const SizedBox.shrink() : fotoFull(foto.first, radius: 14);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(radius),
       child: SizedBox(
-        height: 220,
+        height: 240,
         child: foto.length == 2
             ? Row(children: [
                 Expanded(child: SizedBox.expand(child: _img(foto[0]))),

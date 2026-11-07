@@ -414,33 +414,39 @@ class _PollListViewState extends State<PollListView> {
     final uid = Get.find<AuthController>().currentUser.value?.uid ?? '';
     return Column(children: [
       Container(
-        margin: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade100)),
-        child: Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            leading: Icon(Icons.how_to_vote_outlined, color: Colors.green.shade800),
-            title: const Text('Apa itu Suara Warga?',
-                style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
-            childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
-            expandedCrossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                  'Musyawarah online: desa bertanya, warga menjawab dari HP. Pilihan Anda rahasia, hasilnya terbuka, dan keputusan desa dicatat di sini.',
-                  style: TextStyle(fontSize: 13, height: 1.4)),
-              const SizedBox(height: 6),
-              const Text(
-                  'Contoh: "Jalan mana yang diperbaiki dulu?", "Setujukah ronda bergilir per RT?", "Lomba apa untuk 17 Agustus?"',
-                  style: TextStyle(fontSize: 12.5, height: 1.4, fontStyle: FontStyle.italic)),
-              TextButton(
-                  onPressed: () => Get.to(() => const PanduanPollingView()),
-                  child: const Text('Baca panduan lengkap')),
-            ],
-          ),
+          gradient: LinearGradient(
+              colors: [Colors.indigo.shade700, Colors.teal.shade500],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.indigo.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 5))],
         ),
+        child: Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Suara Warga',
+                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              const Text('Musyawarah online dari HP. Desa bertanya, Anda menjawab. Pilihan rahasia, hasil terbuka.',
+                  style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
+              const SizedBox(height: 10),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                for (final t in const ['Jalan mana diperbaiki dulu?', 'Setuju ronda bergilir?', 'Lomba 17 Agustus?'])
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(14)),
+                    child: Text(t, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                  ),
+              ]),
+            ]),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.how_to_vote, size: 56, color: Colors.white54),
+        ]),
       ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -528,8 +534,11 @@ class _KartuPoll extends StatelessWidget {
     return InkWell(
       onTap: () => Get.to(() => PollDetailView(id: p.id)),
       child: kartu(
-        padding: const EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        padding: EdgeInsets.zero,
+        child: Container(
+          decoration: BoxDecoration(border: Border(left: BorderSide(color: k.warna, width: 6))),
+          padding: const EdgeInsets.all(14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Icon(k.ikon, size: 17, color: k.warna),
             const SizedBox(width: 5),
@@ -549,7 +558,7 @@ class _KartuPoll extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: 6),
-          Text(p.pertanyaan, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, height: 1.3)),
+          Text(p.pertanyaan, style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, height: 1.3)),
           const SizedBox(height: 6),
           Wrap(spacing: 10, runSpacing: 2, children: [
             _info(Icons.schedule, p.sisaWaktu()),
@@ -586,9 +595,19 @@ class _KartuPoll extends StatelessWidget {
                           style: TextStyle(fontSize: 12, color: Colors.green.shade800)),
                     ]),
                   )
-                : const SizedBox.shrink(),
+                : (aktif
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(children: [
+                          Text('Ikut memilih',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: k.warna)),
+                          Icon(Icons.arrow_forward_rounded, size: 17, color: k.warna),
+                        ]),
+                      )
+                    : const SizedBox.shrink()),
           ),
         ]),
+        ),
       ),
     );
   }
@@ -1348,12 +1367,12 @@ class _BuatPollingViewState extends State<BuatPollingView> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             CircleAvatar(
-                radius: 12,
-                backgroundColor: Colors.green.shade700,
-                child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 12))),
-            const SizedBox(width: 8),
+                radius: 14,
+                backgroundColor: Colors.indigo.shade600,
+                child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
+            const SizedBox(width: 10),
             Expanded(
-                child: Text(judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5))),
+                child: Text(judul, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
           ]),
           Padding(
             padding: const EdgeInsets.only(left: 32, top: 2),
@@ -1373,11 +1392,22 @@ class _BuatPollingViewState extends State<BuatPollingView> {
       appBar: AppBar(backgroundColor: primary, title: const Text('Buat Suara Warga')),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 40), children: [
         Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
-          child: const Text(
-              'Isi 5 langkah. Mau cepat? Pilih satu CONTOH di bawah, isinya terisi otomatis dan bisa Anda ubah.',
-              style: TextStyle(fontSize: 13, height: 1.4)),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [Colors.indigo.shade700, Colors.teal.shade500], begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(children: [
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Buat Suara Warga', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                const Text('Isi 5 langkah. Mau cepat? Pilih satu CONTOH di bawah, isinya terisi otomatis dan bisa Anda ubah.', style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
+              ]),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.how_to_vote, size: 46, color: Colors.white54),
+          ]),
         ),
         const SizedBox(height: 8),
         const Text('Contoh siap pakai', style: TextStyle(fontWeight: FontWeight.w700)),

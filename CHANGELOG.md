@@ -1,3 +1,10 @@
+## Tampilan: foto Beranda penuh, lencana Layanan Desa, detail pengaduan, Suara Warga & Agenda
+- Beranda: foto kartu selebar penuh (tanpa bingkai abu-abu), judul lebih tegas.
+- Layanan Desa (staf): lencana angka merah / centang hijau pada Surat, Suara Warga, Agenda, SOS, Peta Pengaduan.
+- Detail Pengaduan didesain ulang (kepala berwarna, kartu info, isi, foto penuh); teks selalu terbaca.
+- Suara Warga dan Agenda: hero berwarna, kartu bergaris warna, formulir buat dengan hero.
+- Jasa/Lowongan/Lapak: strip penjelas berwarna per tab.
+
 ## Jenis info + Beranda lebih menarik
 - Ajukan Info dirombak: langkah bernomor, 10 jenis (Biasa, Kehilangan, Ditemukan, Dijual, Bantuan, Kabar Duka, Syukuran, Sebelum-Sesudah, Galeri, Tanya Cepat). Judul dan isi contoh terisi otomatis, bisa diubah. Pilih warna kartu.
 - Beranda: banner geser (Admin: menu titik tiga > Jadikan banner), strip Kabar Duka (3 hari), filter cepat per jenis, kartu khusus (foto digeser sebelum-sesudah, mosaik galeri, polling mini, kolom harga/kontak/waktu).

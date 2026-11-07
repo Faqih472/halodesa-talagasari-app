@@ -46,7 +46,8 @@ Future<void> catatDilihat(String id) async {
 class GaleriFoto extends StatefulWidget {
   final List<String> foto;
   final double tinggi;
-  const GaleriFoto({super.key, required this.foto, this.tinggi = 220});
+  final double radius;
+  const GaleriFoto({super.key, required this.foto, this.tinggi = 220, this.radius = 14});
   @override
   State<GaleriFoto> createState() => _GaleriFotoState();
 }
@@ -57,10 +58,10 @@ class _GaleriFotoState extends State<GaleriFoto> {
   Widget build(BuildContext context) {
     final f = widget.foto;
     if (f.isEmpty) return const SizedBox.shrink();
-    if (f.length == 1) return fotoFull(f.first, radius: 14);
+    if (f.length == 1) return fotoFull(f.first, radius: widget.radius);
     return Column(children: [
       ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(widget.radius),
         child: SizedBox(
           height: widget.tinggi,
           child: Stack(children: [

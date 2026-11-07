@@ -679,6 +679,7 @@ class TabHomeView extends StatelessWidget {
           children: [
             // garis warna kategori di tepi atas
             Container(height: news.jenis == 'biasa' && news.tema.isEmpty ? 4 : 8, color: kategoriColor),
+            if (news.semuaFoto.isNotEmpty) _fotoKartu(news, penuh: true),
             InkWell(
               onTap: () => _showDetailBerita(context, news, primaryColor),
               child: Padding(
@@ -729,10 +730,7 @@ class TabHomeView extends StatelessWidget {
                               width: 32, height: 28, child: _menuStaff(news)),
                       ],
                     ),
-                    if (news.semuaFoto.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      _fotoKartu(news),
-                    ],
+
                     const SizedBox(height: 12),
                     Text(news.judul,
                         style: const TextStyle(
@@ -812,13 +810,25 @@ class TabHomeView extends StatelessWidget {
     );
   }
 
-  Widget _fotoKartu(NewsModel n, {double tinggi = 220}) {
+  Widget _fotoKartu(NewsModel n, {double tinggi = 220, bool penuh = false}) {
     final f = n.semuaFoto;
+    final double r = penuh ? 0 : 14;
     if (n.jenis == 'sebelum_sesudah' && f.length >= 2) {
-      return SebelumSesudah(sebelum: f[0], sesudah: f[1]);
+      return SebelumSesudah(sebelum: f[0], sesudah: f[1], radius: r);
     }
-    if (n.jenis == 'galeri' && f.length >= 2) return GaleriMosaik(foto: f);
-    return GaleriFoto(foto: f, tinggi: tinggi);
+    if (n.jenis == 'galeri' && f.length >= 2) return GaleriMosaik(foto: f, radius: r);
+    if (penuh && f.length == 1) {
+      // satu foto: penuh selebar kartu, dipotong rapi (tidak ada bingkai abu-abu)
+      return GestureDetector(
+        onTap: () => tampilkanFoto(f.first),
+        child: SizedBox(
+          width: double.infinity,
+          height: 260,
+          child: ImageUtil.image(f.first, fit: BoxFit.cover),
+        ),
+      );
+    }
+    return GaleriFoto(foto: f, tinggi: penuh ? 260 : tinggi, radius: r);
   }
 
   Widget _buildKosong(Color primaryColor) {

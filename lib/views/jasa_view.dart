@@ -355,7 +355,10 @@ class _TabJasaViewState extends State<TabJasaView> {
             const ChatAction(),
           ],
         ),
-        body: _mode == 2
+        body: Column(children: [
+          _stripMode(),
+          Expanded(
+            child: _mode == 2
             ? LapakTab(primary: primary)
             : _mode == 1
             ? LowonganTab(primary: primary)
@@ -649,8 +652,42 @@ class _TabJasaViewState extends State<TabJasaView> {
             ],
           ),
         ),
+          ),
+        ]),
       );
     });
+  }
+
+  Widget _stripMode() {
+    const data = [
+      ['Cari tukang dan keahlian tetangga Anda', 'Dekat, terpercaya, bisa lihat ulasan dan peta.', Icons.handyman_outlined],
+      ['Pasang lowongan, dapat pekerja dari desa sendiri', 'Contoh syarat dan upah terisi otomatis.', Icons.groups_outlined],
+      ['Beli dari tetangga: nasi uduk, buah, baju', 'Pesan lewat chat, uang berputar di desa.', Icons.storefront_outlined],
+    ];
+    const warna = [
+      [Color(0xFF00796B), Color(0xFF26A69A)],
+      [Color(0xFF1565C0), Color(0xFF42A5F5)],
+      [Color(0xFFAD1457), Color(0xFFEC407A)],
+    ];
+    final d = data[_mode];
+    final w = warna[_mode];
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      decoration: BoxDecoration(gradient: LinearGradient(colors: [w[0], w[1]])),
+      child: Row(children: [
+        Icon(d[2] as IconData, color: Colors.white70, size: 30),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(d[0] as String,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+            Text(d[1] as String, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          ]),
+        ),
+      ]),
+    );
   }
 
   Widget _tombolPeta(IconData ikon, String tip, VoidCallback onTap) {
