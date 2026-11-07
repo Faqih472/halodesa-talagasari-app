@@ -16,6 +16,7 @@
   <img src="https://img.shields.io/badge/State-GetX-8A2BE2" alt="GetX">
   <img src="https://img.shields.io/badge/Peta-OpenStreetMap-7EBC6F" alt="OpenStreetMap">
   <img src="https://img.shields.io/badge/Biaya-Gratis%20(Spark)-success" alt="Gratis">
+  <img src="https://img.shields.io/badge/Lisensi-MIT-blue" alt="MIT">
 </p>
 
 > Proyek ini dibuat sebagai bagian dari skripsi. Backend hanya memakai **Firebase Authentication** dan **Cloud Firestore** (paket gratis Spark). Tanpa Firebase Storage, tanpa Cloud Functions, tanpa API key peta.
@@ -121,7 +122,7 @@ Tiga tab dalam satu halaman:
 | Tab | Kegunaan |
 |---|---|
 | **Cari Jasa** | Mencari warga yang menawarkan keahlian atau jasa (tukang, servis, les, dan lain-lain). Ada filter, urutan, favorit, daftar dan peta, pesan jasa, ulasan. |
-| **Butuh Pekerja** | Warga atau pemilik usaha memasang lowongan. Wajib disetujui Admin. Ada daftar dan peta. |
+| **Butuh Pekerja** | Warga atau pemilik usaha memasang lowongan. Wajib disetujui Admin. Ada daftar dan peta. Contoh judul, tugas, upah, dan **syarat** otomatis menyesuaikan bidang dan jenis kerja. |
 | **Lapak UMKM** | Usaha yang menjual **barang** (nasi uduk, toko baju, toko buah, dan sejenisnya). Ada kategori terstruktur, keranjang, pesan lewat chat, ulasan bintang, peta. |
 
 Perbedaan singkat: **Jasa** = tenaga atau keahlian orang. **Lapak** = barang dagangan dari usaha. **Lowongan** = mencari pekerja.
@@ -360,6 +361,6 @@ Hasil: `build/app/outputs/flutter-apk/app-release.apk`.
 
 Saran dan perbaikan dipersilakan lewat Issue atau Pull Request. Riwayat perubahan ada di [CHANGELOG.md](CHANGELOG.md), panduan pemasangan lebih rinci di [SETUP.md](SETUP.md).
 
-Lisensi: belum ditentukan. Tambahkan berkas `LICENSE` sesuai keputusan pemilik proyek.
+Lisensi: [MIT](LICENSE). Ganti `NAMA PEMILIK` di berkas `LICENSE` dengan nama kamu.
 
 <p align="center"><img src="docs/img/ikon.png" width="90" alt="Ikon Talagasari Hub"></p>

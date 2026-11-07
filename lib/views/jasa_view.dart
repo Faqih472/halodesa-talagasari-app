@@ -6672,6 +6672,7 @@ class _FormLowonganViewState extends State<FormLowonganView> {
       _jumlah = c.jumlah;
       _upahManual = false;
       _terapkanPatokan(paksa: true);
+      _syarat.text = SyaratLowongan.untuk(_kategori, c.jenis)[1].isi;
     });
   }
 
@@ -6896,7 +6897,31 @@ class _FormLowonganViewState extends State<FormLowonganView> {
               min: 4, max: 8, len: 800),
           _t(_syarat, 'Syarat (boleh kosong)',
               'Contoh: sehat, rajin, membawa alat sendiri, laki-laki/perempuan',
-              min: 2, max: 4, len: 300),
+              min: 2, max: 8, len: 500),
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.shade200)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Contoh syarat (sesuai bidang dan jenis kerja). Ketuk untuk mengisi:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+              const SizedBox(height: 6),
+              Wrap(spacing: 8, runSpacing: 4, children: [
+                for (final c in SyaratLowongan.untuk(_kategori, _jenis))
+                  ActionChip(
+                    label: Text(c.label, style: const TextStyle(fontSize: 12)),
+                    onPressed: () => setState(() => _syarat.text = c.isi),
+                  ),
+              ]),
+              const SizedBox(height: 4),
+              const Text('Ganti bidang atau jenis kerja, contoh ikut berubah. Boleh diubah setelah diisi.',
+                  style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+            ]),
+          ),
           _judulSeksi('2. Jenis kerja, jumlah, dan upah'),
           DropdownButtonFormField<String>(
             value: _jenis,

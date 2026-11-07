@@ -2001,6 +2001,57 @@ class PatokanUpah {
 }
 
 
+
+// ═════════════════════════════════════════════════════════════
+// CONTOH SYARAT LOWONGAN — otomatis menyesuaikan BIDANG dan JENIS KERJA.
+// Semua hanya contoh awal; pemberi kerja bebas mengubahnya.
+// ═════════════════════════════════════════════════════════════
+class ContohSyarat {
+  final String label;
+  final String isi;
+  const ContohSyarat(this.label, this.isi);
+}
+
+class SyaratLowongan {
+  // keahlian khas tiap bidang: [wajib, nilai tambah, perlengkapan]
+  static const Map<String, List<String>> _bidang = {
+    'tukang': ['Mampu bekerja fisik (angkat material, naik tangga/perancah)', 'Pernah bekerja di proyek bangunan atau renovasi', 'Membawa alat tangan sendiri (sendok semen, meteran, waterpass)'],
+    'teknisi': ['Paham dasar kelistrikan dan membaca kerusakan perangkat', 'Pengalaman servis AC/elektronik/CCTV', 'Membawa perlengkapan dasar (obeng, multitester)'],
+    'bengkel': ['Paham dasar mesin motor atau mobil', 'Pengalaman di bengkel (servis ringan, ganti oli, ban)', 'Membawa perkakas dasar jika ada'],
+    'laundry': ['Teliti memilah, mencuci, dan menyetrika pakaian', 'Pengalaman di laundry atau pekerjaan rumah tangga', 'Mampu bekerja berdiri dalam waktu lama'],
+    'kebun': ['Mampu bekerja di luar ruangan (panas/hujan)', 'Paham perawatan tanaman dan memakai mesin potong rumput', 'Membawa alat kebun sendiri (cangkul, gunting tanaman)'],
+    'catering': ['Menjaga kebersihan makanan dan dapur', 'Pengalaman memasak atau menyiapkan bahan dalam jumlah banyak', 'Sanggup bekerja pagi atau dini hari bila ada pesanan'],
+    'guru_les': ['Menguasai mata pelajaran yang diajarkan', 'Sabar dan mampu menjelaskan dengan bahasa mudah untuk anak', 'Pendidikan minimal SMA/sederajat (lebih baik mahasiswa atau sarjana)'],
+    'asuh': ['Sabar, penyayang, dan dapat dipercaya', 'Pengalaman menjaga anak atau lansia', 'Paham pertolongan pertama dasar'],
+    'fotografer': ['Menguasai dasar fotografi atau videografi', 'Punya portofolio hasil karya', 'Membawa kamera atau perlengkapan sendiri bila diminta'],
+    'sewa_acara': ['Kuat mengangkat dan memasang perlengkapan acara', 'Pengalaman pasang tenda/kursi/panggung', 'Siap kerja malam atau akhir pekan sesuai jadwal acara'],
+    'salon': ['Menguasai perawatan rambut atau rias dasar', 'Pengalaman di salon atau memiliki sertifikat pelatihan', 'Berpenampilan rapi dan ramah pada pelanggan'],
+    'jahit': ['Menguasai mesin jahit dan membaca pola', 'Pengalaman menjahit/obras/permak pakaian', 'Teliti dan menepati tenggat pesanan'],
+    'angkut': ['Fisik kuat dan sehat', 'Punya SIM yang sesuai dan kendaraan sendiri (jika jenis kerjanya mengantar)', 'Hafal jalan di Talagasari dan sekitarnya'],
+    'umum': ['Mampu mengerjakan tugas sesuai arahan pemberi kerja', 'Pengalaman kerja serupa (lebih baik, tidak wajib)', 'Siap belajar dan mau diarahkan'],
+  };
+
+  static const Map<String, String> _jenisKet = {
+    'harian': 'Bersedia bekerja harian sesuai hari yang disepakati',
+    'borongan': 'Bersedia menyelesaikan pekerjaan sampai tuntas sesuai kesepakatan harga dan waktu',
+    'paruh_waktu': 'Bersedia bekerja sekitar 4 jam per hari dengan jadwal yang disepakati',
+    'tetap': 'Bersedia bekerja rutin Senin sampai Sabtu dan jujur dalam bekerja',
+  };
+
+  static List<ContohSyarat> untuk(String kategori, String jenis) {
+    final b = _bidang[kategori] ?? _bidang['umum']!;
+    final j = _jenisKet[jenis] ?? _jenisKet['harian']!;
+    return [
+      ContohSyarat('Syarat dasar',
+          '• Sehat jasmani dan rohani\n• Rajin, jujur, dan disiplin waktu\n• ${b[0]}\n• $j\n• Berdomisili di Talagasari atau sekitarnya'),
+      ContohSyarat('Syarat lengkap',
+          '• Usia minimal 18 tahun\n• Sehat jasmani dan rohani\n• ${b[0]}\n• ${b[1]}\n• ${b[2]}\n• $j\n• Membawa KTP saat bertemu\n• Berdomisili di Talagasari atau sekitarnya\n• Hubungi lewat WhatsApp untuk janji bertemu'),
+      ContohSyarat('Pemula boleh',
+          '• Tidak perlu berpengalaman, akan diajari\n• Sehat, rajin, dan mau belajar\n• $j\n• Usia minimal 17 tahun\n• Berdomisili di Talagasari atau sekitarnya'),
+    ];
+  }
+}
+
 // ═════════════════════════════════════════════════════════════
 // PANDUAN TARIF PENYEDIA JASA — satuan yang relevan + kisaran harga
 // awal untuk SETIAP kategori. PERKIRAAN umum agar warga awam punya

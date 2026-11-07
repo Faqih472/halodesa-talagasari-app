@@ -1,3 +1,7 @@
+## Contoh syarat lowongan + lisensi
+- Formulir lowongan: 3 contoh syarat (dasar, lengkap, pemula) yang menyesuaikan bidang dan jenis kerja; contoh lowongan ikut mengisi syarat. Tersedia juga saat ubah lowongan.
+- Tambah berkas LICENSE (MIT).
+
 ## Info Saya, ubah info dengan ACC admin, perbaikan foto, README
 - Beranda: tombol 'Info Saya' (cari + filter status). Warga bisa Ajukan perubahan info (alasan wajib); info lama tetap tayang sampai disetujui.
 - Admin/Kades: tab 'Revisi Info' (Sebelum -> Sesudah, Setujui/Tolak dengan alasan). Kategori sensitif hanya Kades.
