@@ -331,7 +331,7 @@ class _AuthViewState extends State<AuthView>
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          color: AppTheme.warnaWarga,
+          color: AppTheme.primaryColor('warga'),
           borderRadius: BorderRadius.circular(12),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
@@ -358,7 +358,7 @@ class _AuthViewState extends State<AuthView>
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: _ingatSaya
-              ? AppTheme.warnaWarga.withOpacity(0.08)
+              ? AppTheme.primaryColor('warga').withOpacity(0.08)
               : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(10),
         ),
@@ -369,10 +369,10 @@ class _AuthViewState extends State<AuthView>
               width: 20,
               height: 20,
               decoration: BoxDecoration(
-                color: _ingatSaya ? AppTheme.warnaWarga : Colors.white,
+                color: _ingatSaya ? AppTheme.primaryColor('warga') : Colors.white,
                 borderRadius: BorderRadius.circular(5),
                 border: Border.all(
-                  color: _ingatSaya ? AppTheme.warnaWarga : Colors.grey.shade400,
+                  color: _ingatSaya ? AppTheme.primaryColor('warga') : Colors.grey.shade400,
                   width: 1.5,
                 ),
               ),

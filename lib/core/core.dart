@@ -112,12 +112,12 @@ class AppTheme {
         primary: primary,
         onPrimary: Colors.white,
         secondary: primaryColorLight(role),
-        background: TemaApp.sekarang.latar,
+        background: TemaApp.warnaLatar,
         surface: surface,
-        onSurface: textPrimary,
+        onSurface: TemaApp.warnaTeks,
       ),
       textTheme: _teksTema(),
-      scaffoldBackgroundColor: TemaApp.sekarang.latar,
+      scaffoldBackgroundColor: TemaApp.warnaLatar,
 
       // AppBar
       appBarTheme: AppBarTheme(
@@ -153,7 +153,7 @@ class AppTheme {
       // Card
       // Card
       cardTheme: CardThemeData( // <--- Ubah CardTheme menjadi CardThemeData di sini
-        color: surface,
+        color: TemaApp.warnaKartu,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         shadowColor: const Color(0xFF8A7A4A).withOpacity(0.25),
@@ -294,8 +294,8 @@ class AppTheme {
   // Teks: Poppins untuk isi, DM Serif untuk judul (ciri khas Talagasari)
   static TextTheme _teksTema() {
     final TextTheme dasar = ThemeData.light().textTheme.apply(
-          bodyColor: textPrimary,
-          displayColor: textPrimary,
+          bodyColor: TemaApp.warnaTeks,
+          displayColor: TemaApp.warnaTeks,
           fontFamily: 'Poppins',
         );
     TextStyle? judul(TextStyle? t) =>

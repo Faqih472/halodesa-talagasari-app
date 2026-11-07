@@ -1497,7 +1497,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
       margin: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          const Icon(Icons.admin_panel_settings_outlined, color: AppTheme.warnaAdmin),
+          Icon(Icons.admin_panel_settings_outlined, color: AppTheme.primaryColor('admin')),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

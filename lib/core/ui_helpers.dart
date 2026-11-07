@@ -2,6 +2,7 @@
 // ui_helpers.dart — Fungsi tampilan kecil yang dipakai bersama
 // ============================================================
 
+import 'tema_app.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -88,14 +89,14 @@ Widget kartuGaris({required Widget child, required Color warna, VoidCallback? on
   return Container(
     margin: margin ?? const EdgeInsets.fromLTRB(16, 7, 16, 7),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: TemaApp.warnaKartu,
       borderRadius: BorderRadius.circular(18),
       boxShadow: [BoxShadow(color: warna.withOpacity(0.16), blurRadius: 14, offset: const Offset(0, 5))],
     ),
     child: ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: Material(
-        color: Colors.white,
+        color: TemaApp.warnaKartu,
         child: InkWell(
           onTap: onTap,
           child: Container(

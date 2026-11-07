@@ -64,6 +64,38 @@ class TemaApp {
         swatch: Color(0xFFC0C0C0)),
   ];
 
+  // ── Latar (warna layar & kartu) dan warna teks: pilihan terpisah ──
+  static final RxString latarId = 'default'.obs;
+  static final RxString teksId = 'default'.obs;
+
+  static TemaWarna? _cari(String id) {
+    for (final t in daftar) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
+  static const Color _latarBawaan = Color(0xFFFAF6EC);
+  static const Color _teksBawaan = Color(0xFF2B2A22);
+
+  static Color get warnaLatar {
+    final t = _cari(latarId.value);
+    if (latarId.value == 'default' || t == null) return _latarBawaan;
+    return Color.lerp(Colors.white, t.terang, 0.24)!;
+  }
+
+  static Color get warnaKartu {
+    final t = _cari(latarId.value);
+    if (latarId.value == 'default' || t == null) return Colors.white;
+    return Color.lerp(Colors.white, t.terang, 0.08)!;
+  }
+
+  static Color get warnaTeks {
+    final t = _cari(teksId.value);
+    if (teksId.value == 'default' || t == null) return _teksBawaan;
+    return Color.lerp(t.gelap, Colors.black, 0.35)!;
+  }
+
   static TemaWarna get sekarang =>
       daftar.firstWhere((t) => t.id == aktif.value, orElse: () => daftar.first);
 
@@ -72,6 +104,8 @@ class TemaApp {
   static void muat() {
     try {
       aktif.value = GetStorage().read<String>(_kunci) ?? 'desa';
+      latarId.value = GetStorage().read<String>('tema_latar') ?? 'default';
+      teksId.value = GetStorage().read<String>('tema_teks') ?? 'default';
     } catch (_) {}
   }
 
@@ -79,6 +113,20 @@ class TemaApp {
     aktif.value = id;
     try {
       GetStorage().write(_kunci, id);
+    } catch (_) {}
+  }
+
+  static void pilihLatar(String id) {
+    latarId.value = id;
+    try {
+      GetStorage().write('tema_latar', id);
+    } catch (_) {}
+  }
+
+  static void pilihTeks(String id) {
+    teksId.value = id;
+    try {
+      GetStorage().write('tema_teks', id);
     } catch (_) {}
   }
 }

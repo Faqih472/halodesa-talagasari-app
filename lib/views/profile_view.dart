@@ -28,7 +28,7 @@ class TabMyRequestView extends StatelessWidget {
     }
     final DataController dataCtrl = Get.find<DataController>();
 
-    const Color primaryColor = AppTheme.warnaWarga;
+    final Color primaryColor = AppTheme.primaryColor('warga');
 
     WidgetsBinding.instance.addPostFrameCallback((_) => dataCtrl.fetchMyRequests());
 
@@ -40,7 +40,7 @@ class TabMyRequestView extends StatelessWidget {
       body:
       Obx(() {
         if (dataCtrl.isLoadingMyReq.value) {
-          return const Center(
+          return Center(
               child: CircularProgressIndicator(color: primaryColor));
         }
 

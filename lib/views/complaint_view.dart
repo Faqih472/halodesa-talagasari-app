@@ -7,6 +7,7 @@
 // Kades : PengaduanStaffTab (hanya kategori berat)
 // ============================================================
 
+import '../core/tema_app.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -180,7 +181,7 @@ class PengaduanWargaTabState extends State<PengaduanWargaTab> {
 
   @override
   Widget build(BuildContext context) {
-    const Color primary = AppTheme.warnaWarga;
+    final Color primary = AppTheme.primaryColor('warga');
 
     return Obx(() {
       final ktp = _ctrl.myKtp.value;
@@ -229,8 +230,8 @@ class PengaduanWargaTabState extends State<PengaduanWargaTab> {
               ),
             ),
             if (_ctrl.isLoading.value && list.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(40),
+              Padding(
+                padding: const EdgeInsets.all(40),
                 child: Center(child: CircularProgressIndicator(color: primary)),
               )
             else if (list.isEmpty)
@@ -443,10 +444,10 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                       return Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         decoration: BoxDecoration(
-                          color: pilih ? Colors.green.shade50 : Colors.white,
+                          color: pilih ? AppTheme.primaryColor('warga').withOpacity(0.10) : TemaApp.warnaKartu,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                              color: pilih ? Colors.green.shade600 : Colors.grey.shade300),
+                              color: pilih ? AppTheme.primaryColor('warga') : Colors.grey.shade300),
                         ),
                         child: ListTile(
                           dense: true,
@@ -456,7 +457,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                           subtitle: Text('${k['contoh']}', style: const TextStyle(fontSize: 11.5)),
                           trailing: pilih
-                              ? Icon(Icons.check_circle, color: Colors.green.shade700)
+                              ? Icon(Icons.check_circle, color: AppTheme.primaryColor('warga'))
                               : null,
                         ),
                       );
@@ -569,9 +570,9 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 14),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
+                    color: AppTheme.primaryColor('warga').withOpacity(0.10),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade200),
+                    border: Border.all(color: AppTheme.primaryColor('warga').withOpacity(0.35)),
                   ),
                   child: const Text(
                       'Cara melapor (mudah):\n'
@@ -607,10 +608,10 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 6),
                     decoration: BoxDecoration(
-                      color: pilih ? Colors.green.shade50 : Colors.white,
+                      color: pilih ? AppTheme.primaryColor('warga').withOpacity(0.10) : TemaApp.warnaKartu,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: pilih ? Colors.green.shade600 : Colors.grey.shade300),
+                          color: pilih ? AppTheme.primaryColor('warga') : Colors.grey.shade300),
                     ),
                     child: ListTile(
                       dense: true,
@@ -619,7 +620,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                       subtitle: Text('${k['contoh']}', style: const TextStyle(fontSize: 11.5)),
                       trailing: pilih
-                          ? Icon(Icons.check_circle, color: Colors.green.shade700)
+                          ? Icon(Icons.check_circle, color: AppTheme.primaryColor('warga'))
                           : null,
                       onTap: () => setState(() => _kategori = v),
                     ),
@@ -1444,7 +1445,7 @@ class TabPengaduanView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('cmp_title_tab'.tr),
-        backgroundColor: AppTheme.warnaWarga,
+        backgroundColor: AppTheme.primaryColor('warga'),
         actions: const [ChatAction()],
       ),
       body: const PengaduanWargaTab(),

@@ -9,6 +9,7 @@
 // Semua digambar dengan kode (CustomPainter) — tanpa file gambar.
 // ============================================================
 
+import 'tema_app.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -458,7 +459,7 @@ class JudulBagian extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 BoxDecoration kartuTalagasari({double radius = 20, Color? warna}) {
   return BoxDecoration(
-    color: warna ?? Colors.white,
+    color: warna ?? TemaApp.warnaKartu,
     borderRadius: BorderRadius.circular(radius),
     border: Border.all(color: AppTheme.kremTua, width: 1),
     boxShadow: [
