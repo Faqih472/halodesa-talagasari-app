@@ -922,18 +922,38 @@ class _LapakDetailViewState extends State<LapakDetailView> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: GaleriFoto(foto: l.foto),
               ),
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [k.warna, k.warna.withOpacity(0.7)]),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.22), shape: BoxShape.circle),
+                  child: Icon(k.ikon, size: 26, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(l.nama,
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                    Text('${k.label} · ${l.namaJenis}',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
+                  ]),
+                ),
+              ]),
+            ),
             kartu(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Icon(k.ikon, size: 18, color: k.warna),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text('${k.label} · ${l.namaJenis}',
-                        style: TextStyle(
-                            color: k.warna, fontWeight: FontWeight.w600, fontSize: 13)),
-                  ),
-                ]),
-                const SizedBox(height: 8),
+                const SizedBox(height: 2),
                 Row(children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
@@ -1642,12 +1662,13 @@ class _LapakFormViewState extends State<LapakFormView> {
       ),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 40), children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-              color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
+              gradient: LinearGradient(colors: [primary, AppTheme.primaryColorLight('warga')]),
+              borderRadius: BorderRadius.circular(16)),
           child: const Text(
               'Isi 7 langkah di bawah. Tidak perlu terburu-buru: contoh akan muncul di setiap kolom. Lapak hanya untuk usaha di Desa Talagasari.',
-              style: TextStyle(fontSize: 13, height: 1.4)),
+              style: TextStyle(fontSize: 13, height: 1.4, color: Colors.white, fontWeight: FontWeight.w600)),
         ),
         Container(
           margin: const EdgeInsets.only(top: 10),

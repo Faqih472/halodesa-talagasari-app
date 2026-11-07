@@ -92,6 +92,13 @@ Widget _avatarJasa(ServiceModel s, {double radius = 28}) {
   );
 }
 
+Widget _pilPutihLow(String t) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.22), borderRadius: BorderRadius.circular(20)),
+      child: Text(t, style: const TextStyle(color: Colors.white, fontSize: 11.5)),
+    );
+
 Widget _pil(String teks, Color c, {IconData? ikon, double fontSize = 11}) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -123,13 +130,20 @@ Widget _judulSeksi(String teks, {Widget? aksi, IconData? ikon}) {
     padding: const EdgeInsets.only(top: 20, bottom: 8),
     child: Row(
       children: [
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(
+              color: AppTheme.primaryColor('warga'), borderRadius: BorderRadius.circular(4)),
+        ),
+        const SizedBox(width: 8),
         if (ikon != null) ...[
-          Icon(ikon, size: 18, color: AppTheme.textSecondary),
+          Icon(ikon, size: 19, color: AppTheme.primaryColor('warga')),
           const SizedBox(width: 6),
         ],
         Expanded(
           child: Text(teks,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
         ),
         if (aksi != null) aksi,
       ],
@@ -1555,11 +1569,12 @@ class _JasaDetailViewState extends State<JasaDetailView> {
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [BoxShadow(color: AppTheme.primaryColor(_auth.role).withOpacity(0.14), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: Column(
               children: [
-                Icon(i, size: 20, color: AppTheme.primaryColor(_auth.role)),
+                Icon(i, size: 22, color: AppTheme.primaryColor(_auth.role)),
                 const SizedBox(height: 4),
                 Text(nilai,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
@@ -1595,12 +1610,26 @@ class _JasaDetailViewState extends State<JasaDetailView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(s.labelTarif,
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor(_auth.role))),
-          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  AppTheme.primaryColor(_auth.role),
+                  AppTheme.primaryColorLight(_auth.role)
+                ]),
+                borderRadius: BorderRadius.circular(14)),
+            child: Row(children: [
+              const Icon(Icons.payments_outlined, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(s.labelTarif,
+                    style: const TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
           _barisInfo(Icons.home_repair_service_outlined,
               ServiceModel.labelMode(s.modeLayanan)),
           if (s.modeLayanan != 'tempat')
@@ -1624,8 +1653,9 @@ class _JasaDetailViewState extends State<JasaDetailView> {
   }
 
   Widget _kartuPaket(ServiceModel s, PaketJasa p, bool bisaPesan) {
-    return kartu(
-      margin: const EdgeInsets.only(bottom: 8),
+    return kartuGaris(
+      warna: AppTheme.primaryColor(_auth.role),
+      margin: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
           Expanded(
@@ -2335,12 +2365,18 @@ class _FormJasaViewState extends State<FormJasaView> {
         children: [
           Row(
             children: [
-              Icon(ikon, size: 20, color: AppTheme.primaryColor(_auth.role)),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                    color: AppTheme.primaryColor(_auth.role).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10)),
+                child: Icon(ikon, size: 20, color: AppTheme.primaryColor(_auth.role)),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(judul,
                     style:
-                        const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                        const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
               ),
             ],
           ),
@@ -7312,15 +7348,56 @@ class _LowonganDetailViewState extends State<LowonganDetailView> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(l.judul,
-                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(spacing: 6, runSpacing: 4, children: [
-              _pil(LowonganModel.labelKategori(l.kategori),
-                  AppTheme.kategoriJasaColor(l.kategori)),
-              _pil(LowonganModel.labelJenis(l.jenis), Colors.blueGrey),
-              _pil(l.labelStatus, _warnaStatusLow(l)),
-            ]),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.kategoriJasaColor(l.kategori),
+                      AppTheme.kategoriJasaColor(l.kategori).withOpacity(0.7)
+                    ]),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(AppTheme.kategoriJasaIcon(l.kategori), color: Colors.white70, size: 20),
+                  const SizedBox(width: 6),
+                  Text(LowonganModel.labelKategori(l.kategori),
+                      style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Text(l.labelStatus,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+                ]),
+                const SizedBox(height: 8),
+                Text(l.judul,
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, height: 1.25)),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                      color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                  child: Row(children: [
+                    Icon(Icons.payments_outlined, color: Colors.green.shade800),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(l.labelUpah,
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 15, color: Colors.green.shade800)),
+                    ),
+                    Text('Sisa ${l.sisa} orang',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+                const SizedBox(height: 8),
+                Wrap(spacing: 6, children: [
+                  _pilPutihLow(LowonganModel.labelJenis(l.jenis)),
+                  _pilPutihLow('Sampai ${AppUtils.formatTanggal(l.batas)}'),
+                ]),
+              ]),
+            ),
             if (l.status == 'pending' && pemilik)
               Container(
                 margin: const EdgeInsets.only(top: 8),
@@ -7383,13 +7460,15 @@ class _LowonganDetailViewState extends State<LowonganDetailView> {
                 ],
               ),
             ),
-            _judulSeksi('Tugas dan keterangan'),
-            Text(l.deskripsi, style: const TextStyle(height: 1.45)),
+            _judulSeksi('Tugas dan keterangan', ikon: Icons.assignment_outlined),
+            kartu(margin: EdgeInsets.zero,
+                child: Text(l.deskripsi, style: const TextStyle(height: 1.5, fontSize: 14))),
             if (l.syarat.isNotEmpty) ...[
-              _judulSeksi('Syarat'),
-              Text(l.syarat, style: const TextStyle(height: 1.45)),
+              _judulSeksi('Syarat', ikon: Icons.checklist_rounded),
+              kartu(margin: EdgeInsets.zero,
+                  child: Text(l.syarat, style: const TextStyle(height: 1.5, fontSize: 14))),
             ],
-            _judulSeksi('Pemberi kerja'),
+            _judulSeksi('Pemberi kerja', ikon: Icons.person_outline),
             kartu(
               child: Row(children: [
                 CircleAvatar(
