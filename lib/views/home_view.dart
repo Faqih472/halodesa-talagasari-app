@@ -2,6 +2,7 @@
 // home_view.dart — MainLayoutView + TabHomeView + NotificationView
 // ============================================================
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_map/flutter_map.dart' show Marker;
@@ -24,6 +25,7 @@ import 'account_view.dart';
 import 'profile_view.dart';
 import 'stats_view.dart';
 import 'info_saya_view.dart' show InfoSayaView;
+import 'info_jenis.dart';
 import 'agenda_view.dart' show AgendaListView;
 import 'village_view.dart';
 import 'letter_view.dart';
@@ -375,6 +377,20 @@ class TabHomeView extends StatelessWidget {
               SliverToBoxAdapter(
                   child: _buildWelcomeBanner(
                       user?.panggilan ?? '', role, primaryColor)),
+              SliverToBoxAdapter(
+                child: Obx(() {
+                  final ban = dataCtrl.publishedNews.where((n) => n.banner && n.jenis != 'duka').take(5).toList();
+                  final duka = dataCtrl.publishedNews
+                      .where((n) =>
+                          n.jenis == 'duka' &&
+                          DateTime.now().difference(n.publishedAt ?? n.createdAt).inDays < 3)
+                      .toList();
+                  return Column(children: [
+                    StripDuka(daftar: duka, onTap: (n) => _showDetailBerita(context, n, primaryColor)),
+                    BannerBeranda(daftar: ban, onTap: (n) => _showDetailBerita(context, n, primaryColor)),
+                  ]);
+                }),
+              ),
               const SliverToBoxAdapter(child: LayananDesaSection()),
               SliverToBoxAdapter(
                   child: _buildFilterChips(dataCtrl, primaryColor)),
@@ -519,6 +535,12 @@ class TabHomeView extends StatelessWidget {
     final filters = [
       {'value': 'semua', 'label': 'Semua'},
       {'value': 'tersimpan', 'label': '🔖 Tersimpan'},
+      {'value': 'jenis:kehilangan', 'label': '🔎 Kehilangan'},
+      {'value': 'jenis:dijual', 'label': '🏷️ Dijual'},
+      {'value': 'jenis:sumbangan', 'label': '💗 Bantuan'},
+      {'value': 'jenis:sebelum_sesudah', 'label': '✨ Sebelum-Sesudah'},
+      {'value': 'jenis:galeri', 'label': '📷 Galeri'},
+      {'value': 'jenis:polling_mini', 'label': '🗳️ Tanya Cepat'},
       for (final g in NewsModel.kelompokInfo)
         {'value': 'grp:${g['id']}', 'label': g['label'] as String},
     ];
@@ -585,11 +607,29 @@ class TabHomeView extends StatelessWidget {
           showFormInformasi(edit: news);
         } else if (v == 'perpanjang') {
           dialogPerpanjang(news);
+        } else if (v == 'banner') {
+          FirebaseFirestore.instance
+              .collection('announcements')
+              .doc(news.id)
+              .update({'banner': !news.banner}).then((_) {
+            Get.find<DataController>().fetchPublishedNews();
+            showSnack(true, news.banner ? 'Dilepas dari banner Beranda.' : 'Info dijadikan banner Beranda.', '');
+          }).catchError((_) {
+            showSnack(false, '', 'Gagal. Kategori sensitif hanya dapat diubah Kepala Desa.');
+          });
         } else {
           konfirmasiHapusInformasi(news);
         }
       },
-      itemBuilder: (_) => const [
+      itemBuilder: (_) => [
+        PopupMenuItem(
+            value: 'banner',
+            child: Row(children: [
+              const Icon(Icons.view_carousel_outlined, size: 18),
+              const SizedBox(width: 10),
+              Text(news.banner ? 'Lepas dari banner' : 'Jadikan banner Beranda')
+            ])),
+        const
         PopupMenuItem(
             value: 'perpanjang',
             child: Row(children: [
@@ -626,8 +666,8 @@ class TabHomeView extends StatelessWidget {
 
   Widget _buildNewsCard(
       NewsModel news, Color primaryColor, BuildContext context) {
-    final kategoriColor = _kategoriColor(news.kategori);
-    final kategoriIcon = _kategoriIcon(news.kategori);
+    final kategoriColor = warnaAksen(news) ?? _kategoriColor(news.kategori);
+    final kategoriIcon = news.jenis != 'biasa' ? jenisDari(news.jenis).ikon : _kategoriIcon(news.kategori);
     final bool staf = Get.find<AuthController>().isStaff;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 7, 16, 7),
@@ -638,7 +678,7 @@ class TabHomeView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // garis warna kategori di tepi atas
-            Container(height: 4, color: kategoriColor),
+            Container(height: news.jenis == 'biasa' && news.tema.isEmpty ? 4 : 8, color: kategoriColor),
             InkWell(
               onTap: () => _showDetailBerita(context, news, primaryColor),
               child: Padding(
@@ -646,6 +686,7 @@ class TabHomeView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    LabelJenisInfo(n: news),
                     Row(
                       children: [
                         Container(
@@ -690,7 +731,7 @@ class TabHomeView extends StatelessWidget {
                     ),
                     if (news.semuaFoto.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      GaleriFoto(foto: news.semuaFoto),
+                      _fotoKartu(news),
                     ],
                     const SizedBox(height: 12),
                     Text(news.judul,
@@ -710,6 +751,8 @@ class TabHomeView extends StatelessWidget {
                             height: 1.5),
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis),
+                    EkstraInfo(n: news),
+                    if (news.jenis == 'polling_mini') PollingMini(n: news),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -767,6 +810,15 @@ class TabHomeView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _fotoKartu(NewsModel n, {double tinggi = 220}) {
+    final f = n.semuaFoto;
+    if (n.jenis == 'sebelum_sesudah' && f.length >= 2) {
+      return SebelumSesudah(sebelum: f[0], sesudah: f[1]);
+    }
+    if (n.jenis == 'galeri' && f.length >= 2) return GaleriMosaik(foto: f);
+    return GaleriFoto(foto: f, tinggi: tinggi);
   }
 
   Widget _buildKosong(Color primaryColor) {
@@ -881,8 +933,9 @@ class TabHomeView extends StatelessWidget {
                         ]),
                       ],
                       const Divider(height: 24),
+                      LabelJenisInfo(n: news),
                       if (news.semuaFoto.isNotEmpty) ...[
-                        GaleriFoto(foto: news.semuaFoto, tinggi: 300),
+                        _fotoKartu(news, tinggi: 300),
                         const SizedBox(height: 14),
                       ],
                       Text(news.isi,
@@ -890,6 +943,8 @@ class TabHomeView extends StatelessWidget {
                               fontSize: 15,
                               color: AppTheme.textPrimary,
                               height: 1.6)),
+                      EkstraInfo(n: news),
+                      if (news.jenis == 'polling_mini') PollingMini(n: news),
                       if (news.punyaLokasi) ...[
                         const SizedBox(height: 12),
                         if (news.lokasiNama.isNotEmpty)

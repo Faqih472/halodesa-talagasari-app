@@ -212,6 +212,7 @@ class DataController extends GetxController {
     double? lat,
     double? lng,
     String lokasiNama = '',
+    Map<String, dynamic> tambahan = const {},
   }) async {
     try {
       isSubmitting.value = true;
@@ -244,6 +245,7 @@ class DataController extends GetxController {
         'foto_list': daftarFoto,
         'lat': lat ?? 0,
         'lng': lng ?? 0,
+        ...tambahan,
         'lokasi_nama': lat == null ? '' : lokasiNama,
         'alasan_penolakan': null,
         'created_at': Timestamp.fromDate(DateTime.now()),
@@ -273,6 +275,7 @@ class DataController extends GetxController {
     double? lat,
     double? lng,
     String lokasiNama = '',
+    Map<String, dynamic> tambahan = const {},
   }) async {
     try {
       isSubmitting.value = true;
@@ -316,6 +319,7 @@ class DataController extends GetxController {
         'foto_list': daftarFoto,
         'lat': lat ?? 0,
         'lng': lng ?? 0,
+        ...tambahan,
         'lokasi_nama': lat == null ? '' : lokasiNama,
         'alasan_penolakan': null,
         'created_at': Timestamp.fromDate(DateTime.now()),
@@ -688,6 +692,10 @@ class DataController extends GetxController {
     if (filterKategori.value == 'tersimpan') {
       final ids = InfoSimpan.daftar.toList();
       return publishedNews.where((n) => ids.contains(n.id)).toList();
+    }
+    if (filterKategori.value.startsWith('jenis:')) {
+      final j = filterKategori.value.substring(6);
+      return publishedNews.where((n) => n.jenis == j).toList();
     }
     if (filterKategori.value.startsWith('grp:')) {
       final g = filterKategori.value.substring(4);

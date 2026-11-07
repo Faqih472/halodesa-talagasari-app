@@ -19,6 +19,7 @@ import '../core/core.dart';
 import '../core/models.dart';
 import '../core/ui_helpers.dart';
 import 'info_sosial.dart' show pilihKategoriInfo;
+import 'info_jenis.dart';
 
 Future<void> showFormInformasi({NewsModel? edit}) async {
   final auth = Get.find<AuthController>();
@@ -50,7 +51,56 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
   final AlamatDesaCtrl almtInfo = AlamatDesaCtrl();
   if (edit != null && edit.lokasiNama.isNotEmpty) almtInfo.isiDari(jalanTeks: edit.lokasiNama);
   List<String> fotoLama = edit != null ? List<String>.from(edit.semuaFoto) : [];
+  String jenis = edit?.jenis ?? 'biasa';
+  String tema = edit?.tema ?? '';
+  final Map<String, TextEditingController> ekstraCtrl = {
+    for (final j in jenisInfo)
+      for (final f in j.ekstra) '${j.id}.${f.key}': TextEditingController(),
+  };
+  String contohJudulTerakhir = '';
+  String contohIsiTerakhir = '';
 
+  void pilihJenis(JenisInfo j, void Function(void Function()) setSheet) {
+    setSheet(() {
+      jenis = j.id;
+      kategori = j.kategori;
+      if (judulCtrl.text.trim().isEmpty || judulCtrl.text == contohJudulTerakhir) {
+        judulCtrl.text = j.contohJudul;
+      }
+      if (isiCtrl.text.trim().isEmpty || isiCtrl.text == contohIsiTerakhir) {
+        isiCtrl.text = j.contohIsi;
+      }
+      contohJudulTerakhir = j.contohJudul;
+      contohIsiTerakhir = j.contohIsi;
+      berlaku = DateTime.now().add(Duration(days: j.hari));
+      berlaku = DateTime(berlaku!.year, berlaku!.month, berlaku!.day, 23, 59);
+    });
+  }
+
+  Widget bag(int n, String t, String sub, Color warna) => Padding(
+        padding: const EdgeInsets.only(top: 20, bottom: 8),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          CircleAvatar(
+              radius: 13,
+              backgroundColor: warna,
+              child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(t, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5)),
+              if (sub.isNotEmpty)
+                Text(sub, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3)),
+            ]),
+          ),
+        ]),
+      );
+
+  if (!modeEdit) {
+    judulCtrl.text = jenisInfo.first.contohJudul;
+    isiCtrl.text = jenisInfo.first.contohIsi;
+    contohJudulTerakhir = judulCtrl.text;
+    contohIsiTerakhir = isiCtrl.text;
+  }
   await Get.bottomSheet(
     StatefulBuilder(
       builder: (ctx, setSheet) {
@@ -103,12 +153,23 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                       ),
                     ),
                   ),
-                  Text(judulForm,
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: primary)),
-                  const SizedBox(height: 4),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [primary, primary.withOpacity(0.75)]),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.edit_note, color: Colors.white, size: 30),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(judulForm,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     !staf
                         ? 'Informasi Anda akan diperiksa aparatur desa sebelum tayang.'
@@ -118,7 +179,11 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                     style: const TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary),
                   ),
-                  const SizedBox(height: 16),
+                  if (!modeEdit) ...[
+                    bag(1, 'Pilih jenis info', 'Ketuk satu. Judul dan isi contoh langsung terisi, bisa Anda ubah.', primary),
+                    PilihJenisInfo(terpilih: jenis, onPilih: (j) => pilihJenis(j, setSheet)),
+                  ],
+                  bag(modeEdit ? 1 : 2, 'Kategori', 'Terisi otomatis sesuai jenis. Boleh diganti.', primary),
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () async {
@@ -190,14 +255,14 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 14),
+                  bag(modeEdit ? 2 : 3, 'Tulis infonya', 'Contoh sudah diisi supaya mudah. Ubah sesuai kebutuhan Anda.', primary),
                   TextFormField(
                     controller: judulCtrl,
                     validator: (v) =>
                         AppUtils.validateRequired(v, label: 'Judul'),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Judul',
-                      hintText: 'Contoh: Jadwal Kerja Bakti RT 03',
+                      hintText: jenisDari(jenis).contohJudul,
                       prefixIcon: Icon(Icons.title),
                     ),
                   ),
@@ -211,17 +276,29 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                       }
                       return null;
                     },
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Isi Informasi',
-                      hintText: 'Tuliskan detail informasi di sini...',
+                      hintText: jenisDari(jenis).contohIsi,
                       prefixIcon: Icon(Icons.description_outlined),
                       alignLabelWithHint: true,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  if (!modeEdit)
+                    for (final f in jenisDari(jenis).ekstra)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: TextFormField(
+                          controller: ekstraCtrl['$jenis.${f.key}'],
+                          maxLines: f.baris,
+                          decoration: InputDecoration(labelText: f.label, hintText: f.hint, prefixIcon: Icon(f.ikon)),
+                        ),
+                      ),
+                  bag(modeEdit ? 3 : 4, 'Foto', jenisDari(jenis).fotoBantu ?? 'Opsional, sampai 3 foto.', primary),
                   FotoPicker(
                     maks: 3,
-                    label: 'Foto pendukung (opsional, sampai 3)',
+                    label: jenis == 'sebelum_sesudah'
+                        ? 'Foto SEBELUM lalu SESUDAH (tepat 2)'
+                        : 'Foto pendukung (opsional, sampai 3)',
                     bantuan:
                         'Gambar dikecilkan otomatis dan disimpan gratis. Dihapus bersama informasinya saat masa berlaku habis.',
                     fotoLama: fotoLama,
@@ -230,7 +307,11 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                       fotoLama = lama;
                     },
                   ),
-                  const SizedBox(height: 14),
+                  if (!modeEdit) ...[
+                    bag(5, 'Warna kartu', 'Pilih warna supaya info Anda menarik perhatian. "Otomatis" mengikuti jenis.', primary),
+                    PilihTemaInfo(tema: tema, onPilih: (v) => setSheet(() => tema = v)),
+                  ],
+                  bag(modeEdit ? 4 : 6, 'Lokasi dan masa tayang', 'Lokasi opsional. Masa tayang wajib.', primary),
                   SwitchListTile(
                     value: pakaiLokasi,
                     onChanged: (v) => setSheet(() => pakaiLokasi = v),
@@ -251,7 +332,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                     const SizedBox(height: 10),
                   ],
                   ExpiryPicker(
-                    key: ValueKey('exp_$kategori'),
+                    key: ValueKey('exp_${kategori}_${jenis}_${berlaku?.millisecondsSinceEpoch}'),
                     initial: berlaku,
                     onChanged: (d) => berlaku = d,
                   ),
@@ -315,6 +396,35 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                     return;
                                   }
 
+                                  final jn = jenisDari(jenis);
+                                  if (!modeEdit && jn.fotoMin > 0) {
+                                    final jml = fotoBaru.length + fotoLama.length;
+                                    if (jml < jn.fotoMin || (jenis == 'sebelum_sesudah' && jml != 2)) {
+                                      showSnack(false, '', jenis == 'sebelum_sesudah'
+                                          ? 'Pilih tepat 2 foto: SEBELUM lalu SESUDAH.'
+                                          : 'Pilih minimal ${jn.fotoMin} foto.');
+                                      return;
+                                    }
+                                  }
+                                  final Map<String, dynamic> ek = {};
+                                  if (!modeEdit) {
+                                    for (final f in jn.ekstra) {
+                                      final t = (ekstraCtrl['$jenis.${f.key}']?.text ?? '').trim();
+                                      if (t.isEmpty) continue;
+                                      if (jenis == 'polling_mini' && f.key == 'opsi') {
+                                        ek['opsi'] = t.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).take(4).toList();
+                                      } else {
+                                        ek[f.key] = t;
+                                      }
+                                    }
+                                    if (jenis == 'polling_mini' && ((ek['opsi'] as List?)?.length ?? 0) < 2) {
+                                      showSnack(false, '', 'Tulis minimal 2 pilihan jawaban (satu baris satu).');
+                                      return;
+                                    }
+                                  }
+                                  final Map<String, dynamic> tambahan = modeEdit
+                                      ? const {}
+                                      : {'jenis': jenis, if (tema.isNotEmpty) 'tema': tema, if (ek.isNotEmpty) 'ekstra': ek};
                                   final double? latI = pakaiLokasi ? titikInfo.latitude : null;
                                   final double? lngI = pakaiLokasi ? titikInfo.longitude : null;
                                   final String namaI = pakaiLokasi ? almtInfo.teks : '';
@@ -368,6 +478,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                       lat: latI,
                                       lng: lngI,
                                       lokasiNama: namaI,
+                                      tambahan: tambahan,
                                     );
                                     pesan = sensitif
                                         ? 'Pengajuan dikirim ke Kepala Desa.'
@@ -384,6 +495,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                       lat: latI,
                                       lng: lngI,
                                       lokasiNama: namaI,
+                                      tambahan: tambahan,
                                     );
                                     pesan = simpanDraft
                                         ? 'Disimpan sebagai draf (lihat tab Tertunda).'

@@ -32,6 +32,8 @@
 <p align="center"><img src="docs/img/fitur-warga.png" alt="Fitur warga" width="100%"></p>
 
 - **Info ala media sosial**: reaksi emoji, komentar, foto, lokasi di peta (opsional).
+- **10 jenis info dengan contoh siap pakai**: Kehilangan, Ditemukan, Dijual, Bantuan, Kabar Duka, Syukuran, **Sebelum-Sesudah (foto digeser)**, Galeri, dan **Tanya Cepat** (polling mini). Pilih warna kartu sendiri.
+- **Beranda hidup**: banner geser pilihan Admin, strip Kabar Duka, dan filter cepat per jenis.
 - **Info Saya**: cari info yang pernah Anda unggah, lalu ajukan perubahan. Info lama tetap tayang sampai Admin menyetujui.
 - **Pengaduan** dan **SOS** untuk masalah umum maupun darurat.
 - **Suara Warga** (suara rahasia, hasil per RW) dan **Agenda Desa** (RSVP, kalender). Keduanya bisa **diusulkan warga**, lengkap dengan contoh siap pakai.

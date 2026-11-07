@@ -38,6 +38,11 @@ service cloud.firestore {
     // Informasi desa: warga hanya boleh mengajukan (create). Ubah/hapus hanya
     // Admin/Kades, atau pembuatnya sendiri untuk menghapus.
     match /announcements/{id} {
+      match /pilih/{uid} {
+        allow read: if login();
+        allow create, update: if login() && aktif() && uid == request.auth.uid;
+        allow delete: if isStaff();
+      }
       allow read: if login();
       allow create: if login() && aktif();
       // Kategori sensitif hanya boleh diterbitkan (published) oleh Kepala Desa.

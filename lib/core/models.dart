@@ -255,6 +255,10 @@ class NewsModel {
   final double lng;
   final String lokasiNama;
   // Pengajuan perubahan oleh pembuat (warga) — menunggu persetujuan Admin/Kades
+  final String jenis; // biasa | kehilangan | dijual | duka | galeri | ...
+  final String tema; // '' = otomatis
+  final Map<String, dynamic> ekstra; // kolom tambahan sesuai jenis
+  final bool banner; // tampil di banner geser Beranda
   final String revisiStatus; // '' | diajukan | menunggu_kades | ditolak
   final String revisiCatatan; // alasan penolakan
   final Map<String, dynamic> revisi; // isi perubahan yang diajukan
@@ -281,6 +285,10 @@ class NewsModel {
     this.lat = 0,
     this.lng = 0,
     this.lokasiNama = '',
+    this.jenis = 'biasa',
+    this.tema = '',
+    this.ekstra = const {},
+    this.banner = false,
     this.revisiStatus = '',
     this.revisiCatatan = '',
     this.revisi = const {},
@@ -300,6 +308,10 @@ class NewsModel {
       lat: (data['lat'] ?? 0).toDouble(),
       lng: (data['lng'] ?? 0).toDouble(),
       lokasiNama: data['lokasi_nama'] ?? '',
+      jenis: data['jenis'] ?? 'biasa',
+      tema: data['tema'] ?? '',
+      ekstra: data['ekstra'] is Map ? Map<String, dynamic>.from(data['ekstra'] as Map) : const {},
+      banner: data['banner'] == true,
       revisiStatus: data['revisi_status'] ?? '',
       revisiCatatan: data['revisi_catatan'] ?? '',
       revisi: data['revisi'] is Map ? Map<String, dynamic>.from(data['revisi'] as Map) : const {},

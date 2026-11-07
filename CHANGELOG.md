@@ -1,3 +1,8 @@
+## Jenis info + Beranda lebih menarik
+- Ajukan Info dirombak: langkah bernomor, 10 jenis (Biasa, Kehilangan, Ditemukan, Dijual, Bantuan, Kabar Duka, Syukuran, Sebelum-Sesudah, Galeri, Tanya Cepat). Judul dan isi contoh terisi otomatis, bisa diubah. Pilih warna kartu.
+- Beranda: banner geser (Admin: menu titik tiga > Jadikan banner), strip Kabar Duka (3 hari), filter cepat per jenis, kartu khusus (foto digeser sebelum-sesudah, mosaik galeri, polling mini, kolom harga/kontak/waktu).
+- firestore.rules berubah (subkoleksi announcements/pilih): WAJIB deploy ulang.
+
 ## Alamat Blok/No, Suara Warga & Agenda, Kelola Desa, README
 - Alamat: Blok + No. rumah + RT/RW wajib; nama jalan dan kampung opsional (lowongan, lapak, pengaduan, jasa, pesanan jasa). Info desa: semua kolom opsional.
 - Suara Warga: tab terbaca (putih), usulan topik 4 langkah dengan kartu kategori + contoh, tidak lag lagi (notifikasi paralel di latar belakang), perbaikan error layar Buat Suara Warga.
