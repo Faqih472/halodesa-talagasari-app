@@ -49,20 +49,6 @@ class TemaView extends StatelessWidget {
               ),
             ]),
           ),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(
-                child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(0, 44)),
-                    onPressed: () {},
-                    child: const Text('Tombol'))),
-            const SizedBox(width: 10),
-            Expanded(
-                child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
-                    onPressed: () {},
-                    child: const Text('Tombol garis'))),
-          ]),
           const SizedBox(height: 18),
           const Text('Pilih warna',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),

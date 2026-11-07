@@ -258,6 +258,9 @@ class TabSettingsView extends StatelessWidget {
                 delay: const Duration(milliseconds: 160),
                 child: Column(
                   children: [
+                    _actionTile(Icons.palette_outlined, 'Tema Aplikasi',
+                      'Ganti warna tampilan: ${TemaApp.sekarang.nama}', primary,
+                      onTap: () => Get.to(() => const TemaView())),
                     _actionTile(Icons.language, 'acc_language'.tr,
                         english ? 'English' : 'Bahasa Indonesia', primary,
                         onTap: () => Get.to(() => const BahasaView())),
@@ -277,9 +280,6 @@ class TabSettingsView extends StatelessWidget {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 200),
                 child: Column(children: [
-                  _actionTile(Icons.palette_outlined, 'Tema Aplikasi',
-                      'Ganti warna tampilan: ${TemaApp.sekarang.nama}', primary,
-                      onTap: () => Get.to(() => const TemaView())),
                   _actionTile(Icons.rule_folder_outlined, 'Aturan Komunitas',
                       'Apa yang boleh dan tidak boleh. Ranah: Desa Talagasari saja',
                       primary,
