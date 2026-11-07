@@ -26,6 +26,7 @@ import '../core/models_extra.dart';
 import '../core/ui_helpers.dart';
 import 'info_sosial.dart' show GaleriFoto;
 import 'moderasi_view.dart';
+import 'verification_view.dart' show wajibVerifikasi;
 
 // ─────────────────────────────────────────────────────────────
 // KATEGORI + CONTOH
@@ -251,14 +252,19 @@ class _AgendaListViewState extends State<AgendaListView> {
               onPressed: () => Get.to(() => const PanduanAgendaView())),
         ],
       ),
-      floatingActionButton: _staf
-          ? FloatingActionButton.extended(
-              backgroundColor: primary,
-              onPressed: () => Get.to(() => const AgendaFormView()),
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Buat Agenda', style: TextStyle(color: Colors.white)),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: primary,
+        onPressed: () async {
+          if (_staf) {
+            Get.to(() => const AgendaFormView());
+          } else {
+            if (!await wajibVerifikasi()) return;
+            Get.to(() => const UsulAgendaView());
+          }
+        },
+        icon: Icon(_staf ? Icons.add : Icons.lightbulb_outline, color: Colors.white),
+        label: Text(_staf ? 'Buat Agenda' : 'Usulkan Kegiatan', style: const TextStyle(color: Colors.white)),
+      ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: _stream,
         builder: (context, snap) {
@@ -280,6 +286,7 @@ class _AgendaListViewState extends State<AgendaListView> {
                 _tabBtn(1, 'Kalender'),
                 _tabBtn(2, 'Rutin'),
                 _tabBtn(3, 'Selesai'),
+                _tabBtn(4, _staf ? 'Usulan warga' : 'Usulan saya'),
               ]),
             ),
             SizedBox(
@@ -293,7 +300,7 @@ class _AgendaListViewState extends State<AgendaListView> {
                 ],
               ),
             ),
-            ..._isi(semua),
+            if (_tab == 4) _UsulanAgendaTab(staf: _staf) else ..._isi(semua),
           ]);
         },
       ),
@@ -1117,7 +1124,14 @@ class _AgendaDetailViewState extends State<AgendaDetailView> {
 // ─────────────────────────────────────────────────────────────
 class AgendaFormView extends StatefulWidget {
   final AgendaModel? awal;
-  const AgendaFormView({super.key, this.awal});
+  // bila berasal dari usulan warga
+  final String? usulanId;
+  final String? kategoriAwal;
+  final String? judulAwal;
+  final String? isiAwal;
+  final String? lokasiAwal;
+  const AgendaFormView(
+      {super.key, this.awal, this.usulanId, this.kategoriAwal, this.judulAwal, this.isiAwal, this.lokasiAwal});
 
   @override
   State<AgendaFormView> createState() => _AgendaFormViewState();
@@ -1178,6 +1192,10 @@ class _AgendaFormViewState extends State<AgendaFormView> {
       }
     } else {
       _penyel.text = 'Pemerintah Desa Talagasari';
+      _kat = widget.kategoriAwal ?? '';
+      _judul.text = widget.judulAwal ?? '';
+      _isi.text = widget.isiAwal ?? '';
+      _lokasi.text = widget.lokasiAwal ?? '';
     }
   }
 
@@ -1299,13 +1317,20 @@ class _AgendaFormViewState extends State<AgendaFormView> {
         });
         id = ref.id;
         await AuditLog.catat(aksi: 'Membuat agenda', targetTipe: 'agenda', targetId: id, detail: _judul.text.trim());
+        if (widget.usulanId != null) {
+          await FirebaseFirestore.instance.collection('usulan_agenda').doc(widget.usulanId).update({
+            'status': 'dijadikan',
+            'agenda_id': id,
+            'diputus_at': Timestamp.now(),
+          });
+        }
       } else {
         id = widget.awal!.id;
         await col.doc(id).update(data);
         await AuditLog.catat(aksi: 'Mengubah agenda', targetTipe: 'agenda', targetId: id, detail: _judul.text.trim());
       }
       if (_notif) {
-        await notifPeran(['warga'],
+        notifPeran(['warga'],
             judul: 'Agenda Desa: ${_judul.text.trim()}',
             isi: '${_tgl(_mulai)}, pukul ${_jam(_mulai)} di ${_lokasi.text.trim()}',
             tipe: 'agenda',
@@ -1476,6 +1501,343 @@ class _AgendaFormViewState extends State<AgendaFormView> {
           label: Text(_simpan ? 'Menyimpan...' : (widget.awal == null ? 'Terbitkan agenda' : 'Simpan perubahan')),
         ),
       ]),
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// USULAN KEGIATAN DARI WARGA
+// ─────────────────────────────────────────────────────────────
+class UsulAgendaView extends StatefulWidget {
+  const UsulAgendaView({super.key});
+
+  @override
+  State<UsulAgendaView> createState() => _UsulAgendaViewState();
+}
+
+class _UsulAgendaViewState extends State<UsulAgendaView> {
+  String _kat = '';
+  final _judul = TextEditingController();
+  final _isi = TextEditingController();
+  final _lokasi = TextEditingController();
+  final _waktu = TextEditingController();
+  bool _kirim = false;
+
+  @override
+  void dispose() {
+    for (final c in [_judul, _isi, _lokasi, _waktu]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _pakaiContoh(KatAgenda k) {
+    setState(() {
+      _kat = k.id;
+      _judul.text = k.contohJudul;
+      _isi.text = k.contohIsi;
+    });
+  }
+
+  Future<void> _simpan() async {
+    final me = Get.find<AuthController>().currentUser.value;
+    if (me == null || _kirim) return;
+    if (_kat.isEmpty) {
+      showSnack(false, '', 'Langkah 1: pilih jenis kegiatan.');
+      return;
+    }
+    if (_judul.text.trim().length < 8) {
+      showSnack(false, '', 'Langkah 2: tulis nama kegiatan (minimal 8 huruf).');
+      return;
+    }
+    if (_isi.text.trim().length < 20) {
+      showSnack(false, '', 'Langkah 2: jelaskan kegiatannya (minimal 20 huruf).');
+      return;
+    }
+    setState(() => _kirim = true);
+    try {
+      await FirebaseFirestore.instance.collection('usulan_agenda').add({
+        'uid': me.uid,
+        'nama': me.nama,
+        'kategori': _kat,
+        'judul': _judul.text.trim(),
+        'isi': _isi.text.trim(),
+        'lokasi': _lokasi.text.trim(),
+        'waktu_saran': _waktu.text.trim(),
+        'status': 'baru',
+        'created_at': Timestamp.now(),
+      });
+      notifPeran(['admin', 'kades'],
+          judul: 'Usulan kegiatan dari warga', isi: _judul.text.trim(), tipe: 'info');
+      Get.back();
+      showSnack(true, 'Usulan terkirim. Perangkat desa akan menilai.', '');
+    } catch (_) {
+      if (mounted) setState(() => _kirim = false);
+      showSnack(false, '', 'Gagal mengirim usulan. Periksa internet dan aturan Firestore terbaru.');
+    }
+  }
+
+  Widget _langkah(int n, String t, String bantu) => Padding(
+        padding: const EdgeInsets.only(top: 18, bottom: 6),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            CircleAvatar(
+                radius: 12,
+                backgroundColor: Colors.green.shade700,
+                child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 12))),
+            const SizedBox(width: 8),
+            Expanded(child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5))),
+          ]),
+          Padding(
+            padding: const EdgeInsets.only(left: 32, top: 2),
+            child: Text(bantu,
+                style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
+          ),
+        ]),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = AppTheme.primaryColor(Get.find<AuthController>().role);
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(backgroundColor: primary, title: const Text('Usulkan Kegiatan')),
+      body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 40), children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.green.shade700, Colors.green.shade500]),
+              borderRadius: BorderRadius.circular(14)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+            Text('Ingin ada kegiatan di desa? Usulkan di sini',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            SizedBox(height: 6),
+            Text('Contoh: "Kerja bakti bersihkan selokan RW 05" atau "Pelatihan memotret produk untuk UMKM".',
+                style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
+            SizedBox(height: 10),
+            Text('Alurnya: 1) Anda mengusulkan  →  2) Admin menilai  →  3) Jadi agenda resmi di kalender desa.',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
+          ]),
+        ),
+        _langkah(1, 'Pilih jenis kegiatan', 'Ketuk satu. Nama dan penjelasan contoh langsung terisi, bisa Anda ubah.'),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1.55,
+          children: [
+            for (final k in kategoriAgenda)
+              InkWell(
+                onTap: () => _pakaiContoh(k),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _kat == k.id ? k.warna.withOpacity(0.12) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: _kat == k.id ? k.warna : Colors.grey.shade300, width: _kat == k.id ? 2 : 1),
+                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Icon(k.ikon, size: 18, color: k.warna),
+                      const SizedBox(width: 6),
+                      Expanded(
+                          child: Text(k.label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: k.warna))),
+                    ]),
+                    const SizedBox(height: 4),
+                    Expanded(
+                      child: Text(k.ringkas,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary)),
+                    ),
+                  ]),
+                ),
+              ),
+          ],
+        ),
+        _langkah(2, 'Apa kegiatannya?', 'Tulis nama dan penjelasan singkat: apa, untuk siapa, kenapa perlu.'),
+        TextField(
+          controller: _judul,
+          maxLength: 80,
+          decoration: const InputDecoration(
+              labelText: 'Nama kegiatan', hintText: 'Contoh: Kerja Bakti Bersih Selokan RW 05'),
+        ),
+        TextField(
+          controller: _isi,
+          maxLines: 4,
+          maxLength: 400,
+          decoration: const InputDecoration(
+              labelText: 'Penjelasan',
+              hintText: 'Contoh: Selokan sepanjang Jl. Kampung Baru tersumbat dan menyebabkan banjir saat hujan.'),
+        ),
+        _langkah(3, 'Kapan dan di mana? (opsional)', 'Boleh dikosongkan, admin yang menetapkan jadwal akhir.'),
+        TextField(
+          controller: _waktu,
+          decoration: const InputDecoration(
+              labelText: 'Saran waktu', hintText: 'Contoh: Minggu pagi, awal bulan depan'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _lokasi,
+          decoration: const InputDecoration(
+              labelText: 'Saran tempat', hintText: 'Contoh: Balai warga RW 05'),
+        ),
+        const SizedBox(height: 22),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52)),
+          onPressed: _kirim ? null : _simpan,
+          icon: const Icon(Icons.send, color: Colors.white),
+          label: Text(_kirim ? 'Mengirim...' : 'Kirim usulan'),
+        ),
+        const SizedBox(height: 6),
+        const Text('Usulan bisa ditolak jika tidak sesuai. Alasan penolakan selalu ditampilkan.',
+            style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+      ]),
+    );
+  }
+}
+
+class _UsulanAgendaTab extends StatelessWidget {
+  final bool staf;
+  const _UsulanAgendaTab({required this.staf});
+
+  Future<void> _tolak(DocumentSnapshot<Map<String, dynamic>> d) async {
+    final c = TextEditingController();
+    final ok = await Get.dialog<bool>(AlertDialog(
+      title: const Text('Tolak usulan'),
+      content: TextField(
+        controller: c,
+        maxLines: 3,
+        decoration: const InputDecoration(labelText: 'Alasan (wajib)'),
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
+        ElevatedButton(
+            style: ElevatedButton.styleFrom(minimumSize: const Size(100, 42)),
+            onPressed: () {
+              if (c.text.trim().length < 10) {
+                showSnack(false, '', 'Alasan minimal 10 huruf.');
+                return;
+              }
+              Get.back(result: true);
+            },
+            child: const Text('Tolak')),
+      ],
+    ));
+    if (ok != true) return;
+    try {
+      await d.reference.update({
+        'status': 'ditolak',
+        'alasan_tolak': c.text.trim(),
+        'diputus_at': Timestamp.now(),
+      });
+      showSnack(true, 'Usulan ditolak.', '');
+    } catch (_) {
+      showSnack(false, '', 'Gagal menyimpan.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = Get.find<AuthController>().currentUser.value?.uid ?? '';
+    final col = FirebaseFirestore.instance.collection('usulan_agenda');
+    final Query<Map<String, dynamic>> q =
+        staf ? col.orderBy('created_at', descending: true).limit(100) : col.where('uid', isEqualTo: uid).limit(50);
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: q.snapshots(),
+      builder: (context, snap) {
+        if (snap.hasError) {
+          return const Padding(
+              padding: EdgeInsets.only(top: 30),
+              child: EmptyState(icon: Icons.error_outline, title: 'Tidak dapat memuat', subtitle: 'Periksa koneksi internet.'));
+        }
+        if (!snap.hasData) {
+          return const Padding(padding: EdgeInsets.only(top: 40), child: Center(child: CircularProgressIndicator()));
+        }
+        final docs = snap.data!.docs;
+        if (docs.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 30),
+            child: EmptyState(
+                icon: Icons.lightbulb_outline,
+                title: staf ? 'Belum ada usulan warga' : 'Anda belum mengusulkan kegiatan',
+                subtitle: staf
+                    ? 'Usulan kegiatan dari warga akan muncul di sini.'
+                    : 'Tekan "Usulkan Kegiatan" untuk menyampaikan ide kegiatan desa.'),
+          );
+        }
+        return Column(children: [
+          for (final d in docs)
+            Builder(builder: (_) {
+              final m = d.data();
+              final st = '${m['status']}';
+              final k = katAgenda('${m['kategori']}');
+              final warna = st == 'baru' ? Colors.orange : (st == 'ditolak' ? Colors.red : Colors.green);
+              return kartu(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Icon(k.ikon, size: 16, color: k.warna),
+                    const SizedBox(width: 4),
+                    Expanded(
+                        child: Text(k.label,
+                            style: TextStyle(fontSize: 11.5, color: k.warna, fontWeight: FontWeight.w700))),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: warna, borderRadius: BorderRadius.circular(8)),
+                      child: Text(st == 'baru' ? 'MENUNGGU' : (st == 'ditolak' ? 'DITOLAK' : 'JADI AGENDA'),
+                          style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold)),
+                    ),
+                  ]),
+                  const SizedBox(height: 4),
+                  Text('${m['judul']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
+                  const SizedBox(height: 2),
+                  Text('${m['isi']}', style: const TextStyle(fontSize: 12.5)),
+                  if ('${m['waktu_saran'] ?? ''}'.isNotEmpty || '${m['lokasi'] ?? ''}'.isNotEmpty)
+                    Text('Saran: ${m['waktu_saran'] ?? ''} ${('${m['lokasi'] ?? ''}').isNotEmpty ? '· ${m['lokasi']}' : ''}',
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  if (staf)
+                    Text('Oleh ${m['nama']}',
+                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                  if (st == 'ditolak')
+                    Text('Alasan penolakan: ${m['alasan_tolak']}',
+                        style: TextStyle(fontSize: 12.5, color: Colors.red.shade800)),
+                  if (st == 'dijadikan' && m['agenda_id'] != null)
+                    TextButton(
+                        onPressed: () => Get.to(() => AgendaDetailView(id: '${m['agenda_id']}')),
+                        child: const Text('Lihat agendanya')),
+                  if (staf && st == 'baru')
+                    Row(children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(minimumSize: const Size(0, 38)),
+                        onPressed: () => Get.to(() => AgendaFormView(
+                              usulanId: d.id,
+                              kategoriAwal: '${m['kategori']}',
+                              judulAwal: '${m['judul']}',
+                              isiAwal: '${m['isi']}',
+                              lokasiAwal: '${m['lokasi'] ?? ''}',
+                            )),
+                        child: const Text('Jadikan Agenda'),
+                      ),
+                      const SizedBox(width: 6),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 38), foregroundColor: Colors.red),
+                        onPressed: () => _tolak(d),
+                        child: const Text('Tolak'),
+                      ),
+                    ]),
+                ]),
+              );
+            }),
+        ]);
+      },
     );
   }
 }

@@ -242,7 +242,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                     contentPadding: EdgeInsets.zero,
                   ),
                   if (pakaiLokasi) ...[
-                    BlokAlamatDesa(c: almtInfo),
+                    BlokAlamatDesa(c: almtInfo, wajib: false),
                     const SizedBox(height: 10),
                     PemilihPeta(
                       titik: titikInfo,
@@ -314,10 +314,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                                     showSnack(false, '', 'expiry_required'.tr);
                                     return;
                                   }
-                                  if (pakaiLokasi && almtInfo.galat() != null) {
-                                    showSnack(false, '', almtInfo.galat()!);
-                                    return;
-                                  }
+
                                   final double? latI = pakaiLokasi ? titikInfo.latitude : null;
                                   final double? lngI = pakaiLokasi ? titikInfo.longitude : null;
                                   final String namaI = pakaiLokasi ? almtInfo.teks : '';

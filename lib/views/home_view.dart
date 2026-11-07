@@ -10,6 +10,7 @@ import 'package:latlong2/latlong.dart' show LatLng;
 
 import '../controllers/auth_controller.dart';
 import '../controllers/chat_controller.dart';
+import '../controllers/complaint_controller.dart';
 import '../controllers/data_controller.dart';
 import '../core/core.dart';
 import '../core/models.dart';
@@ -171,6 +172,8 @@ class _AnimatedBottomNav extends StatelessWidget {
                   badge = notifUnread;
                 } else if (!isStaff && i == MainController.idxJasa) {
                   badge = _orderBadge();
+                } else if (isStaff && i == 1) {
+                  badge = _kelolaBadge();
                 }
                 final bool showChatBadge = badge > 0;
 
@@ -267,6 +270,24 @@ class _AnimatedBottomNav extends StatelessWidget {
   }
 
   /// Pesanan jasa yang menunggu tindakan saya (sebagai penyedia / pemesan)
+  /// Jumlah antrean di tab Kelola (info, pengaduan, KTP, jasa, lowongan, foto, hapus)
+  int _kelolaBadge() {
+    try {
+      final svc = Get.find<ServiceController>();
+      final cmp = Get.find<ComplaintController>();
+      final low = Get.find<LowonganController>();
+      return Get.find<DataController>().pendingList.length +
+          cmp.antrian.length +
+          cmp.ktpMenunggu.length +
+          svc.pendingVerifikasi.length +
+          low.antrian.length +
+          svc.antrianHapus.length +
+          low.antrianHapus.length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   int _orderBadge() {
     try {
       return Get.find<OrderController>().badgeTotal;

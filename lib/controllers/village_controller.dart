@@ -80,15 +80,18 @@ Future<void> notifPeran(
         .where('role', whereIn: peran)
         .get();
     final notif = Get.find<NotificationController>();
-    for (final d in snap.docs) {
-      if (kecualiUid != null && d.id == kecualiUid) continue;
-      await notif.kirimKe(
-        uidTujuan: d.id,
-        judul: judul,
-        isi: isi,
-        tipe: tipe,
-        targetId: targetId,
-      );
+    final tujuan = snap.docs.where((d) => kecualiUid == null || d.id != kecualiUid).toList();
+    // dikirim paralel (per 25) supaya tidak lambat saat penerimanya banyak
+    for (var i = 0; i < tujuan.length; i += 25) {
+      await Future.wait(tujuan.skip(i).take(25).map((d) => notif
+          .kirimKe(
+            uidTujuan: d.id,
+            judul: judul,
+            isi: isi,
+            tipe: tipe,
+            targetId: targetId,
+          )
+          .catchError((_) {})));
     }
   } catch (_) {}
 }

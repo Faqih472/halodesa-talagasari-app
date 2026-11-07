@@ -2134,6 +2134,7 @@ class _FormJasaViewState extends State<FormJasaView> {
   late final TextEditingController _cPeng;
   late final TextEditingController _cWa;
   late final TextEditingController _cAlamat;
+  final AlamatDesaCtrl _almt = AlamatDesaCtrl();
   late final TextEditingController _cMulai;
   late final TextEditingController _cMaks;
   final TextEditingController _cTag = TextEditingController();
@@ -2167,6 +2168,10 @@ class _FormJasaViewState extends State<FormJasaView> {
         text: _in.pengalamanTahun > 0 ? '${_in.pengalamanTahun}' : '');
     _cWa = TextEditingController(text: _in.whatsapp);
     _cAlamat = TextEditingController(text: _in.alamatUsaha);
+    _almt.isiDari(
+        jalanTeks: _in.alamatUsaha,
+        rtTeks: _auth.currentUser.value?.alamatRt ?? '',
+        rwTeks: _auth.currentUser.value?.alamatRw ?? '');
     _cMulai = TextEditingController(
         text: _in.tarifMulai > 0 ? RibuanFormatter.format(_in.tarifMulai) : '');
     _cMaks = TextEditingController(
@@ -2188,6 +2193,7 @@ class _FormJasaViewState extends State<FormJasaView> {
     _cPeng.dispose();
     _cWa.dispose();
     _cAlamat.dispose();
+    _almt.dispose();
     _cMulai.dispose();
     _cMaks.dispose();
     _cTag.dispose();
@@ -2694,21 +2700,12 @@ class _FormJasaViewState extends State<FormJasaView> {
                   _in.lat = p.latitude;
                   _in.lng = p.longitude;
                 }),
-          onAlamat: (a) {
-            if (_cAlamat.text.trim().isEmpty) _cAlamat.text = a;
-          },
         ),
+        const SizedBox(height: 10),
+        const Text('Alamat usaha / tempat jasa',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
         const SizedBox(height: 6),
-        TextFormField(
-          controller: _cAlamat,
-          maxLines: 3,
-          decoration: const InputDecoration(
-              labelText: 'Alamat lengkap (jalan, RT/RW, dusun, patokan)',
-              hintText: 'Contoh: Kp. Talagasari RT 02/05, dekat masjid'),
-          validator: (v) => (v == null || v.trim().length < 8)
-              ? 'Isi alamat atau patokan minimal 8 huruf'
-              : null,
-        ),
+        BlokAlamatDesa(c: _almt),
       ],
     );
   }
@@ -2730,7 +2727,12 @@ class _FormJasaViewState extends State<FormJasaView> {
     _in.deskripsi = _cDesk.text;
     _in.pengalamanTahun = _angka(_cPeng.text).clamp(0, 60).toInt();
     _in.whatsapp = _cWa.text;
-    _in.alamatUsaha = _cAlamat.text;
+    final ga = _almt.galat();
+    if (ga != null) {
+      showSnack(false, '', ga);
+      return;
+    }
+    _in.alamatUsaha = _almt.teks;
     _in.tarifMulai = _angka(_cMulai.text);
     _in.tarifMaks = _angka(_cMaks.text);
 
@@ -3161,6 +3163,7 @@ class _BuatPesananViewState extends State<BuatPesananView> {
   late final TextEditingController _cLayanan;
   late final TextEditingController _cDesk;
   late final TextEditingController _cAlamat;
+  final AlamatDesaCtrl _almt = AlamatDesaCtrl();
 
   PaketJasa? _paket;
   int _jumlah = 1;
@@ -3184,6 +3187,10 @@ class _BuatPesananViewState extends State<BuatPesananView> {
       if ((u?.alamatPatokan ?? '').isNotEmpty) 'Patokan: ${u!.alamatPatokan}',
     ].join(', ');
     _cAlamat = TextEditingController(text: alamat);
+    _almt.isiDari(
+        jalanTeks: u?.alamatLengkap ?? '',
+        rtTeks: u?.alamatRt ?? '',
+        rwTeks: u?.alamatRw ?? '');
     _mode = s.modeLayanan == 'tempat' ? 'tempat' : 'datang';
   }
 
@@ -3192,6 +3199,7 @@ class _BuatPesananViewState extends State<BuatPesananView> {
     _cLayanan.dispose();
     _cDesk.dispose();
     _cAlamat.dispose();
+    _almt.dispose();
     super.dispose();
   }
 
@@ -3250,6 +3258,13 @@ class _BuatPesananViewState extends State<BuatPesananView> {
     if (!_form.currentState!.validate()) return;
     final u = _auth.currentUser.value;
     if (u == null) return;
+    if (_mode == 'datang') {
+      final ga = _almt.galat();
+      if (ga != null) {
+        showSnack(false, '', ga);
+        return;
+      }
+    }
     if (_tanggal == null) {
       showSnack(false, '', 'Pilih tanggal pengerjaan dulu.');
       return;
@@ -3282,7 +3297,7 @@ class _BuatPesananViewState extends State<BuatPesananView> {
       tanggal: _tanggal!,
       jam: _jam == null ? '' : '${_dua(_jam!.hour)}:${_dua(_jam!.minute)}',
       mode: _mode,
-      alamat: datang ? _cAlamat.text : (s.alamatUsaha.isEmpty ? 'Di tempat penyedia' : s.alamatUsaha),
+      alamat: datang ? _almt.teks : (s.alamatUsaha.isEmpty ? 'Di tempat penyedia' : s.alamatUsaha),
       lat: datang ? (_titikAntar?.latitude ?? u.lokasiLat) : s.lokasiLat,
       lng: datang ? (_titikAntar?.longitude ?? u.lokasiLng) : s.lokasiLng,
     );
@@ -3516,20 +3531,15 @@ class _BuatPesananViewState extends State<BuatPesananView> {
                           _auth.currentUser.value?.lokasiLng ?? s.lokasiLng),
                   tinggi: 170,
                   onChanged: (p) => _titikAntar = p,
-                  onAlamat: (a) => setState(() => _cAlamat.text = a),
                 ),
               ),
             if (_mode == 'datang')
-              TextFormField(
-                controller: _cAlamat,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                    labelText: 'Alamat pengerjaan',
-                    helperText: 'Diambil dari alamat akun Anda, boleh diubah'),
-                validator: (v) => (_mode == 'datang' && (v == null || v.trim().length < 8))
-                    ? 'Isi alamat lengkap minimal 8 huruf'
-                    : null,
-              )
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Alamat pengerjaan',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(height: 6),
+                BlokAlamatDesa(c: _almt),
+              ])
             else
               _barisInfo(Icons.place_outlined,
                   s.alamatUsaha.isEmpty ? 'Lokasi penyedia (lihat peta di halaman jasa)' : s.alamatUsaha),

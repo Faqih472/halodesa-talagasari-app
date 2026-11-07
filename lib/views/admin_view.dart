@@ -2,6 +2,9 @@
 // admin_view.dart — TabManageView + TabPendingView
 // ============================================================
 
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -26,6 +29,16 @@ import 'verification_view.dart';
 // Kelola Pengajuan: Admin review warga, Kades review pending
 // ============================================================
 
+class _MenuKelola {
+  final String judul;
+  final String ket;
+  final IconData ikon;
+  final Color warna;
+  final int jumlah;
+  final Widget isi;
+  _MenuKelola(this.judul, this.ket, this.ikon, this.warna, this.jumlah, this.isi);
+}
+
 class TabManageView extends StatefulWidget {
   const TabManageView({super.key});
 
@@ -42,6 +55,111 @@ class _TabManageViewState extends State<TabManageView> {
       Get.find<DataController>().fetchPendingList();
       Get.find<LowonganController>().fetchAntrian();
     });
+    _mulaiDengar();
+  }
+
+  // jumlah antrean yang datang dari Firestore (live)
+  int _nRevisi = 0, _nLapKonten = 0, _nLapJasa = 0;
+  final List<StreamSubscription> _langganan = [];
+
+  @override
+  void dispose() {
+    for (final s in _langganan) {
+      s.cancel();
+    }
+    super.dispose();
+  }
+
+  void _dengar(Query<Map<String, dynamic>> q, void Function(int) set) {
+    _langganan.add(q.limit(99).snapshots().listen((s) {
+      if (mounted) setState(() => set(s.size));
+    }, onError: (_) {}));
+  }
+
+  void _mulaiDengar() {
+    final db = FirebaseFirestore.instance;
+    _dengar(db.collection('announcements').where('revisi_status', whereIn: ['diajukan', 'menunggu_kades']),
+        (n) => _nRevisi = n);
+    if (Get.find<AuthController>().role == 'admin') {
+      _dengar(db.collection('laporan_konten').where('status', isEqualTo: 'baru'), (n) => _nLapKonten = n);
+      _dengar(db.collection('laporan_jasa').where('status', isEqualTo: 'baru'), (n) => _nLapJasa = n);
+    }
+  }
+
+  void _buka(String judul, Color warna, Widget isi) {
+    Get.to(() => Scaffold(
+          backgroundColor: AppTheme.background,
+          appBar: AppBar(title: Text(judul), backgroundColor: warna),
+          body: isi,
+        ));
+  }
+
+  Widget _kartuMenu(_MenuKelola m, Color warna) {
+    return InkWell(
+      onTap: () => _buka(m.judul, warna, m.isi),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: m.jumlah > 0 ? m.warna : Colors.grey.shade200, width: m.jumlah > 0 ? 1.6 : 1),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: m.warna.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+              child: Icon(m.ikon, color: m.warna, size: 22),
+            ),
+            const Spacer(),
+            if (m.jumlah > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: Colors.red.shade600, borderRadius: BorderRadius.circular(12)),
+                child: Text(m.jumlah > 99 ? '99+' : '${m.jumlah}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              )
+            else
+              Icon(Icons.check_circle, size: 18, color: Colors.green.shade400),
+          ]),
+          const SizedBox(height: 8),
+          Text(m.judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 2),
+          Expanded(
+            child: Text(m.ket,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.3)),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _bagian(String judul, String ket, List<_MenuKelola> items, Color warna) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(ket, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.35,
+          children: [for (final m in items) _kartuMenu(m, warna)],
+        ),
+      ),
+    ]);
   }
 
   @override
@@ -54,92 +172,101 @@ class _TabManageViewState extends State<TabManageView> {
       final String role = authCtrl.role;
       final Color primaryColor = AppTheme.primaryColor(role);
       final bool isAdmin = role == 'admin';
-      final String judulTab =
-          role == 'kades' ? 'Persetujuan Kades' : 'Kelola Pengajuan';
-
-      final Widget infoList = _buildInfoList(dataCtrl, primaryColor, role);
       final ComplaintController cmpCtrl = Get.find<ComplaintController>();
+      final lowCtrl = Get.find<LowonganController>();
+      final infoList = _buildInfoList(dataCtrl, primaryColor, role);
 
-      Widget tabBadge(String label, int n) => Tab(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(label),
-                if (n > 0)
-                  Container(
-                    margin: const EdgeInsets.only(left: 6),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text('$n',
-                        style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: primaryColor)),
-                  ),
-              ],
-            ),
-          );
+      final int nInfo = dataCtrl.pendingList.length;
+      final int nJasa = serviceCtrl.pendingVerifikasi.length;
+      final int nAduan = cmpCtrl.antrian.length;
+      final int nKtp = cmpCtrl.ktpMenunggu.length;
+      final int nLow = lowCtrl.antrian.length;
+      final int nFoto = Get.find<FotoProfilController>().antrian.length;
+      final int nHapus = serviceCtrl.antrianHapus.length + lowCtrl.antrianHapus.length;
 
-      // Admin : Informasi, Penyedia Jasa, Pengaduan, KTP
-      // Kades : Informasi, Pengaduan (kategori berat)
-      final List<Widget> tabs = isAdmin
+      final List<_MenuKelola> tinjau = isAdmin
           ? [
-              const Tab(text: 'Informasi'),
-              tabBadge('Jasa', serviceCtrl.pendingVerifikasi.length),
-              tabBadge('tab_complaint'.tr, cmpCtrl.antrian.length),
-              tabBadge('KTP', cmpCtrl.ktpMenunggu.length),
-              const Tab(text: 'Laporan Jasa'),
-              tabBadge('Lowongan', Get.find<LowonganController>().antrian.length),
-              tabBadge('Foto', Get.find<FotoProfilController>().antrian.length),
-              tabBadge('Hapus', serviceCtrl.antrianHapus.length + Get.find<LowonganController>().antrianHapus.length),
-              const Tab(text: 'Laporan & Blokir'),
-              const Tab(text: 'Lapak UMKM'),
-              const Tab(text: 'Revisi Info'),
+              _MenuKelola('Info baru', 'Info dari warga yang menunggu disetujui tayang.', Icons.campaign_outlined,
+                  Colors.green.shade700, nInfo, infoList),
+              _MenuKelola('Perubahan info', 'Warga mengubah info yang sudah tayang. Bandingkan lalu setujui.',
+                  Icons.edit_note_outlined, Colors.teal.shade700, _nRevisi, const RevisiInfoTab()),
+              _MenuKelola('Pengaduan', 'Pengaduan warga. Saring, proses, atau teruskan ke Kades.',
+                  Icons.report_problem_outlined, Colors.orange.shade800, nAduan, const PengaduanStaffTab()),
+              _MenuKelola('Verifikasi KTP', 'Cocokkan data dan foto KTP warga.', Icons.badge_outlined,
+                  Colors.indigo, nKtp, const KtpStaffTab()),
+              _MenuKelola('Verifikasi jasa', 'Penyedia jasa baru yang minta disetujui.', Icons.handyman_outlined,
+                  Colors.brown, nJasa, const AdminJasaTab()),
+              _MenuKelola('Lowongan', 'Lowongan Butuh Pekerja yang menunggu tayang.', Icons.work_outline,
+                  Colors.blue.shade700, nLow, const LowonganStaffTab()),
+              _MenuKelola('Foto profil', 'Foto profil baru yang perlu dicek.', Icons.account_circle_outlined,
+                  Colors.purple, nFoto, const FotoStaffTab()),
+              _MenuKelola('Permintaan hapus', 'Pemilik jasa atau lowongan minta datanya dihapus.',
+                  Icons.delete_outline, Colors.red.shade700, nHapus, const HapusStaffTab()),
             ]
           : [
-              const Tab(text: 'Informasi'),
-              tabBadge('tab_complaint'.tr, cmpCtrl.antrian.length),
-              const Tab(text: 'Revisi Info'),
+              _MenuKelola('Info menunggu Kades', 'Info yang perlu persetujuan Kepala Desa.', Icons.campaign_outlined,
+                  Colors.green.shade700, nInfo, infoList),
+              _MenuKelola('Perubahan info', 'Perubahan info kategori sensitif.', Icons.edit_note_outlined,
+                  Colors.teal.shade700, _nRevisi, const RevisiInfoTab()),
+              _MenuKelola('Pengaduan berat', 'Pengaduan keamanan atau kekerasan yang diteruskan Admin.',
+                  Icons.report_problem_outlined, Colors.orange.shade800, nAduan, const PengaduanStaffTab()),
             ];
-      final List<Widget> views = isAdmin
+      final List<_MenuKelola> lapor = isAdmin
           ? [
-              infoList,
-              const AdminJasaTab(),
-              const PengaduanStaffTab(),
-              const KtpStaffTab(),
-              const LaporanJasaTab(),
-              const LowonganStaffTab(),
-              const FotoStaffTab(),
-              const HapusStaffTab(),
-              const ModerasiTab(),
-              const LapakStaffTab(),
-              const RevisiInfoTab(),
+              _MenuKelola('Laporan & blokir', 'Laporan konten dan akun warga. Bekukan akun bila melanggar.',
+                  Icons.shield_outlined, Colors.red.shade700, _nLapKonten, const ModerasiTab()),
+              _MenuKelola('Laporan jasa', 'Warga melaporkan penyedia jasa.', Icons.flag_outlined,
+                  Colors.deepOrange, _nLapJasa, const LaporanJasaTab()),
+              _MenuKelola('Lapak UMKM', 'Pantau lapak. Sembunyikan bila melanggar aturan.', Icons.storefront_outlined,
+                  Colors.pink.shade700, 0, const LapakStaffTab()),
             ]
-          : [
-              infoList,
-              const PengaduanStaffTab(),
-              const RevisiInfoTab(),
-            ];
+          : <_MenuKelola>[];
 
-      return DefaultTabController(
-        length: tabs.length,
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text(judulTab),
-            backgroundColor: primaryColor,
-            bottom: TabBar(
-              isScrollable: true,
-              indicatorColor: Colors.white,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
-              tabs: tabs,
+      final int total = tinjau.fold<int>(0, (a, m) => a + m.jumlah) + lapor.fold<int>(0, (a, m) => a + m.jumlah);
+
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        appBar: AppBar(
+          title: Text(role == 'kades' ? 'Persetujuan Kades' : 'Kelola Desa'),
+          backgroundColor: primaryColor,
+        ),
+        body: RefreshIndicator(
+          color: primaryColor,
+          onRefresh: () async {
+            await dataCtrl.fetchPendingList();
+            await lowCtrl.fetchAntrian();
+          },
+          child: ListView(padding: const EdgeInsets.only(bottom: 30), children: [
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                    colors: total > 0
+                        ? [Colors.orange.shade700, Colors.deepOrange.shade400]
+                        : [Colors.green.shade700, Colors.green.shade500]),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(children: [
+                Icon(total > 0 ? Icons.notifications_active : Icons.verified, color: Colors.white, size: 34),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(total > 0 ? '$total hal perlu tindakan Anda' : 'Semua beres, tidak ada antrean',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    Text(
+                        total > 0
+                            ? 'Kotak bertanda angka merah di bawah berisi pengajuan baru. Tarik ke bawah untuk memuat ulang.'
+                            : 'Pengajuan baru dari warga akan muncul di sini dengan angka merah dan notifikasi.',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.35)),
+                  ]),
+                ),
+              ]),
             ),
-          ),
-          body: TabBarView(children: views),
+            _bagian('Perlu ditinjau', 'Ketuk kotak untuk membuka. Angka merah = jumlah yang menunggu.', tinjau, primaryColor),
+            if (lapor.isNotEmpty) _bagian('Laporan dan keamanan', 'Penegakan Aturan Komunitas.', lapor, primaryColor),
+          ]),
         ),
       );
     });

@@ -1596,23 +1596,50 @@ class _PemilihPetaState extends State<PemilihPeta> with AutomaticKeepAliveClient
 /// provinsi TERKUNCI (tidak bisa diubah); warga mengisi kampung, RT, RW, jalan/patokan.
 class AlamatDesaCtrl {
   static const String tetap = 'Desa Talagasari, Kec. Cikupa, Kab. Tangerang, Banten';
-  final kampung = TextEditingController();
+  // WAJIB: blok + nomor rumah + RT + RW. OPSIONAL: nama jalan, kampung.
+  final blok = TextEditingController();
+  final nomor = TextEditingController();
   final rt = TextEditingController();
   final rw = TextEditingController();
+  final kampung = TextEditingController();
   final jalan = TextEditingController();
 
+  /// Membaca kembali alamat yang pernah disimpan (Blok.. No.. , Jl.., Kp.., RT/RW) ke kolom.
   void isiDari({String jalanTeks = '', String rtTeks = '', String rwTeks = ''}) {
     var j = jalanTeks.trim();
     if (j.endsWith(tetap)) j = j.substring(0, j.length - tetap.length).trim();
     if (j.endsWith(',')) j = j.substring(0, j.length - 1);
-    jalan.text = j;
-    rt.text = rtTeks.replaceAll(RegExp(r'[^0-9]'), '');
-    rw.text = rwTeks.replaceAll(RegExp(r'[^0-9]'), '');
+    String b = '', n = '', k = '', r1 = '', r2 = '';
+    final sisa = <String>[];
+    for (final part in j.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty)) {
+      final mb = RegExp(r'^Blok\s+(.*?)(?:\s+No\.?\s*(.*))?$', caseSensitive: false).firstMatch(part);
+      final mr = RegExp(r'^RT\s*(\d+)\s*/\s*RW\s*(\d+)$', caseSensitive: false).firstMatch(part);
+      if (mb != null && b.isEmpty) {
+        b = (mb.group(1) ?? '').trim();
+        n = (mb.group(2) ?? '').trim();
+      } else if (mr != null) {
+        r1 = mr.group(1)!;
+        r2 = mr.group(2)!;
+      } else if (RegExp(r'^Kp\.?\s', caseSensitive: false).hasMatch(part) && k.isEmpty) {
+        k = part.replaceFirst(RegExp(r'^Kp\.?\s*', caseSensitive: false), '');
+      } else {
+        sisa.add(part);
+      }
+    }
+    blok.text = b;
+    nomor.text = n;
+    kampung.text = k;
+    jalan.text = sisa.join(', ');
+    rt.text = (r1.isNotEmpty ? r1 : rtTeks).replaceAll(RegExp(r'[^0-9]'), '');
+    rw.text = (r2.isNotEmpty ? r2 : rwTeks).replaceAll(RegExp(r'[^0-9]'), '');
   }
 
   String get teks {
     final k = kampung.text.trim();
+    final b = blok.text.trim();
+    final n = nomor.text.trim();
     return [
+      if (b.isNotEmpty || n.isNotEmpty) 'Blok ${b.isEmpty ? '-' : b}${n.isEmpty ? '' : ' No. $n'}',
       if (jalan.text.trim().isNotEmpty) jalan.text.trim(),
       if (k.isNotEmpty) (k.toLowerCase().startsWith('kp') ? k : 'Kp. $k'),
       if (rt.text.trim().isNotEmpty || rw.text.trim().isNotEmpty)
@@ -1622,8 +1649,11 @@ class AlamatDesaCtrl {
   }
 
   String? galat() {
-    if (jalan.text.trim().length < 5) {
-      return 'Isi nama jalan atau patokan (minimal 5 huruf).';
+    if (blok.text.trim().isEmpty) {
+      return 'Blok / gang wajib diisi. Contoh: A3, C, atau Gang Melati.';
+    }
+    if (nomor.text.trim().isEmpty) {
+      return 'Nomor rumah wajib diisi. Contoh: 12.';
     }
     if (rt.text.trim().isEmpty || rw.text.trim().isEmpty) {
       return 'RT dan RW wajib diisi.';
@@ -1632,19 +1662,24 @@ class AlamatDesaCtrl {
   }
 
   void dispose() {
-    kampung.dispose();
+    blok.dispose();
+    nomor.dispose();
     rt.dispose();
     rw.dispose();
+    kampung.dispose();
     jalan.dispose();
   }
 }
 
 class BlokAlamatDesa extends StatelessWidget {
   final AlamatDesaCtrl c;
-  const BlokAlamatDesa({super.key, required this.c});
+  /// false = semua kolom opsional (dipakai untuk lokasi info yang tidak wajib).
+  final bool wajib;
+  const BlokAlamatDesa({super.key, required this.c, this.wajib = true});
 
   @override
   Widget build(BuildContext context) {
+    final w = wajib ? ' *' : ' (opsional)';
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Container(
         width: double.infinity,
@@ -1663,28 +1698,42 @@ class BlokAlamatDesa extends StatelessWidget {
           ),
         ]),
       ),
-      const Padding(
-        padding: EdgeInsets.only(top: 3, bottom: 8),
-        child: Text('Wilayah dikunci: layanan ini hanya untuk Desa Talagasari.',
-            style: TextStyle(fontSize: 11, color: Colors.black54)),
+      Padding(
+        padding: const EdgeInsets.only(top: 3, bottom: 8),
+        child: Text(
+            wajib
+                ? 'Wilayah dikunci: Desa Talagasari. Yang wajib: Blok, Nomor, RT, RW. Nama jalan dan kampung boleh dikosongkan.'
+                : 'Wilayah dikunci: Desa Talagasari. Semua kolom di bawah boleh dikosongkan.',
+            style: const TextStyle(fontSize: 11, color: Colors.black54)),
       ),
       Row(children: [
         Expanded(
           flex: 3,
           child: TextField(
-            controller: c.kampung,
-            decoration: const InputDecoration(
-                labelText: 'Kampung / Dusun', hintText: 'Contoh: Kp. Talagasari'),
+            controller: c.blok,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+                labelText: 'Blok / Gang$w', hintText: 'Contoh: A3'),
           ),
         ),
         const SizedBox(width: 8),
+        Expanded(
+          flex: 2,
+          child: TextField(
+            controller: c.nomor,
+            decoration: InputDecoration(labelText: 'No. rumah$w', hintText: '12'),
+          ),
+        ),
+      ]),
+      const SizedBox(height: 8),
+      Row(children: [
         Expanded(
           child: TextField(
             controller: c.rt,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             maxLength: 3,
-            decoration: const InputDecoration(labelText: 'RT', counterText: ''),
+            decoration: InputDecoration(labelText: 'RT$w', counterText: ''),
           ),
         ),
         const SizedBox(width: 8),
@@ -1694,7 +1743,16 @@ class BlokAlamatDesa extends StatelessWidget {
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             maxLength: 3,
-            decoration: const InputDecoration(labelText: 'RW', counterText: ''),
+            decoration: InputDecoration(labelText: 'RW$w', counterText: ''),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 2,
+          child: TextField(
+            controller: c.kampung,
+            decoration: const InputDecoration(
+                labelText: 'Kampung (opsional)', hintText: 'Kp. Talagasari'),
           ),
         ),
       ]),
@@ -1703,8 +1761,8 @@ class BlokAlamatDesa extends StatelessWidget {
         controller: c.jalan,
         maxLines: 2,
         decoration: const InputDecoration(
-          labelText: 'Nama jalan / gang / patokan',
-          hintText: 'Contoh: Jl. Mawar No. 5, depan masjid Al-Ikhlas',
+          labelText: 'Nama jalan / patokan (opsional)',
+          hintText: 'Contoh: Jl. Mawar, depan masjid Al-Ikhlas',
         ),
       ),
     ]);

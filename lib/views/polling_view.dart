@@ -381,6 +381,8 @@ class _PollListViewState extends State<PollListView> {
           ],
           bottom: TabBar(
             indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
             tabs: [
               const Tab(text: 'Topik'),
               Tab(text: staf ? 'Usulan warga' : 'Usulan saya'),
@@ -754,7 +756,7 @@ class _PollDetailViewState extends State<PollDetailView> {
         'keputusan_at': Timestamp.now(),
       });
       await AuditLog.catat(aksi: 'Keputusan suara warga', targetTipe: 'polling', targetId: p.id, detail: '${_labelTindak[st]}: ${p.pertanyaan}');
-      await notifPeran(['warga'],
+      notifPeran(['warga'],
           judul: 'Keputusan desa: ${_labelTindak[st]}',
           isi: p.pertanyaan,
           tipe: 'info',
@@ -1331,7 +1333,7 @@ class _BuatPollingViewState extends State<BuatPollingView> {
         });
       }
       await AuditLog.catat(aksi: 'Membuat suara warga', targetTipe: 'polling', targetId: ref.id, detail: _tanya.text.trim());
-      await notifPeran(['warga'],
+      notifPeran(['warga'],
           judul: 'Suara Warga baru', isi: _tanya.text.trim(), tipe: 'info', targetId: ref.id);
       Get.back();
       showSnack(true, 'Suara Warga dibuka dan warga sudah diberi tahu.', '');
@@ -1380,7 +1382,7 @@ class _BuatPollingViewState extends State<BuatPollingView> {
         const SizedBox(height: 8),
         const Text('Contoh siap pakai', style: TextStyle(fontWeight: FontWeight.w700)),
         SizedBox(
-          height: 112,
+          height: 150,
           child: ListView(scrollDirection: Axis.horizontal, children: [
             for (final t in templatePoll)
               InkWell(
@@ -1399,7 +1401,10 @@ class _BuatPollingViewState extends State<BuatPollingView> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 10.5, color: katPoll(t.kategori).warna, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 3),
-                    Text(t.judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                    Text(t.judul,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
                     const SizedBox(height: 2),
                     Text(t.pertanyaan,
                         maxLines: 2,
@@ -1588,6 +1593,7 @@ class _UsulPollViewState extends State<UsulPollView> {
   final _tanya = TextEditingController();
   final _alasan = TextEditingController();
   final _opsi = TextEditingController();
+  String _jenis = 'setuju'; // setuju | pilihan
   bool _kirim = false;
 
   @override
@@ -1598,19 +1604,41 @@ class _UsulPollViewState extends State<UsulPollView> {
     super.dispose();
   }
 
+  void _pakaiContoh(TemplatePoll t) {
+    setState(() {
+      _kat = t.kategori;
+      _tanya.text = t.pertanyaan;
+      _alasan.text = t.penjelasan;
+      if (t.tipe == 'setuju') {
+        _jenis = 'setuju';
+        _opsi.clear();
+      } else {
+        _jenis = 'pilihan';
+        _opsi.text = t.opsi.join('\n');
+      }
+    });
+  }
+
   Future<void> _simpan() async {
     final me = Get.find<AuthController>().currentUser.value;
     if (me == null || _kirim) return;
     if (_kat.isEmpty) {
-      showSnack(false, '', 'Pilih kategori dulu.');
+      showSnack(false, '', 'Langkah 1: pilih kategori dulu.');
       return;
     }
     if (_tanya.text.trim().length < 10) {
-      showSnack(false, '', 'Tulis pertanyaan yang jelas (minimal 10 huruf).');
+      showSnack(false, '', 'Langkah 2: tulis pertanyaan yang jelas (minimal 10 huruf).');
       return;
     }
     if (_alasan.text.trim().length < 15) {
-      showSnack(false, '', 'Jelaskan alasan topik ini penting (minimal 15 huruf).');
+      showSnack(false, '', 'Langkah 3: jelaskan alasan topik ini penting (minimal 15 huruf).');
+      return;
+    }
+    final saran = _jenis == 'setuju'
+        ? <String>[]
+        : _opsi.text.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).take(8).toList();
+    if (_jenis == 'pilihan' && saran.length < 2) {
+      showSnack(false, '', 'Langkah 4: tulis minimal 2 pilihan jawaban (satu baris satu).');
       return;
     }
     setState(() => _kirim = true);
@@ -1621,82 +1649,199 @@ class _UsulPollViewState extends State<UsulPollView> {
         'kategori': _kat,
         'pertanyaan': _tanya.text.trim(),
         'alasan': _alasan.text.trim(),
-        'opsi_saran': _opsi.text
-            .split('\n')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .take(8)
-            .toList(),
+        'opsi_saran': saran,
         'status': 'baru',
         'created_at': Timestamp.now(),
       });
-      await notifPeran(['admin', 'kades'],
+      // notifikasi dikirim di latar belakang agar layar tidak menunggu
+      notifPeran(['admin', 'kades'],
           judul: 'Usulan topik dari warga', isi: _tanya.text.trim(), tipe: 'info');
       Get.back();
       showSnack(true, 'Usulan terkirim. Perangkat desa akan menilai.', '');
     } catch (_) {
-      setState(() => _kirim = false);
-      showSnack(false, '', 'Gagal mengirim usulan.');
+      if (mounted) setState(() => _kirim = false);
+      showSnack(false, '', 'Gagal mengirim usulan. Periksa internet dan aturan Firestore terbaru.');
     }
   }
+
+  Widget _judul(int n, String t, String bantu) => Padding(
+        padding: const EdgeInsets.only(top: 18, bottom: 6),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            CircleAvatar(
+                radius: 12,
+                backgroundColor: Colors.green.shade700,
+                child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 12))),
+            const SizedBox(width: 8),
+            Expanded(child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15.5))),
+          ]),
+          Padding(
+            padding: const EdgeInsets.only(left: 32, top: 2),
+            child: Text(bantu,
+                style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
+          ),
+        ]),
+      );
 
   @override
   Widget build(BuildContext context) {
     final primary = AppTheme.primaryColor(Get.find<AuthController>().role);
+    final contoh = templatePoll.where((t) => _kat.isEmpty || t.kategori == _kat).toList();
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(backgroundColor: primary, title: const Text('Usulkan Topik')),
       body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 40), children: [
         Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(12)),
-          child: const Text(
-              'Punya hal yang perlu dimusyawarahkan warga? Tulis di sini. Contoh: "Setujukah lampu jalan dipasang di Gang Mawar?" dengan alasan "Gang gelap, rawan kejahatan".',
-              style: TextStyle(fontSize: 13, height: 1.4)),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.green.shade700, Colors.green.shade500]),
+              borderRadius: BorderRadius.circular(14)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+            Text('Usul satu hal untuk diputuskan bersama',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            SizedBox(height: 6),
+            Text('Contoh: "Setujukah lampu jalan dipasang di Gang Mawar?"',
+                style: TextStyle(color: Colors.white, fontSize: 13, height: 1.4)),
+            SizedBox(height: 10),
+            Text('Alurnya: 1) Anda mengusulkan  →  2) Admin menilai  →  3) Jadi Suara Warga, semua warga memilih.',
+                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
+          ]),
         ),
-        const SizedBox(height: 12),
-        const Text('1. Kategori', style: TextStyle(fontWeight: FontWeight.bold)),
-        Wrap(spacing: 6, children: [
-          for (final k in kategoriPoll)
-            ChoiceChip(
-              label: Text(k.label, style: TextStyle(fontSize: 12, color: _kat == k.id ? Colors.white : null)),
-              selected: _kat == k.id,
-              selectedColor: k.warna,
-              showCheckmark: false,
-              onSelected: (_) => setState(() => _kat = k.id),
-            ),
-        ]),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
+        const Text('Malas mengetik? Ketuk salah satu contoh (isinya bisa diubah):',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+        SizedBox(
+          height: 128,
+          child: ListView(scrollDirection: Axis.horizontal, children: [
+            for (final t in contoh)
+              InkWell(
+                onTap: () => _pakaiContoh(t),
+                child: Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: katPoll(t.kategori).warna.withOpacity(0.5))),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(katPoll(t.kategori).label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 10.5, color: katPoll(t.kategori).warna, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 3),
+                    Text(t.judul,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 2),
+                    Expanded(
+                      child: Text(t.pertanyaan,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                    ),
+                  ]),
+                ),
+              ),
+          ]),
+        ),
+        _judul(1, 'Pilih kategori', 'Supaya warga mudah mencarinya. Contoh isi tiap kategori ada di bawah namanya.'),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1.55,
+          children: [
+            for (final k in kategoriPoll)
+              InkWell(
+                onTap: () => setState(() => _kat = k.id),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _kat == k.id ? k.warna.withOpacity(0.12) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _kat == k.id ? k.warna : Colors.grey.shade300, width: _kat == k.id ? 2 : 1),
+                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Icon(k.ikon, size: 18, color: k.warna),
+                      const SizedBox(width: 6),
+                      Expanded(
+                          child: Text(k.label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: k.warna))),
+                    ]),
+                    const SizedBox(height: 4),
+                    Expanded(
+                      child: Text(k.contoh,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary)),
+                    ),
+                  ]),
+                ),
+              ),
+          ],
+        ),
+        _judul(2, 'Tulis pertanyaannya', 'Singkat dan bisa dijawab. Pakai kalimat tanya.'),
         TextField(
           controller: _tanya,
           maxLines: 2,
           maxLength: 150,
           decoration: const InputDecoration(
-              labelText: '2. Pertanyaan yang diusulkan',
+              labelText: 'Pertanyaan',
               hintText: 'Contoh: Setujukah lampu jalan dipasang di Gang Mawar?'),
         ),
+        _judul(3, 'Kenapa ini penting?', 'Jelaskan masalahnya supaya admin dan warga paham.'),
         TextField(
           controller: _alasan,
           maxLines: 3,
           maxLength: 300,
           decoration: const InputDecoration(
-              labelText: '3. Alasan topik ini penting',
+              labelText: 'Alasan',
               hintText: 'Contoh: Gang gelap dan sudah dua kali ada kehilangan motor.'),
         ),
-        TextField(
-          controller: _opsi,
-          maxLines: 4,
-          decoration: const InputDecoration(
-              labelText: '4. Saran pilihan jawaban (opsional, satu baris satu)',
-              hintText: 'Setuju\nTidak setuju'),
-        ),
-        const SizedBox(height: 18),
+        _judul(4, 'Pilihan jawabannya', 'Pilih cara warga menjawab.'),
+        Wrap(spacing: 8, children: [
+          ChoiceChip(
+            label: const Text('Setuju / Tidak setuju', style: TextStyle(fontSize: 12)),
+            selected: _jenis == 'setuju',
+            onSelected: (_) => setState(() => _jenis = 'setuju'),
+          ),
+          ChoiceChip(
+            label: const Text('Pilihan saya sendiri', style: TextStyle(fontSize: 12)),
+            selected: _jenis == 'pilihan',
+            onSelected: (_) => setState(() => _jenis = 'pilihan'),
+          ),
+        ]),
+        const SizedBox(height: 6),
+        if (_jenis == 'setuju')
+          const Text('Warga menjawab: Setuju, Tidak setuju, atau Abstain. Paling mudah, cocok untuk rencana.',
+              style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))
+        else
+          TextField(
+            controller: _opsi,
+            maxLines: 5,
+            decoration: const InputDecoration(
+                labelText: 'Pilihan jawaban (satu baris satu, minimal 2)',
+                hintText: 'Sabtu pagi\nMinggu pagi\nMinggu sore'),
+          ),
+        const SizedBox(height: 22),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52)),
           onPressed: _kirim ? null : _simpan,
           icon: const Icon(Icons.send, color: Colors.white),
           label: Text(_kirim ? 'Mengirim...' : 'Kirim usulan'),
         ),
+        const SizedBox(height: 6),
+        const Text('Usulan bisa ditolak jika tidak sesuai. Alasan penolakan selalu ditampilkan.',
+            style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
       ]),
     );
   }

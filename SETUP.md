@@ -163,3 +163,6 @@ Penyebab "Lokasi gagal" di semua peta: `AndroidManifest.xml` belum punya izin lo
 ## 8o. Info Saya & Revisi Info
 1. Deploy ulang `firestore.rules` (Firebase Console -> Firestore -> Rules -> Publish).
 2. Tes: Beranda -> Info Saya -> Ajukan perubahan; Admin -> tab Revisi Info -> Setujui/Tolak.
+
+## 8p. Deploy ulang rules (usulan_agenda)
+Salin `firestore.rules` ke Firebase Console -> Firestore -> Rules -> Publish.
