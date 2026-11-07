@@ -83,6 +83,32 @@ Uri uriPeta(double lat, double lng) =>
     Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
 
 /// Kartu putih membulat standar
+/// Kartu daftar bergaris warna di kiri (gaya Beranda), dipakai di Jasa/Lowongan/Lapak.
+Widget kartuGaris({required Widget child, required Color warna, VoidCallback? onTap, EdgeInsets? margin}) {
+  return Container(
+    margin: margin ?? const EdgeInsets.fromLTRB(16, 7, 16, 7),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      boxShadow: [BoxShadow(color: warna.withOpacity(0.16), blurRadius: 14, offset: const Offset(0, 5))],
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: Material(
+        color: Colors.white,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(border: Border(left: BorderSide(color: warna, width: 5))),
+            padding: const EdgeInsets.all(12),
+            child: child,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 Widget kartu({required Widget child, EdgeInsets? margin, EdgeInsets? padding}) {
   return Container(
     margin: margin ?? const EdgeInsets.fromLTRB(16, 6, 16, 6),

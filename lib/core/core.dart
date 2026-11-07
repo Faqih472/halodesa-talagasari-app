@@ -2,6 +2,7 @@
 // core.dart — Inti: LocalStore, AppUtils, AppTheme, Widgets
 // ============================================================
 
+import 'tema_app.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -62,6 +63,7 @@ class AppTheme {
   // Ambil warna utama berdasarkan role
   // ─────────────────────────────────────────────────────────
   static Color primaryColor(String role) {
+    if (!TemaApp.bawaan) return TemaApp.sekarang.utama;
     switch (role) {
       case 'admin':
         return warnaAdmin;
@@ -73,6 +75,7 @@ class AppTheme {
   }
 
   static Color primaryColorLight(String role) {
+    if (!TemaApp.bawaan) return TemaApp.sekarang.terang;
     switch (role) {
       case 'admin':
         return warnaAdminLight;
@@ -84,6 +87,7 @@ class AppTheme {
   }
 
   static Color primaryColorDark(String role) {
+    if (!TemaApp.bawaan) return TemaApp.sekarang.gelap;
     switch (role) {
       case 'admin':
         return warnaAdminDark;
@@ -108,12 +112,12 @@ class AppTheme {
         primary: primary,
         onPrimary: Colors.white,
         secondary: primaryColorLight(role),
-        background: background,
+        background: TemaApp.sekarang.latar,
         surface: surface,
         onSurface: textPrimary,
       ),
       textTheme: _teksTema(),
-      scaffoldBackgroundColor: background,
+      scaffoldBackgroundColor: TemaApp.sekarang.latar,
 
       // AppBar
       appBarTheme: AppBarTheme(

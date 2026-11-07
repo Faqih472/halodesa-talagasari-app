@@ -813,113 +813,111 @@ class _JasaKartu extends StatelessWidget {
     final String st = s.statusSekarang();
     final bool milikSaya = s.isMilikSaya(auth.currentUser.value?.uid ?? '');
 
-    return BouncyTap(
-      onTap: onTap,
-      child: Opacity(
-        opacity: (st == 'buka' || st == 'di_luar_jam') ? 1 : 0.72,
-        child: kartu(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: 76,
-                  height: 76,
-                  color: k.withOpacity(0.12),
-                  child: s.fotoKartu.isNotEmpty
-                      ? ImageUtil.image(s.fotoKartu, width: 76, height: 76)
-                      : Icon(AppTheme.kategoriJasaIcon(s.kategori), color: k, size: 34),
-                ),
+    return Opacity(
+      opacity: (st == 'buka' || st == 'di_luar_jam') ? 1 : 0.75,
+      child: kartuGaris(
+        warna: k,
+        onTap: onTap,
+        child: Column(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                width: 88,
+                height: 88,
+                color: k.withOpacity(0.12),
+                child: s.fotoKartu.isNotEmpty
+                    ? ImageUtil.image(s.fotoKartu, width: 88, height: 88)
+                    : Icon(AppTheme.kategoriJasaIcon(s.kategori), color: k, size: 38),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(s.nama,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.bold)),
-                        ),
-                        if (s.ktpOk) ...[
-                          const SizedBox(width: 4),
-                          const Icon(Icons.verified, size: 15, color: Color(0xFF1E88E5)),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                        '${AppUtils.labelKategoriJasa(s.kategori)} • ${AppUtils.formatJarakKm(s.jarakKm)}',
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Flexible(
+                    child: Text(s.nama,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 12, color: AppTheme.textSecondary)),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        if (s.ratingCount > 0) ...[
-                          const Icon(Icons.star_rounded,
-                              size: 15, color: Color(0xFFFFA726)),
-                          const SizedBox(width: 2),
-                          Text(s.ratingAvg.toStringAsFixed(1),
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w700)),
-                          Text(' (${s.ratingCount})',
-                              style: const TextStyle(
-                                  fontSize: 11, color: AppTheme.textSecondary)),
-                        ] else
-                          const Text('Belum ada ulasan',
-                              style: TextStyle(
-                                  fontSize: 11, color: AppTheme.textSecondary)),
-                        if (s.pesananSelesai > 0)
-                          Text('  •  ${s.pesananSelesai}x dipesan',
-                              style: const TextStyle(
-                                  fontSize: 11, color: AppTheme.textSecondary)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(s.labelTarif,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.primaryColor(auth.role))),
-                    const SizedBox(height: 6),
-                    Wrap(spacing: 6, runSpacing: 4, children: [
-                      _pil(ServiceModel.labelStatusSekarang(st),
-                          ServiceModel.warnaStatusSekarang(st)),
-                      if (s.unggulan)
-                        _pil('Pilihan Desa', const Color(0xFFF9A825),
-                            ikon: Icons.star_rounded),
-                      if (milikSaya) _pil('Jasa Anda', AppTheme.warnaWarga),
-                    ]),
+                        style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
+                  ),
+                  if (s.ktpOk) ...[
+                    const SizedBox(width: 4),
+                    const Icon(Icons.verified, size: 16, color: Color(0xFF1E88E5)),
                   ],
-                ),
+                ]),
+                const SizedBox(height: 3),
+                Text(AppUtils.labelKategoriJasa(s.kategori),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12.5, color: k, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Row(children: [
+                  if (s.ratingCount > 0) ...[
+                    const Icon(Icons.star_rounded, size: 16, color: Color(0xFFFFA726)),
+                    const SizedBox(width: 2),
+                    Text(s.ratingAvg.toStringAsFixed(1),
+                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
+                    Text(' (${s.ratingCount})',
+                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                  ] else
+                    const Text('Belum ada ulasan',
+                        style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                  if (s.pesananSelesai > 0)
+                    Text('  •  ${s.pesananSelesai}x dipesan',
+                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                ]),
+                const SizedBox(height: 4),
+                Row(children: [
+                  const Icon(Icons.near_me_outlined, size: 14, color: AppTheme.textSecondary),
+                  const SizedBox(width: 3),
+                  Text(AppUtils.formatJarakKm(s.jarakKm),
+                      style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                ]),
+              ]),
+            ),
+            if (!milikSaya)
+              Obx(() {
+                final bool fav = svc.favorit.contains(s.id);
+                return InkWell(
+                  onTap: () => svc.toggleFavorit(s),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(fav ? Icons.favorite : Icons.favorite_border,
+                        size: 23, color: fav ? Colors.red.shade600 : AppTheme.textSecondary),
+                  ),
+                );
+              }),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                    color: k.withOpacity(0.10), borderRadius: BorderRadius.circular(10)),
+                child: Text(s.labelTarif,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: k)),
               ),
-              if (!milikSaya)
-                Obx(() {
-                  final bool fav = svc.favorit.contains(s.id);
-                  return InkWell(
-                    onTap: () => svc.toggleFavorit(s),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Icon(fav ? Icons.favorite : Icons.favorite_border,
-                          size: 22,
-                          color: fav ? Colors.red.shade600 : AppTheme.textSecondary),
-                    ),
-                  );
-                }),
-            ],
-          ),
-        ),
+            ),
+            const SizedBox(width: 8),
+            _pil(ServiceModel.labelStatusSekarang(st), ServiceModel.warnaStatusSekarang(st)),
+          ]),
+          if (s.unggulan || milikSaya) ...[
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(spacing: 6, runSpacing: 4, children: [
+                if (s.unggulan)
+                  _pil('Pilihan Desa', const Color(0xFFF9A825), ikon: Icons.star_rounded),
+                if (milikSaya) _pil('Jasa Anda', AppTheme.primaryColor(auth.role)),
+              ]),
+            ),
+          ],
+        ]),
       ),
     );
   }
@@ -6571,52 +6569,61 @@ class _KartuLowongan extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = lowongan;
     final Color c = AppTheme.kategoriJasaColor(l.kategori);
-    return kartu(
-      margin: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              CircleAvatar(
-                  radius: 20,
-                  backgroundColor: c.withOpacity(0.12),
-                  child: Icon(AppTheme.kategoriJasaIcon(l.kategori), color: c)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l.judul,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14.5)),
-                    Text('${l.namaPemberi} • ${AppUtils.formatRelatif(l.createdAt)}',
-                        style: const TextStyle(
-                            fontSize: 11.5, color: AppTheme.textSecondary)),
-                  ],
-                ),
-              ),
+    return kartuGaris(
+      warna: c,
+      onTap: onTap,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+                color: c.withOpacity(0.13), borderRadius: BorderRadius.circular(14)),
+            child: Icon(AppTheme.kategoriJasaIcon(l.kategori), color: c, size: 24),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(l.judul,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              const SizedBox(height: 2),
+              Text('${l.namaPemberi} • ${AppUtils.formatRelatif(l.createdAt)}',
+                  style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
             ]),
-            const SizedBox(height: 8),
-            Wrap(spacing: 6, runSpacing: 4, children: [
-              _pil(LowonganModel.labelKategori(l.kategori), c),
-              _pil(LowonganModel.labelJenis(l.jenis), Colors.blueGrey),
-              _pil('Butuh ${l.sisa} orang', Colors.green.shade700, ikon: Icons.groups_outlined),
-              if (tampilStatus)
-                _pil(l.labelStatus, _warnaStatusLow(l)),
-            ]),
-            const SizedBox(height: 8),
-            _barisInfo(Icons.payments_outlined, l.labelUpah,
-                warna: Colors.green.shade800),
-            if (l.alamat.isNotEmpty) _barisInfo(Icons.place_outlined, l.alamat),
-            _barisInfo(Icons.event_available_outlined,
-                'Daftar sampai ${AppUtils.formatTanggal(l.batas)}'),
-          ],
+          ),
+        ]),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(12)),
+          child: Row(children: [
+            Icon(Icons.payments_outlined, size: 18, color: Colors.green.shade800),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(l.labelUpah,
+                  style: TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 14, color: Colors.green.shade800)),
+            ),
+            Text('Butuh ${l.sisa} orang',
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w700, color: Colors.green.shade800)),
+          ]),
         ),
-      ),
+        const SizedBox(height: 8),
+        Wrap(spacing: 6, runSpacing: 4, children: [
+          _pil(LowonganModel.labelKategori(l.kategori), c),
+          _pil(LowonganModel.labelJenis(l.jenis), Colors.blueGrey),
+          if (tampilStatus) _pil(l.labelStatus, _warnaStatusLow(l)),
+        ]),
+        const SizedBox(height: 8),
+        if (l.alamat.isNotEmpty) _barisInfo(Icons.place_outlined, l.alamat),
+        _barisInfo(Icons.event_available_outlined,
+            'Daftar sampai ${AppUtils.formatTanggal(l.batas)}'),
+      ]),
     );
   }
 }

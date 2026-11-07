@@ -11,6 +11,7 @@ import 'controllers/data_controller.dart';
 import 'controllers/feedback_controller.dart';
 import 'controllers/village_controller.dart';
 import 'core/core.dart';
+import 'core/tema_app.dart';
 import 'core/translations.dart';
 import 'firebase_options.dart';
 import 'views/auth_view.dart';
@@ -21,6 +22,7 @@ Future<void> main() async {
 
   await initializeDateFormatting('id', null);
   await GetStorage.init();
+  TemaApp.muat();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

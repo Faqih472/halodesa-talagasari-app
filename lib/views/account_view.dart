@@ -12,6 +12,8 @@
 //       └─ Pusat Bantuan → PusatBantuanView (WA / telepon Admin & Kades)
 // ============================================================
 
+import '../core/tema_app.dart';
+import 'tema_view.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -275,6 +277,9 @@ class TabSettingsView extends StatelessWidget {
               FadeSlideIn(
                 delay: const Duration(milliseconds: 200),
                 child: Column(children: [
+                  _actionTile(Icons.palette_outlined, 'Tema Aplikasi',
+                      'Ganti warna tampilan: ${TemaApp.sekarang.nama}', primary,
+                      onTap: () => Get.to(() => const TemaView())),
                   _actionTile(Icons.rule_folder_outlined, 'Aturan Komunitas',
                       'Apa yang boleh dan tidak boleh. Ranah: Desa Talagasari saja',
                       primary,

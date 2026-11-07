@@ -651,16 +651,15 @@ class KartuLapak extends StatelessWidget {
   Widget build(BuildContext context) {
     final k = kelompokDari(l.kelompok);
     final buka = l.bukaSekarang;
-    return InkWell(
+    return kartuGaris(
+      warna: k.warna,
       onTap: () => Get.to(() => LapakDetailView(id: l.id)),
-      child: kartu(
-        padding: const EdgeInsets.all(10),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: SizedBox(
-              width: 84,
-              height: 84,
+              width: 92,
+              height: 92,
               child: l.foto.isNotEmpty
                   ? ImageUtil.image(l.foto.first, fit: BoxFit.cover)
                   : Container(
@@ -708,11 +707,10 @@ class KartuLapak extends StatelessWidget {
               if (l.produk.isNotEmpty)
                 Text(
                     'Mulai ${rupiah(l.produk.where((p) => p.harga > 0).map((p) => p.harga).fold<int>(0, (a, b) => a == 0 || b < a ? b : a))}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: k.warna)),
             ]),
           ),
         ]),
-      ),
     );
   }
 }

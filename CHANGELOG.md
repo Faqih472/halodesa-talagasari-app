@@ -5,6 +5,10 @@
 - Suara Warga dan Agenda: hero berwarna, kartu bergaris warna, formulir buat dengan hero.
 - Jasa/Lowongan/Lapak: strip penjelas berwarna per tab.
 
+## Tema warna & kartu Jasa
+- **Tema Aplikasi** (menu Akun): 19 tema (Hijau Desa bawaan, Crimson Aurora, Inferno Bloom, Solar Flare, Emerald Mist, Blue Nebula, Neon Frost, Oceanic Void, Purple Eclipse, Pink Stardust, Magenta Rift, Aqua Genesis, Toxic Bloom, Terra Ember, Golden Cosmos, White Nova, Midnight Phantom, Titanium Storm, Lunar Steel). Pilihan tersimpan.
+- Kartu Cari Jasa, Butuh Pekerja, dan Lapak UMKM dirombak (garis warna, tarif/upah menonjol).
+
 ## Jenis info + Beranda lebih menarik
 - Ajukan Info dirombak: langkah bernomor, 10 jenis (Biasa, Kehilangan, Ditemukan, Dijual, Bantuan, Kabar Duka, Syukuran, Sebelum-Sesudah, Galeri, Tanya Cepat). Judul dan isi contoh terisi otomatis, bisa diubah. Pilih warna kartu.
 - Beranda: banner geser (Admin: menu titik tiga > Jadikan banner), strip Kabar Duka (3 hari), filter cepat per jenis, kartu khusus (foto digeser sebelum-sesudah, mosaik galeri, polling mini, kolom harga/kontak/waktu).
