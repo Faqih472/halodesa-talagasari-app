@@ -14,6 +14,30 @@ class TemaView extends StatelessWidget {
     Get.forceAppUpdate();
   }
 
+  Widget _sat(RxInt n) => Row(children: [
+        const Icon(Icons.opacity, size: 18),
+        const SizedBox(width: 6),
+        const Text('Saturasi', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+        Expanded(
+          child: Slider(
+            min: 0,
+            max: 100,
+            divisions: 100,
+            value: n.value.toDouble(),
+            onChanged: (v) => n.value = v.round(),
+            onChangeEnd: (_) {
+              TemaApp.simpanSat();
+              _segarkan();
+            },
+          ),
+        ),
+        SizedBox(
+            width: 44,
+            child: Text('${n.value}%',
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13))),
+      ]);
+
   Widget _judul(String t, String sub) => Padding(
         padding: const EdgeInsets.only(top: 22, bottom: 10),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -127,18 +151,21 @@ class TemaView extends StatelessWidget {
             TemaApp.pilih(id);
             _segarkan();
           }, (x) => x.swatch, namaDefault: 'Hijau Desa', warnaDefault: TemaApp.daftar.first.utama),
+          _sat(TemaApp.satTema),
           _judul('2. Warna latar', 'Layar dan kartu yang sekarang putih/krem'),
           _grid(la, (id) {
             TemaApp.pilihLatar(id);
             _segarkan();
           }, (x) => TemaApp.latarContoh(x),
               namaDefault: 'Krem Putih', warnaDefault: const Color(0xFFFAF6EC)),
+          _sat(TemaApp.satLatar),
           _judul('3. Warna teks', 'Tulisan utama (judul, isi, nama)'),
           _grid(te, (id) {
             TemaApp.pilihTeks(id);
             _segarkan();
           }, (x) => TemaApp.teksDari(x),
               namaDefault: 'Gelap Biasa', warnaDefault: const Color(0xFF2B2A22)),
+          _sat(TemaApp.satTeks),
         ]),
       );
     });

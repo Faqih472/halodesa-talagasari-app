@@ -67,6 +67,17 @@ class TemaApp {
   // ── Latar (warna layar & kartu) dan warna teks: pilihan terpisah ──
   static final RxString latarId = 'default'.obs;
   static final RxString teksId = 'default'.obs;
+  // Saturasi 0-100% (100 = warna asli persis). Satu per fitur.
+  static final RxInt satTema = 100.obs;
+  static final RxInt satLatar = 100.obs;
+  static final RxInt satTeks = 100.obs;
+
+  static Color _sat(Color c, int p) {
+    if (p >= 100) return c;
+    final h = HSLColor.fromColor(c);
+    return h.withSaturation((h.saturation * p / 100).clamp(0.0, 1.0)).toColor();
+  }
+
 
   static TemaWarna? _cari(String id) {
     for (final t in daftar) {
@@ -77,37 +88,28 @@ class TemaApp {
 
   static const Color _latarBawaan = Color(0xFFFAF6EC);
   static const Color _teksBawaan = Color(0xFF2B2A22);
-  static const Map<String, Color> _latarGelap = {
-    'phantom': Color(0xFF0E0E14),
-    'oceanic': Color(0xFF0A1530),
-    'terra': Color(0xFF1E130C),
-    'storm': Color(0xFF15191D),
-  };
 
-  /// Latar gelap = "mode malam" versi pilihan sendiri.
-  static bool get gelap => _latarGelap.containsKey(latarId.value);
+  /// Latar gelap = "mode malam" versi pilihan sendiri (otomatis dari warna latar).
+  static bool get gelap {
+    final t = _cari(latarId.value);
+    if (latarId.value == 'default' || t == null) return false;
+    return t.swatch.computeLuminance() < 0.35;
+  }
 
-  static Color latarContoh(TemaWarna t) =>
-      _latarGelap[t.id] ?? Color.lerp(Colors.white, t.terang, 0.40)!;
+  static Color latarContoh(TemaWarna t) => t.swatch;
+  static Color teksDari(TemaWarna t) => t.swatch;
 
   static Color get warnaLatar {
     final t = _cari(latarId.value);
     if (latarId.value == 'default' || t == null) return _latarBawaan;
-    if (gelap) return _latarGelap[latarId.value]!;
-    return Color.lerp(Colors.white, t.terang, 0.40)!;
+    return _sat(t.swatch, satLatar.value);
   }
 
   static Color get warnaKartu {
     final t = _cari(latarId.value);
     if (latarId.value == 'default' || t == null) return Colors.white;
-    if (gelap) return Color.lerp(warnaLatar, Colors.white, 0.09)!;
-    return Color.lerp(Colors.white, t.terang, 0.15)!;
-  }
-
-  static Color teksDari(TemaWarna t) {
     if (t.id == 'nova') return Colors.white;
-    if (t.id == 'lunar') return const Color(0xFFE6E9ED);
-    return Color.lerp(t.gelap, Colors.black, 0.15)!;
+    return Color.lerp(_sat(t.swatch, satLatar.value), Colors.white, 0.20)!;
   }
 
   static Color get warnaTeks {
@@ -115,14 +117,34 @@ class TemaApp {
     if (teksId.value == 'default' || t == null) {
       return gelap ? const Color(0xFFF2F2F7) : _teksBawaan;
     }
-    return teksDari(t);
+    return _sat(t.swatch, satTeks.value);
+  }
+
+  static double _kontras(Color a, Color b) {
+    final l1 = a.computeLuminance() + 0.05, l2 = b.computeLuminance() + 0.05;
+    return l1 > l2 ? l1 / l2 : l2 / l1;
+  }
+
+  /// Pengaman: bila teks terlalu mirip latar atau kartu, pakai hitam/putih yang terbaca.
+  static Color _aman(Color c) {
+    final lat = warnaLatar, kar = warnaKartu;
+    final k = _kontras(c, lat) < _kontras(c, kar) ? _kontras(c, lat) : _kontras(c, kar);
+    if (k >= 1.8) return c;
+    return lat.computeLuminance() < 0.35
+        ? const Color(0xFFF7F7FA)
+        : const Color(0xFF15151B);
   }
 
   static Color get warnaTeksRedup => Color.lerp(warnaTeks, warnaLatar, 0.36)!;
   static Color get warnaGaris => Color.lerp(warnaLatar, warnaTeks, 0.16)!;
 
-  static TemaWarna get sekarang =>
-      daftar.firstWhere((t) => t.id == aktif.value, orElse: () => daftar.first);
+  static TemaWarna get sekarang {
+    final b = daftar.firstWhere((t) => t.id == aktif.value, orElse: () => daftar.first);
+    final p = satTema.value;
+    if (p >= 100) return b;
+    return TemaWarna(b.id, b.nama, b.warna, _sat(b.utama, p), _sat(b.terang, p),
+        _sat(b.gelap, p), b.latar, swatch: _sat(b.swatch, p));
+  }
 
   static bool get bawaanLatar => latarId.value == 'default';
   static bool get bawaan => aktif.value == 'desa';
@@ -132,6 +154,9 @@ class TemaApp {
       aktif.value = GetStorage().read<String>(_kunci) ?? 'desa';
       latarId.value = GetStorage().read<String>('tema_latar') ?? 'default';
       teksId.value = GetStorage().read<String>('tema_teks') ?? 'default';
+      satTema.value = GetStorage().read<int>('sat_tema') ?? 100;
+      satLatar.value = GetStorage().read<int>('sat_latar') ?? 100;
+      satTeks.value = GetStorage().read<int>('sat_teks') ?? 100;
     } catch (_) {}
   }
 
@@ -153,6 +178,14 @@ class TemaApp {
     teksId.value = id;
     try {
       GetStorage().write('tema_teks', id);
+    } catch (_) {}
+  }
+
+  static void simpanSat() {
+    try {
+      GetStorage().write('sat_tema', satTema.value);
+      GetStorage().write('sat_latar', satLatar.value);
+      GetStorage().write('sat_teks', satTeks.value);
     } catch (_) {}
   }
 }
