@@ -146,7 +146,7 @@ class _AnimatedBottomNav extends StatelessWidget {
 
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
@@ -546,7 +546,7 @@ class TabHomeView extends StatelessWidget {
     ];
 
     return Container(
-      color: Colors.white,
+      color: AppTheme.surface,
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -558,7 +558,7 @@ class TabHomeView extends StatelessWidget {
               child: ActionChip(
                 avatar: Icon(Icons.person_outline, size: 16, color: primaryColor),
                 label: const Text('Info Saya', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                backgroundColor: Colors.white,
+                backgroundColor: AppTheme.surface,
                 side: BorderSide(color: primaryColor),
                 onPressed: () => Get.to(() => const InfoSayaView()),
               ),
@@ -587,7 +587,7 @@ class TabHomeView extends StatelessWidget {
                     color: isActive
                         ? primaryColor
                         : Colors.grey.shade300),
-                backgroundColor: Colors.white,
+                backgroundColor: AppTheme.surface,
               ),
             );
           }),
@@ -601,7 +601,7 @@ class TabHomeView extends StatelessWidget {
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
       iconSize: 20,
-      icon: const Icon(Icons.more_vert, color: AppTheme.textSecondary),
+      icon: Icon(Icons.more_vert, color: AppTheme.textSecondary),
       onSelected: (v) {
         if (v == 'ubah') {
           showFormInformasi(edit: news);
@@ -718,7 +718,7 @@ class TabHomeView extends StatelessWidget {
                                 news.publishedAt != null
                                     ? AppUtils.formatRelatif(news.publishedAt!)
                                     : AppUtils.formatRelatif(news.createdAt),
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 11,
                                     color: AppTheme.textSecondary),
                               ),
@@ -733,7 +733,7 @@ class TabHomeView extends StatelessWidget {
 
                     const SizedBox(height: 12),
                     Text(news.judul,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontFamily: AppTheme.fontJudul,
                             fontSize: 18,
                             height: 1.25,
@@ -743,7 +743,7 @@ class TabHomeView extends StatelessWidget {
                         overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
                     Text(news.isi,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 13,
                             color: AppTheme.textSecondary,
                             height: 1.5),
@@ -839,13 +839,13 @@ class TabHomeView extends StatelessWidget {
           Icon(Icons.inbox_outlined,
               size: 64, color: primaryColor.withOpacity(0.3)),
           const SizedBox(height: 16),
-          const Text('Belum ada informasi',
+          Text('Belum ada informasi',
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary)),
           const SizedBox(height: 8),
-          const Text(
+          Text(
               'Informasi desa akan muncul di sini setelah disetujui oleh aparatur desa.',
               style:
               TextStyle(fontSize: 13, color: AppTheme.textSecondary),
@@ -867,8 +867,8 @@ class TabHomeView extends StatelessWidget {
         maxChildSize: 0.95,
         minChildSize: 0.5,
         builder: (_, scrollCtrl) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
             borderRadius:
             BorderRadius.vertical(top: Radius.circular(20)),
           ),
@@ -908,14 +908,14 @@ class TabHomeView extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(news.judul,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.textPrimary)),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today_outlined,
+                          Icon(Icons.calendar_today_outlined,
                               size: 14, color: AppTheme.textSecondary),
                           const SizedBox(width: 4),
                           Text(
@@ -924,7 +924,7 @@ class TabHomeView extends StatelessWidget {
                                 news.publishedAt!)
                                 : AppUtils.formatTanggalWaktu(
                                 news.createdAt),
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.textSecondary),
                           ),
@@ -933,11 +933,11 @@ class TabHomeView extends StatelessWidget {
                       if (news.berlakuSampai != null) ...[
                         const SizedBox(height: 4),
                         Row(children: [
-                          const Icon(Icons.schedule,
+                          Icon(Icons.schedule,
                               size: 14, color: AppTheme.textSecondary),
                           const SizedBox(width: 4),
                           Text(_labelBerlaku(news),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.textSecondary)),
                         ]),
@@ -949,7 +949,7 @@ class TabHomeView extends StatelessWidget {
                         const SizedBox(height: 14),
                       ],
                       Text(news.isi,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 15,
                               color: AppTheme.textPrimary,
                               height: 1.6)),
@@ -1203,7 +1203,7 @@ class NotificationView extends StatelessWidget {
           itemCount: list.length + 1,
           itemBuilder: (context, i) {
             if (i == list.length) {
-              return const Padding(
+              return Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
                     'Notifikasi dihapus otomatis: sudah dibaca > 14 hari, atau semua > 30 hari.',
@@ -1321,7 +1321,7 @@ class NotificationView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(AppUtils.formatRelatif(n.createdAt),
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 10.5, color: AppTheme.textSecondary)),
               const SizedBox(height: 6),
               if (!n.dibaca)

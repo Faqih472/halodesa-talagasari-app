@@ -89,7 +89,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(t, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5)),
               if (sub.isNotEmpty)
-                Text(sub, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3)),
+                Text(sub, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.3)),
             ]),
           ),
         ]),
@@ -131,8 +131,8 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
               right: 20,
               top: 16,
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Form(
@@ -176,7 +176,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                         : (role == 'kades'
                             ? 'Sebagai Kepala Desa, informasi dapat langsung dipublikasikan.'
                             : 'Kategori biasa langsung tayang. Kategori sensitif dikirim ke Kepala Desa.'),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary),
                   ),
                   if (!modeEdit) ...[
@@ -212,7 +212,7 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                             .firstWhere((k) => k['value'] == kategori,
                                 orElse: () => {'contoh': ''})['contoh']
                             .toString(),
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 11.5, color: AppTheme.textSecondary)),
                   ),
                   if (kategori == 'lainnya') ...[

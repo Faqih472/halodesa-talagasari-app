@@ -43,15 +43,15 @@ class AppTheme {
   // ─── Aksen khas Talagasari ───────────────────────────────
   static const Color emas = Color(0xFFD9A441);             // Emas padi
   static const Color terakota = Color(0xFFC8553D);         // Terakota
-  static const Color kremTua = Color(0xFFF0E7CF);
+  static Color get kremTua => TemaApp.gelap || !TemaApp.bawaanLatar ? TemaApp.warnaGaris : const Color(0xFFF0E7CF);
   static const String fontJudul = 'DMSerif';
 
   // ─── Warna Netral ────────────────────────────────────────
-  static const Color background = Color(0xFFFAF6EC);       // Krem hangat
-  static const Color surface = Colors.white;
-  static const Color textPrimary = Color(0xFF2B2A22);
-  static const Color textSecondary = Color(0xFF6E6A5C);
-  static const Color divider = Color(0xFFE8E0CB);
+  static Color get background => TemaApp.warnaLatar;
+  static Color get surface => TemaApp.warnaKartu;
+  static Color get textPrimary => TemaApp.warnaTeks;
+  static Color get textSecondary => TemaApp.warnaTeksRedup;
+  static Color get divider => TemaApp.warnaGaris;
 
   // ─── Warna Status ────────────────────────────────────────
   static const Color statusPublished = Color(0xFF388E3C);
@@ -107,7 +107,9 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      brightness: TemaApp.gelap ? Brightness.dark : Brightness.light,
       colorScheme: ColorScheme.fromSeed(
+        brightness: TemaApp.gelap ? Brightness.dark : Brightness.light,
         seedColor: primary,
         primary: primary,
         onPrimary: Colors.white,
@@ -127,11 +129,11 @@ class AppTheme {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           fontFamily: fontJudul,
           fontSize: 21,
           fontWeight: FontWeight.w400,
-          color: Colors.white,
+          color: TemaApp.warnaKartu,
         ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -159,7 +161,7 @@ class AppTheme {
         shadowColor: const Color(0xFF8A7A4A).withOpacity(0.25),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: kremTua),
+          side: BorderSide(color: kremTua),
         ),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       ),
@@ -197,7 +199,7 @@ class AppTheme {
       // Input Fields
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: TemaApp.warnaKartu,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -221,7 +223,7 @@ class AppTheme {
 
       // Chip
       chipTheme: ChipThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: TemaApp.warnaKartu,
         selectedColor: primary.withOpacity(0.18),
         disabledColor: Colors.grey.shade200,
         checkmarkColor: primary,
@@ -229,33 +231,33 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         side: const BorderSide(color: Color(0xFFE3D9BF)),
         shape: const StadiumBorder(),
-        labelStyle: const TextStyle(
+        labelStyle: TextStyle(
             fontSize: 12, color: textPrimary, fontWeight: FontWeight.w500),
-        secondaryLabelStyle: const TextStyle(
+        secondaryLabelStyle: TextStyle(
             fontSize: 12, color: textPrimary, fontWeight: FontWeight.w600),
       ),
 
       // Dropdown & dialog: latar putih, teks gelap
       canvasColor: surface,
       dropdownMenuTheme: DropdownMenuThemeData(
-        textStyle: const TextStyle(color: textPrimary),
-        menuStyle: const MenuStyle(
-          backgroundColor: WidgetStatePropertyAll(Colors.white),
+        textStyle: TextStyle(color: textPrimary),
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(TemaApp.warnaKartu),
           surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
         ),
       ),
-      popupMenuTheme: const PopupMenuThemeData(
-        color: Colors.white,
+      popupMenuTheme: PopupMenuThemeData(
+        color: TemaApp.warnaKartu,
         surfaceTintColor: Colors.transparent,
         textStyle: TextStyle(color: textPrimary),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: TemaApp.warnaKartu,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Colors.white,
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: TemaApp.warnaKartu,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -282,7 +284,7 @@ class AppTheme {
       ),
 
       // Divider
-      dividerTheme: const DividerThemeData(
+      dividerTheme: DividerThemeData(
         color: divider,
         thickness: 1,
       ),
@@ -293,7 +295,7 @@ class AppTheme {
 
   // Teks: Poppins untuk isi, DM Serif untuk judul (ciri khas Talagasari)
   static TextTheme _teksTema() {
-    final TextTheme dasar = ThemeData.light().textTheme.apply(
+    final TextTheme dasar = (TemaApp.gelap ? ThemeData.dark() : ThemeData.light()).textTheme.apply(
           bodyColor: TemaApp.warnaTeks,
           displayColor: TemaApp.warnaTeks,
           fontFamily: 'Poppins',
@@ -1070,14 +1072,14 @@ class EmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final Color color;
+  final Color? color;
 
-  const EmptyState({
+  EmptyState({
     super.key,
     required this.icon,
     required this.title,
     required this.subtitle,
-    this.color = AppTheme.textSecondary,
+    this.color,
   });
 
   @override
@@ -1098,9 +1100,9 @@ class EmptyState extends StatelessWidget {
                     CustomPaint(
                       size: const Size(190, 130),
                       painter: IlustrasiKosongPainter(
-                          warna: color == AppTheme.textSecondary
+                          warna: color == null
                               ? AppTheme.warnaWarga
-                              : color),
+                              : color!),
                     ),
                     Positioned(
                       top: 6,
@@ -1113,9 +1115,9 @@ class EmptyState extends StatelessWidget {
                         ),
                         child: Icon(icon,
                             size: 22,
-                            color: color == AppTheme.textSecondary
+                            color: color == null
                                 ? AppTheme.warnaWarga
-                                : color),
+                                : color!),
                       ),
                     ),
                   ],
@@ -1125,7 +1127,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: AppTheme.fontJudul,
                   fontSize: 19,
                   fontWeight: FontWeight.w400,
@@ -1136,7 +1138,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 subtitle,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   color: AppTheme.textSecondary,
                 ),
@@ -1252,7 +1254,7 @@ class SectionTitle extends StatelessWidget {
           Flexible(
             child: Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppTheme.fontJudul,
                 fontSize: 16,
                 fontWeight: FontWeight.w400,

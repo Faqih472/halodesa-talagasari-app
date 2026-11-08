@@ -479,7 +479,7 @@ class _PollListViewState extends State<PollListView> {
           stream: _stream,
           builder: (context, snap) {
             if (snap.hasError) {
-              return const EmptyState(
+              return EmptyState(
                   icon: Icons.error_outline,
                   title: 'Tidak dapat memuat',
                   subtitle: 'Periksa koneksi internet. Pastikan aturan Firestore terbaru sudah dipasang.');
@@ -615,7 +615,7 @@ class _KartuPoll extends StatelessWidget {
   Widget _info(IconData ic, String t) => Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(ic, size: 14, color: AppTheme.textSecondary),
         const SizedBox(width: 3),
-        Text(t, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        Text(t, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
       ]);
 }
 
@@ -821,7 +821,7 @@ class _PollDetailViewState extends State<PollDetailView> {
         if (!snap.data!.exists) {
           return Scaffold(
               appBar: AppBar(backgroundColor: primary),
-              body: const EmptyState(
+              body: EmptyState(
                   icon: Icons.how_to_vote_outlined,
                   title: 'Topik tidak ditemukan',
                   subtitle: 'Topik ini sudah dihapus.'));
@@ -912,7 +912,7 @@ class _PollDetailViewState extends State<PollDetailView> {
                   Text(p.keputusan, style: const TextStyle(fontSize: 13.5, height: 1.45)),
                   if (p.keputusanAt != null)
                     Text(AppUtils.formatTanggal(p.keputusanAt!),
-                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                 ]),
               )
             else if (staf && p.ditutup)
@@ -937,7 +937,7 @@ class _PollDetailViewState extends State<PollDetailView> {
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(ic, size: 16, color: AppTheme.textSecondary),
           const SizedBox(width: 8),
-          Expanded(child: Text(t, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
+          Expanded(child: Text(t, style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
         ]),
       );
 
@@ -963,13 +963,13 @@ class _PollDetailViewState extends State<PollDetailView> {
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
               const Spacer(),
               Text('${p.total} suara',
-                  style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                  style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
             ]),
             if (p.tipe == 'ganda')
               Padding(
                 padding: const EdgeInsets.only(top: 2),
                 child: Text('Boleh pilih sampai ${p.maksPilih} jawaban.',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
               ),
             if (!sasaran && !p.ditutup)
               Container(
@@ -1004,7 +1004,7 @@ class _PollDetailViewState extends State<PollDetailView> {
               if (p.belumMulai)
                 const Text('Topik ini belum dimulai.')
               else if (!hasilBolehLihat)
-                const Text('Hasil akan ditampilkan setelah pemungutan suara ditutup.',
+                Text('Hasil akan ditampilkan setelah pemungutan suara ditutup.',
                     style: TextStyle(color: AppTheme.textSecondary))
               else if (tampilHasil || sasaran) ...[
                 _hasil(p, milik),
@@ -1064,7 +1064,7 @@ class _PollDetailViewState extends State<PollDetailView> {
       if (v > maks) maks = v;
     });
     if (p.legacy) {
-      return const Text('Topik lama ini dibuat sebelum fitur hasil terbaru, sehingga rincian suara tidak tersedia.',
+      return Text('Topik lama ini dibuat sebelum fitur hasil terbaru, sehingga rincian suara tidak tersedia.',
           style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary));
     }
     return Column(children: [
@@ -1146,7 +1146,7 @@ class _PollDetailViewState extends State<PollDetailView> {
         builder: (_, s) {
           final docs = s.data?.docs ?? const [];
           if (docs.isEmpty) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.all(14),
               child: Text('Belum ada komentar. Jadilah yang pertama.',
                   style: TextStyle(color: AppTheme.textSecondary)),
@@ -1377,7 +1377,7 @@ class _BuatPollingViewState extends State<BuatPollingView> {
           Padding(
             padding: const EdgeInsets.only(left: 32, top: 2),
             child: Text(bantu,
-                style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
+                style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
           ),
         ]),
       );
@@ -1422,7 +1422,7 @@ class _BuatPollingViewState extends State<BuatPollingView> {
                   margin: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: katPoll(t.kategori).warna.withOpacity(0.5))),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1439,7 +1439,7 @@ class _BuatPollingViewState extends State<BuatPollingView> {
                     Text(t.pertanyaan,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                   ]),
                 ),
               ),
@@ -1461,7 +1461,7 @@ class _BuatPollingViewState extends State<BuatPollingView> {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text('Contoh topik: ${katPoll(_kat).contoh}',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
           ),
         _langkah(2, 'Pertanyaan dan penjelasan',
             'Tulis pertanyaan yang singkat dan mudah dipahami, lalu jelaskan latar belakangnya agar warga memilih dengan paham.'),
@@ -1601,7 +1601,7 @@ class _BuatPollingViewState extends State<BuatPollingView> {
           label: Text(_simpan ? 'Membuka...' : 'Buka Suara Warga'),
         ),
         const SizedBox(height: 6),
-        const Text('Setelah dibuka, pertanyaan dan jawaban tidak dapat diubah. Seluruh warga akan mendapat notifikasi.',
+        Text('Setelah dibuka, pertanyaan dan jawaban tidak dapat diubah. Seluruh warga akan mendapat notifikasi.',
             style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
       ]),
     );
@@ -1708,7 +1708,7 @@ class _UsulPollViewState extends State<UsulPollView> {
           Padding(
             padding: const EdgeInsets.only(left: 32, top: 2),
             child: Text(bantu,
-                style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
+                style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
           ),
         ]),
       );
@@ -1751,7 +1751,7 @@ class _UsulPollViewState extends State<UsulPollView> {
                   margin: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: katPoll(t.kategori).warna.withOpacity(0.5))),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1770,7 +1770,7 @@ class _UsulPollViewState extends State<UsulPollView> {
                       child: Text(t.pertanyaan,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                          style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                     ),
                   ]),
                 ),
@@ -1812,7 +1812,7 @@ class _UsulPollViewState extends State<UsulPollView> {
                       child: Text(k.contoh,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary)),
+                          style: TextStyle(fontSize: 10.5, color: AppTheme.textSecondary)),
                     ),
                   ]),
                 ),
@@ -1852,7 +1852,7 @@ class _UsulPollViewState extends State<UsulPollView> {
         ]),
         const SizedBox(height: 6),
         if (_jenis == 'setuju')
-          const Text('Warga menjawab: Setuju, Tidak setuju, atau Abstain. Paling mudah, cocok untuk rencana.',
+          Text('Warga menjawab: Setuju, Tidak setuju, atau Abstain. Paling mudah, cocok untuk rencana.',
               style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))
         else
           TextField(
@@ -1870,7 +1870,7 @@ class _UsulPollViewState extends State<UsulPollView> {
           label: Text(_kirim ? 'Mengirim...' : 'Kirim usulan'),
         ),
         const SizedBox(height: 6),
-        const Text('Usulan bisa ditolak jika tidak sesuai. Alasan penolakan selalu ditampilkan.',
+        Text('Usulan bisa ditolak jika tidak sesuai. Alasan penolakan selalu ditampilkan.',
             style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
       ]),
     );
@@ -1929,7 +1929,7 @@ class _UsulanTab extends StatelessWidget {
       stream: q.snapshots(),
       builder: (context, snap) {
         if (snap.hasError) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.error_outline,
               title: 'Tidak dapat memuat',
               subtitle: 'Periksa koneksi internet.');
@@ -1975,7 +1975,7 @@ class _UsulanTab extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text('Alasan: ${m['alasan']}', style: const TextStyle(fontSize: 12.5)),
                 if (staf)
-                  Text('Oleh ${m['nama']}', style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                  Text('Oleh ${m['nama']}', style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                 if (st == 'ditolak')
                   Text('Alasan penolakan: ${m['alasan_tolak']}',
                       style: TextStyle(fontSize: 12.5, color: Colors.red.shade800)),

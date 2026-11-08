@@ -62,8 +62,8 @@ Widget _sheetContainer(BuildContext ctx, {required Widget child}) {
       top: 20,
       bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
     ),
-    decoration: const BoxDecoration(
-      color: Colors.white,
+    decoration: BoxDecoration(
+      color: AppTheme.surface,
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     child: SingleChildScrollView(child: child),
@@ -105,10 +105,10 @@ Widget _actionTile(IconData icon, String title, String subtitle, Color primary,
               style: const TextStyle(
                   fontSize: 14.5, fontWeight: FontWeight.w600)),
           subtitle: Text(subtitle,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12, color: AppTheme.textSecondary)),
           trailing: trailing ??
-              const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+              Icon(Icons.chevron_right, color: AppTheme.textSecondary),
         ),
       ),
     ),
@@ -123,9 +123,9 @@ Widget _infoTile(IconData icon, String label, String value, Color primary) {
       dense: true,
       leading: Icon(icon, color: primary, size: 22),
       title: Text(label,
-          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
       subtitle: Text(value,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 14,
               color: AppTheme.textPrimary,
               fontWeight: FontWeight.w500)),
@@ -136,7 +136,7 @@ Widget _infoTile(IconData icon, String label, String value, Color primary) {
 Widget _avatar(String fotoUrl, String nama, Color primary, double radius) {
   return CircleAvatar(
     radius: radius,
-    backgroundColor: Colors.white,
+    backgroundColor: AppTheme.surface,
     backgroundImage: fotoUrl.isNotEmpty ? ImageUtil.provider(fotoUrl) : null,
     child: fotoUrl.isEmpty
         ? Text(AppUtils.inisial(nama),
@@ -354,8 +354,8 @@ class TabSettingsView extends StatelessWidget {
                   ),
                   child: Container(
                     padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(
-                        color: Colors.white, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                        color: AppTheme.surface, shape: BoxShape.circle),
                     child: _avatar(fotoUrl, nama, primary, 44),
                   ),
                 ),
@@ -365,7 +365,7 @@ class TabSettingsView extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.surface,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -432,7 +432,7 @@ class TabSettingsView extends StatelessWidget {
                 style: const TextStyle(
                     fontSize: 14.5, fontWeight: FontWeight.w600)),
             subtitle: Text('acc_quick_login_sub'.tr,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12, color: AppTheme.textSecondary)),
           ),
         ));
@@ -523,7 +523,7 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
     final ImageSource? sumber = await Get.bottomSheet<ImageSource>(
       SafeArea(
         child: Container(
-          color: Colors.white,
+          color: AppTheme.surface,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -625,7 +625,7 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
                             child: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: AppTheme.surface,
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
@@ -677,7 +677,7 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
 
               // ── Form profil ──
               Container(
-                color: Colors.white,
+                color: AppTheme.surface,
                 margin: const EdgeInsets.only(top: 12),
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                 child: Form(
@@ -843,7 +843,7 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
                         fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text('email_hint'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -927,7 +927,7 @@ class _ProfilSayaViewState extends State<ProfilSayaView> {
                         fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text('password_hint'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -1116,7 +1116,7 @@ class _AlamatSayaViewState extends State<AlamatSayaView> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Column(
@@ -1237,7 +1237,7 @@ class _BahasaViewState extends State<BahasaView> {
     final String aktif = LocalStore.bahasa;
 
     Widget opsi(String kode, String label) => Container(
-          color: Colors.white,
+          color: AppTheme.surface,
           child: ListTile(
             onTap: () => _pilih(kode),
             leading: CircleAvatar(
@@ -1250,7 +1250,7 @@ class _BahasaViewState extends State<BahasaView> {
                     fontSize: 14.5, fontWeight: FontWeight.w600)),
             trailing: aktif == kode
                 ? Icon(Icons.check_circle, color: primary)
-                : const Icon(Icons.radio_button_unchecked,
+                : Icon(Icons.radio_button_unchecked,
                     color: AppTheme.textSecondary),
           ),
         );
@@ -1308,7 +1308,7 @@ class PusatBantuanView extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Text('help_intro'.tr,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 13, color: AppTheme.textSecondary, height: 1.4)),
           const SizedBox(height: 14),
           _kartuKontak(Icons.admin_panel_settings_outlined, 'help_admin'.tr,
@@ -1326,7 +1326,7 @@ class PusatBantuanView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -1348,7 +1348,7 @@ class PusatBantuanView extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 15, fontWeight: FontWeight.bold)),
                     Text(nama,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 12, color: AppTheme.textSecondary)),
                     Text('+$nomor',
                         style: const TextStyle(

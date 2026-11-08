@@ -101,7 +101,7 @@ class _TabManageViewState extends State<TabManageView> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: m.jumlah > 0 ? m.warna : Colors.grey.shade200, width: m.jumlah > 0 ? 1.6 : 1),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
@@ -131,7 +131,7 @@ class _TabManageViewState extends State<TabManageView> {
             child: Text(m.ket,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.3)),
+                style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.3)),
           ),
         ]),
       ),
@@ -144,7 +144,7 @@ class _TabManageViewState extends State<TabManageView> {
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          Text(ket, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+          Text(ket, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
         ]),
       ),
       Padding(
@@ -313,7 +313,7 @@ class _TabManageViewState extends State<TabManageView> {
             Icon(Icons.inbox_outlined,
                 size: 72, color: primaryColor.withOpacity(0.3)),
             const SizedBox(height: 16),
-            const Text('Tidak ada pengajuan masuk',
+            Text('Tidak ada pengajuan masuk',
                 style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -323,7 +323,7 @@ class _TabManageViewState extends State<TabManageView> {
               role == 'kades'
                   ? 'Belum ada informasi sensitif yang menunggu persetujuan Anda.'
                   : 'Semua pengajuan dari warga sudah diproses.',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 13, color: AppTheme.textSecondary),
               textAlign: TextAlign.center,
             ),
@@ -390,7 +390,7 @@ class _TabManageViewState extends State<TabManageView> {
                 const Spacer(),
                 Text(
                   AppUtils.formatRelatif(news.createdAt),
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 11, color: AppTheme.textSecondary),
                 ),
               ],
@@ -399,7 +399,7 @@ class _TabManageViewState extends State<TabManageView> {
 
             // Judul
             Text(news.judul,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary)),
@@ -411,7 +411,7 @@ class _TabManageViewState extends State<TabManageView> {
             ],
             // Isi preview
             Text(news.isi,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13,
                     color: AppTheme.textSecondary,
                     height: 1.4),
@@ -522,8 +522,8 @@ class _TabManageViewState extends State<TabManageView> {
         maxChildSize: 0.95,
         minChildSize: 0.4,
         builder: (_, ctrl) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.all(20),
@@ -543,24 +543,24 @@ class _TabManageViewState extends State<TabManageView> {
                   ),
                 ),
                 Text(NewsModel.labelKategori(news.kategori),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 8),
                 Text(news.judul,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary)),
                 const SizedBox(height: 8),
                 Text(AppUtils.formatTanggalWaktu(news.createdAt),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary)),
                 if (news.berlakuSampai != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                         'Berlaku sampai ${AppUtils.formatTanggal(news.berlakuSampai!)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 12, color: AppTheme.textSecondary)),
                   ),
                 const Divider(height: 24),
@@ -569,7 +569,7 @@ class _TabManageViewState extends State<TabManageView> {
                   const SizedBox(height: 14),
                 ],
                 Text(news.isi,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 15,
                         color: AppTheme.textPrimary,
                         height: 1.6)),
@@ -800,30 +800,30 @@ class _TabPendingViewState extends State<TabPendingView> {
                     text: NewsModel.labelStatus(news.status),
                     color: AppTheme.statusColor(news.status)),
                 Text(AppUtils.formatRelatif(news.createdAt),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 11, color: AppTheme.textSecondary)),
               ],
             ),
             const SizedBox(height: 8),
             Text(NewsModel.labelKategori(news.kategori),
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11.5, color: AppTheme.textSecondary)),
             const SizedBox(height: 4),
             Text(news.judul,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary)),
             const SizedBox(height: 6),
             Text(news.isi,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
             if (news.berlakuSampai != null) ...[
               const SizedBox(height: 6),
               Text('Berlaku sampai ${AppUtils.formatTanggal(news.berlakuSampai!)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 11.5, color: AppTheme.textSecondary)),
             ] else ...[
               const SizedBox(height: 6),

@@ -56,7 +56,7 @@ class _TileLencana extends StatelessWidget {
                     style: const TextStyle(color: Colors.white, fontSize: 10.5, fontWeight: FontWeight.bold)),
               )
             : Container(
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: AppTheme.surface, shape: BoxShape.circle),
                 child: Icon(Icons.check_circle, size: 17, color: Colors.green.shade500)),
       );
 
@@ -346,7 +346,7 @@ class _SosWargaState extends State<_SosWarga>
       children: [
         Text('sos_info'.tr,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 13, color: AppTheme.textSecondary, height: 1.5)),
         const SizedBox(height: 14),
         const Text('Tahan tombol merah 2 detik. Langsung terkirim, tanpa isi apa pun.',
@@ -443,7 +443,7 @@ class _SosWargaState extends State<_SosWarga>
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Mau menambah keterangan? Boleh sebelum atau SESUDAH SOS terkirim. Tidak wajib.',
+        Text('Mau menambah keterangan? Boleh sebelum atau SESUDAH SOS terkirim. Tidak wajib.',
             style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
         const SizedBox(height: 8),
         const Text('Jenis kejadian (opsional)',
@@ -513,7 +513,7 @@ class _SosWargaState extends State<_SosWarga>
                         style: const TextStyle(fontWeight: FontWeight.w600)),
                   ),
                   Text(n['nomor']!,
-                      style: const TextStyle(color: AppTheme.textSecondary)),
+                      style: TextStyle(color: AppTheme.textSecondary)),
                   const SizedBox(width: 8),
                   IconButton(
                     icon: Icon(Icons.call, color: Colors.green.shade700),
@@ -606,7 +606,7 @@ class _SosStafTabs extends StatelessWidget {
       child: Column(
         children: [
           Material(
-            color: Colors.white,
+            color: AppTheme.surface,
             child: TabBar(
               labelColor: merah,
               indicatorColor: merah,
@@ -730,7 +730,7 @@ class _SosStaf extends StatelessWidget {
           itemCount: list.length + 1,
           itemBuilder: (_, i) {
             if (i == list.length) {
-              return const Padding(
+              return Padding(
                 padding: EdgeInsets.all(16),
                 child: Text('Riwayat SOS disimpan 90 hari, lalu dihapus otomatis.',
                     textAlign: TextAlign.center,
@@ -815,16 +815,16 @@ class _SosStaf extends StatelessWidget {
                     if (s.catatan.isNotEmpty)
                       Text('Catatan: ${s.catatan}', style: const TextStyle(fontSize: 12.5, height: 1.4)),
                     if (s.petugas.isNotEmpty)
-                      Text('Petugas: ${s.petugas}', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      Text('Petugas: ${s.petugas}', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                     const SizedBox(height: 4),
                     Row(children: [
                       const Text('Penilaian warga: ', style: TextStyle(fontSize: 12)),
                       s.rating == 0
-                          ? const Text('belum menilai', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary))
+                          ? Text('belum menilai', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary))
                           : _bintang(s.rating),
                     ]),
                     if (s.ulasan.isNotEmpty)
-                      Text('“${s.ulasan}”', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      Text('“${s.ulasan}”', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                   ] else ...[
                     if (s.status == 'diproses' && s.petugas.isNotEmpty)
                       Padding(

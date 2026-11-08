@@ -265,7 +265,7 @@ class _LetterHomeViewState extends State<LetterHomeView> {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: Text(
                       'Belum ada surat. Pilih jenis surat di atas lalu tekan "Ajukan Surat".',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12.5, color: AppTheme.textSecondary)),
                 ),
               ...list.map((l) => _kartuSurat(l, staf)),
@@ -305,7 +305,7 @@ class _LetterHomeViewState extends State<LetterHomeView> {
                   const SizedBox(height: 2),
                   Text(
                       '${staf ? '${l.nama} • ' : ''}${AppUtils.formatRelatif(l.createdAt)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12, color: AppTheme.textSecondary)),
                 ],
               ),
@@ -403,7 +403,7 @@ class _PanduanBeranda extends StatelessWidget {
                                 fontWeight: FontWeight.bold, fontSize: 14)),
                         const SizedBox(height: 3),
                         Text(LetterModel.panduan(j['value']!).singkat,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 12.5, color: AppTheme.textSecondary)),
                         const SizedBox(height: 6),
                         Text(
@@ -412,7 +412,7 @@ class _PanduanBeranda extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+                  Icon(Icons.chevron_right, color: AppTheme.textSecondary),
                 ],
               ),
             ),
@@ -544,7 +544,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
           Text('Tips: ${g.tips}',
               style: const TextStyle(fontSize: 12.5, height: 1.4)),
           const SizedBox(height: 6),
-          const Text('Ini hanya contoh. Ganti dengan keperluan Anda yang sebenarnya.',
+          Text('Ini hanya contoh. Ganti dengan keperluan Anda yang sebenarnya.',
               style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
         ],
       ),
@@ -649,7 +649,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold)),
                             Text(LetterModel.panduan(j['value']!).singkat,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 12,
                                     color: AppTheme.textSecondary)),
                           ],
@@ -678,13 +678,13 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
                   _butir(g.siapkan, Icons.arrow_right, primary),
                   const SizedBox(height: 10),
                   Row(children: [
-                    const Icon(Icons.timer_outlined,
+                    Icon(Icons.timer_outlined,
                         size: 16, color: AppTheme.textSecondary),
                     const SizedBox(width: 6),
                     Expanded(
                         child: Text(
                             'Setelah ditandatangani, surat berlaku $masa bulan.',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 12.5,
                                 color: AppTheme.textSecondary))),
                   ]),
@@ -693,7 +693,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
             ),
 
             _judul('2', 'Tulis keperluan Anda', primary),
-            const Text('Ketuk salah satu contoh untuk mengisi otomatis, lalu ubah sesuai kebutuhan:',
+            Text('Ketuk salah satu contoh untuk mengisi otomatis, lalu ubah sesuai kebutuhan:',
                 style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
             const SizedBox(height: 6),
             Wrap(
@@ -718,7 +718,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
                 hintMaxLines: 3,
                 alignLabelWithHint: true,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppTheme.surface,
               ),
             ),
             Align(
@@ -731,7 +731,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
             ),
 
             _judul('3', 'Lengkapi data surat', primary),
-            const Text('Data ini dicetak di surat. Isi sesuai KTP/keadaan sebenarnya.',
+            Text('Data ini dicetak di surat. Isi sesuai KTP/keadaan sebenarnya.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             const SizedBox(height: 8),
             _pilih('Agama', _agama, _daftarAgama, (v) => setState(() => _agama = v)),
@@ -760,7 +760,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
 
             _judul('4', 'Cek data Anda', primary),
             Text('letter_auto'.tr,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12, color: AppTheme.textSecondary)),
             kartu(
               margin: const EdgeInsets.only(top: 8),
@@ -783,7 +783,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
               ),
 
             _judul('5', 'Begini bunyi surat Anda nanti', primary),
-            const Text('Nama, tanggal, dan tanda tangan ditulis tangan saat surat dicetak.',
+            Text('Nama, tanggal, dan tanda tangan ditulis tangan saat surat dicetak.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             const SizedBox(height: 8),
             _kertas(LetterModel(
@@ -801,7 +801,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
               createdAt: DateTime.now(),
               tambahan: _tambahan(),
             )),
-            const Text('Surat ini baru sah setelah ditandatangani Kepala Desa di kantor desa.',
+            Text('Surat ini baru sah setelah ditandatangani Kepala Desa di kantor desa.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
 
             const SizedBox(height: 20),
@@ -835,7 +835,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface,
         border: Border.all(color: Colors.grey.shade400),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6)],
       ),
@@ -936,7 +936,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
         child: DropdownButtonFormField<String>(
           value: nilai.isEmpty ? null : nilai,
           decoration: InputDecoration(
-              labelText: label, filled: true, fillColor: Colors.white),
+              labelText: label, filled: true, fillColor: AppTheme.surface),
           items: [for (final o in opsi) DropdownMenuItem(value: o, child: Text(o))],
           onChanged: (v) {
             if (v != null) ubah(v);
@@ -958,7 +958,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
               hintText: hint,
               counterText: '',
               filled: true,
-              fillColor: Colors.white),
+              fillColor: AppTheme.surface),
         ),
       );
 
@@ -970,7 +970,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
             SizedBox(
                 width: 90,
                 child: Text(k,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary))),
             Expanded(child: Text(v, style: const TextStyle(fontSize: 13))),
           ],
@@ -1007,7 +1007,7 @@ class LetterDetailView extends StatelessWidget {
               SizedBox(
                   width: 100,
                   child: Text(k,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12, color: AppTheme.textSecondary))),
               Expanded(child: Text(v)),
             ],
@@ -1210,7 +1210,7 @@ class _CekSuratViewState extends State<CekSuratView> {
         padding: const EdgeInsets.all(16),
         children: [
           Text('letter_check_info'.tr,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 13, color: AppTheme.textSecondary, height: 1.5)),
           const SizedBox(height: 12),
           TextField(

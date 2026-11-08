@@ -514,7 +514,7 @@ class _LapakTabState extends State<LapakTab> {
           stream: _stream,
           builder: (context, snap) {
             if (snap.hasError) {
-              return const EmptyState(
+              return EmptyState(
                   icon: Icons.error_outline,
                   title: 'Lapak belum dapat dimuat',
                   subtitle:
@@ -542,7 +542,7 @@ class _LapakTabState extends State<LapakTab> {
             return ListView(padding: const EdgeInsets.only(bottom: 90), children: [
               _PanduanLapakRingkas(onBuka: _buka),
               if (list.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 30),
                   child: EmptyState(
                       icon: Icons.storefront_outlined,
@@ -696,14 +696,14 @@ class KartuLapak extends StatelessWidget {
                   Text(' ${l.rating.toStringAsFixed(1)} (${l.ratingJumlah})',
                       style: const TextStyle(fontSize: 12)),
                 ] else
-                  const Text('Belum ada ulasan',
+                  Text('Belum ada ulasan',
                       style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
               ]),
               const SizedBox(height: 4),
               Text('${l.jamBuka}–${l.jamTutup} · ${l.ringkasHari}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                  style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
               if (l.produk.isNotEmpty)
                 Text(
                     'Mulai ${rupiah(l.produk.where((p) => p.harga > 0).map((p) => p.harga).fold<int>(0, (a, b) => a == 0 || b < a ? b : a))}',
@@ -859,7 +859,7 @@ class _LapakDetailViewState extends State<LapakDetailView> {
         if (!snap.data!.exists) {
           return Scaffold(
               appBar: AppBar(backgroundColor: primary),
-              body: const EmptyState(
+              body: EmptyState(
                   icon: Icons.storefront_outlined,
                   title: 'Lapak tidak ditemukan',
                   subtitle: 'Lapak ini sudah dihapus pemiliknya.'));
@@ -1022,7 +1022,7 @@ class _LapakDetailViewState extends State<LapakDetailView> {
               : SafeArea(
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                    decoration: const BoxDecoration(color: Colors.white, boxShadow: [
+                    decoration: BoxDecoration(color: AppTheme.surface, boxShadow: [
                       BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, -2))
                     ]),
                     child: Row(children: [
@@ -1097,7 +1097,7 @@ class _LapakDetailViewState extends State<LapakDetailView> {
                     decoration: p.habis ? TextDecoration.lineThrough : null)),
             if (p.ket.isNotEmpty)
               Text(p.ket,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             Text(p.harga > 0 ? rupiah(p.harga) : 'Tanya penjual',
                 style: TextStyle(
                     fontSize: 13,
@@ -1139,7 +1139,7 @@ class _LapakDetailViewState extends State<LapakDetailView> {
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Penjual', style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+              Text('Penjual', style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
               Text(l.namaPemilik, style: const TextStyle(fontWeight: FontWeight.bold)),
             ]),
           ),
@@ -1243,7 +1243,7 @@ class _UlasanState extends State<_Ulasan> {
         builder: (context, snap) {
           final docs = snap.data?.docs ?? const [];
           if (docs.isEmpty) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.all(14),
               child: Text('Belum ada ulasan.',
                   style: TextStyle(color: AppTheme.textSecondary)),
@@ -1333,7 +1333,7 @@ class LapakSayaView extends StatelessWidget {
             .snapshots(),
         builder: (context, snap) {
           if (snap.hasError) {
-            return const EmptyState(
+            return EmptyState(
                 icon: Icons.error_outline,
                 title: 'Tidak dapat memuat',
                 subtitle: 'Periksa koneksi internet Anda.');
@@ -1341,7 +1341,7 @@ class LapakSayaView extends StatelessWidget {
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
           final list = snap.data!.docs.map(LapakModel.dari).toList();
           if (list.isEmpty) {
-            return const EmptyState(
+            return EmptyState(
                 icon: Icons.storefront_outlined,
                 title: 'Anda belum punya lapak',
                 subtitle: 'Tekan "Lapak baru" untuk membuka usaha Anda di Talagasari Hub.');
@@ -1361,7 +1361,7 @@ class LapakSayaView extends StatelessWidget {
                     ]),
                   ),
                   Text(l.namaJenis,
-                      style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                      style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
                   if (l.status != 'aktif')
                     Container(
                       margin: const EdgeInsets.only(top: 6),
@@ -1375,7 +1375,7 @@ class LapakSayaView extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(children: [
                     Text('${l.dilihat} dilihat',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                     const Spacer(),
                     Text(l.bukaManual ? 'Terima pesanan' : 'Libur / tutup',
                         style: const TextStyle(fontSize: 12)),
@@ -1525,7 +1525,7 @@ class _LapakFormViewState extends State<LapakFormView> {
           Padding(
             padding: const EdgeInsets.only(left: 32, top: 2),
             child: Text(bantu,
-                style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
+                style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
           ),
         ]),
       );
@@ -1699,7 +1699,7 @@ class _LapakFormViewState extends State<LapakFormView> {
         if (kel != null) ...[
           const SizedBox(height: 8),
           Text(kel.ringkas,
-              style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+              style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
           const SizedBox(height: 4),
           for (final j in kel.jenis)
             InkWell(
@@ -1722,7 +1722,7 @@ class _LapakFormViewState extends State<LapakFormView> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(j.label, style: const TextStyle(fontWeight: FontWeight.w600)),
                       Text('Contoh: ${j.contoh}',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                     ]),
                   ),
                 ]),
@@ -1774,7 +1774,7 @@ class _LapakFormViewState extends State<LapakFormView> {
             margin: const EdgeInsets.symmetric(vertical: 4),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade300)),
             child: Column(children: [
@@ -1923,7 +1923,7 @@ class _LapakFormViewState extends State<LapakFormView> {
           label: Text(_simpan ? 'Menyimpan...' : (widget.awal == null ? 'Buka lapak sekarang' : 'Simpan perubahan')),
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
             'Dengan membuka lapak, Anda setuju mengikuti Aturan Komunitas: usaha harus di Talagasari, jujur, dan tidak menjual barang terlarang.',
             style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
       ]),
@@ -1996,7 +1996,7 @@ class LapakStaffTab extends StatelessWidget {
           .snapshots(),
       builder: (context, snap) {
         if (snap.hasError) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.error_outline,
               title: 'Tidak dapat memuat',
               subtitle: 'Periksa koneksi internet.');
@@ -2004,7 +2004,7 @@ class LapakStaffTab extends StatelessWidget {
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final list = snap.data!.docs.map(LapakModel.dari).toList();
         if (list.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.storefront_outlined,
               title: 'Belum ada lapak',
               subtitle: 'Lapak UMKM warga akan muncul di sini.');
@@ -2022,7 +2022,7 @@ class LapakStaffTab extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                 ),
                 Text('${l.namaJenis} · oleh ${l.namaPemilik}',
-                    style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+                    style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
                 if (l.status != 'aktif')
                   Text('DISEMBUNYIKAN: ${l.alasanAdmin}',
                       style: TextStyle(color: Colors.red.shade700, fontSize: 12.5)),

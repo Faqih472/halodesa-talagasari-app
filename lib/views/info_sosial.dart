@@ -208,14 +208,14 @@ class InfoAksi extends StatelessWidget {
                         ..sort((a, b) => b.value.compareTo(a.value));
                       final ikon = urut.isEmpty ? '👍' : urut.take(3).map((e) => e.key).join();
                       return Text('$ikon $suka  ',
-                          style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary));
+                          style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary));
                     },
                   ),
-                if (kom > 0) Text('$kom komentar  ', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                if (kom > 0) Text('$kom komentar  ', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 const Spacer(),
                 if (lihat > 0)
                   Text('$lihat dilihat',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
               ]),
             ),
           const Divider(height: 10),
@@ -241,7 +241,7 @@ class InfoAksi extends StatelessWidget {
                       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                         sudah
                             ? Text(emoji!, style: const TextStyle(fontSize: 18))
-                            : const Icon(Icons.thumb_up_alt_outlined,
+                            : Icon(Icons.thumb_up_alt_outlined,
                                 size: 19, color: AppTheme.textSecondary),
                         const SizedBox(width: 4),
                         Text(sudah ? 'Reaksi' : 'Suka',
@@ -272,7 +272,7 @@ class InfoAksi extends StatelessWidget {
               ]);
             },
           ),
-          const Align(
+          Align(
             alignment: Alignment.centerLeft,
             child: Padding(
               padding: EdgeInsets.only(left: 6, bottom: 2),
@@ -365,7 +365,7 @@ class _PenulisInfoState extends State<_PenulisInfo> {
       if (!milik)
         PopupMenuButton<String>(
           padding: EdgeInsets.zero,
-          icon: const Icon(Icons.more_vert, size: 18, color: AppTheme.textSecondary),
+          icon: Icon(Icons.more_vert, size: 18, color: AppTheme.textSecondary),
           onSelected: (v) {
             if (v == 'profil') {
               bukaProfil(widget.news.authorId, nama: nama);
@@ -438,8 +438,8 @@ Future<void> bukaKomentar(NewsModel news) async {
       return Container(
         height: MediaQuery.of(ctx).size.height * 0.75,
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(children: [
@@ -469,7 +469,7 @@ Future<void> bukaKomentar(NewsModel news) async {
                 }
                 final docs = snap.data!.docs;
                 if (docs.isEmpty) {
-                  return const Center(
+                  return Center(
                       child: Text('Belum ada komentar. Jadilah yang pertama.',
                           style: TextStyle(color: AppTheme.textSecondary)));
                 }
@@ -511,7 +511,7 @@ Future<void> bukaKomentar(NewsModel news) async {
                               const Spacer(),
                               if (t != null)
                                 Text(AppUtils.formatRelatif(t),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 11,
                                         color: AppTheme.textSecondary)),
                               if (milik || auth.isStaff)
@@ -623,8 +623,8 @@ Future<String?> pilihKategoriInfo(String sekarang, bool staf) {
   return Get.bottomSheet<String>(
     Container(
       height: Get.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(children: [
@@ -640,7 +640,7 @@ Future<String?> pilihKategoriInfo(String sekarang, bool staf) {
           child: Text('Pilih jenis informasi',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
         ),
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text(
               'Pilih yang paling cocok dengan isi info Anda. Contoh tertulis di bawah tiap pilihan.',

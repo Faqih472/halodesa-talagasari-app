@@ -87,7 +87,7 @@ class ChatListView extends StatelessWidget {
         body: me == null
             ? const SizedBox.shrink()
             : list.isEmpty
-                ? const EmptyState(
+                ? EmptyState(
                     icon: Icons.chat_bubble_outline,
                     title: 'Belum ada percakapan',
                     subtitle:
@@ -341,7 +341,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
               stream: _chatCtrl.pesanStream(widget.roomId),
               builder: (context, snap) {
                 if (snap.hasError) {
-                  return const EmptyState(
+                  return EmptyState(
                     icon: Icons.error_outline,
                     title: 'Gagal memuat pesan',
                     subtitle: 'Periksa koneksi internet Anda lalu coba lagi.',
@@ -365,7 +365,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
                 }
 
                 if (pesan.isEmpty) {
-                  return const EmptyState(
+                  return EmptyState(
                     icon: Icons.waving_hand_outlined,
                     title: 'Sapa dulu yuk!',
                     subtitle:
@@ -425,7 +425,7 @@ class _ChatRoomViewState extends State<ChatRoomView> {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(AppUtils.formatTanggal(d),
-            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+            style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
       ),
     );
   }
@@ -440,8 +440,8 @@ class _ChatRoomViewState extends State<ChatRoomView> {
     await Get.bottomSheet(
       Container(
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
-        decoration: const BoxDecoration(
-            color: Colors.white,
+        decoration: BoxDecoration(
+            color: AppTheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         child: SafeArea(
           top: false,

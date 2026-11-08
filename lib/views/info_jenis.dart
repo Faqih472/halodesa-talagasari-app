@@ -353,7 +353,7 @@ class _SebelumSesudahState extends State<SebelumSesudah> {
                   width: 34,
                   height: 34,
                   decoration: BoxDecoration(
-                      color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 6)]),
+                      color: AppTheme.surface, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 6)]),
                   child: const Icon(Icons.compare_arrows, size: 20),
                 ),
               ),
@@ -468,7 +468,7 @@ class PollingMini extends StatelessWidget {
                     Container(
                       height: 38,
                       decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.surface,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: milik == i ? warna : Colors.grey.shade300, width: milik == i ? 2 : 1)),
                     ),
@@ -493,7 +493,7 @@ class PollingMini extends StatelessWidget {
               ),
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text('$total suara', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              child: Text('$total suara', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
             ),
           ]),
         );

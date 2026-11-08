@@ -494,7 +494,7 @@ class _FotoPickerState extends State<FotoPicker> with AutomaticKeepAliveClientMi
         if (widget.bantuan != null) ...[
           const SizedBox(height: 4),
           Text(widget.bantuan!,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 11, color: AppTheme.textSecondary, height: 1.3)),
         ],
       ],
@@ -593,7 +593,7 @@ Future<String?> pilihAlasanTolak(String konteks, {String? judul}) async {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Pilih alasan yang paling sesuai. Alasan akan dikirim ke pemohon dan dicatat di Log Keputusan.',
+                Text('Pilih alasan yang paling sesuai. Alasan akan dikirim ke pemohon dan dicatat di Log Keputusan.',
                     style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
                 const SizedBox(height: 8),
                 ...opsi.map((o) => InkWell(

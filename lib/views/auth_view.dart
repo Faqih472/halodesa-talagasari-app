@@ -381,7 +381,7 @@ class _AuthViewState extends State<AuthView>
                   : null,
             ),
             const SizedBox(width: 10),
-            const Expanded(
+            Expanded(
               child: Text(
                 'Ingat saya di perangkat ini (Login Cepat)',
                 style: TextStyle(fontSize: 12.5, color: AppTheme.textPrimary),
@@ -458,7 +458,7 @@ class _AuthViewState extends State<AuthView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(bottom: 8),
           child: Text(
             'Akun tersimpan di perangkat ini',
@@ -470,7 +470,7 @@ class _AuthViewState extends State<AuthView>
         ),
         ...akunList.map(_buildBubbleAkun),
         const SizedBox(height: 4),
-        const Row(
+        Row(
           children: [
             Expanded(child: Divider()),
             Padding(
@@ -543,7 +543,7 @@ class _AuthViewState extends State<AuthView>
                             : 'Ketuk untuk masuk sebagai $nama',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 12, color: AppTheme.textSecondary),
                       ),
                     ],
@@ -583,7 +583,7 @@ class _AuthViewState extends State<AuthView>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Selamat Datang Kembali',
               style: TextStyle(
                 fontSize: 20,
@@ -592,7 +592,7 @@ class _AuthViewState extends State<AuthView>
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Masuk untuk mengakses informasi & layanan jasa desa.',
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
             ),
@@ -677,7 +677,7 @@ class _AuthViewState extends State<AuthView>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Belum punya akun?',
                   style: TextStyle(color: AppTheme.textSecondary),
                 ),
@@ -705,7 +705,7 @@ class _AuthViewState extends State<AuthView>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Buat Akun Baru',
               style: TextStyle(
                 fontSize: 20,
@@ -714,7 +714,7 @@ class _AuthViewState extends State<AuthView>
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Daftarkan diri sebagai warga Desa Talagasari.',
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
             ),
@@ -840,7 +840,7 @@ class _AuthViewState extends State<AuthView>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Sudah punya akun?',
                   style: TextStyle(color: AppTheme.textSecondary),
                 ),

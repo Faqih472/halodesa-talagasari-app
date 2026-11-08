@@ -10,6 +10,7 @@
 //   AdminJasaTab       : antrean verifikasi + semua jasa (Admin)
 // ============================================================
 
+import '../core/tema_app.dart';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -259,7 +260,7 @@ class _TabJasaViewState extends State<TabJasaView> {
     Get.bottomSheet(
       const _FilterJasaSheet(),
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -512,7 +513,7 @@ class _TabJasaViewState extends State<TabJasaView> {
                                       setState(() {});
                                     }),
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: AppTheme.surface,
                             contentPadding: const EdgeInsets.symmetric(vertical: 0),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -580,7 +581,7 @@ class _TabJasaViewState extends State<TabJasaView> {
                       Expanded(
                         child: Text(
                             loading ? 'Memuat…' : '${list.length} penyedia jasa',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 12, color: AppTheme.textSecondary)),
                       ),
                       PopupMenuButton<String>(
@@ -684,7 +685,9 @@ class _TabJasaViewState extends State<TabJasaView> {
       [Color(0xFFAD1457), Color(0xFFEC407A)],
     ];
     final d = data[_mode];
-    final w = warna[_mode];
+    final w = TemaApp.bawaan
+        ? warna[_mode]
+        : [AppTheme.primaryColorDark('warga'), AppTheme.primaryColor('warga')];
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       width: double.infinity,
@@ -706,7 +709,7 @@ class _TabJasaViewState extends State<TabJasaView> {
 
   Widget _tombolPeta(IconData ikon, String tip, VoidCallback onTap) {
     return Material(
-      color: Colors.white,
+      color: AppTheme.surface,
       elevation: 3,
       shape: const CircleBorder(),
       child: InkWell(
@@ -766,7 +769,7 @@ class _TabJasaViewState extends State<TabJasaView> {
         margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: sColor.withOpacity(0.4)),
         ),
@@ -799,7 +802,7 @@ class _TabJasaViewState extends State<TabJasaView> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+            Icon(Icons.chevron_right, color: AppTheme.textSecondary),
           ],
         ),
       ),
@@ -873,20 +876,20 @@ class _JasaKartu extends StatelessWidget {
                     Text(s.ratingAvg.toStringAsFixed(1),
                         style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
                     Text(' (${s.ratingCount})',
-                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                   ] else
-                    const Text('Belum ada ulasan',
+                    Text('Belum ada ulasan',
                         style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                   if (s.pesananSelesai > 0)
                     Text('  •  ${s.pesananSelesai}x dipesan',
-                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                 ]),
                 const SizedBox(height: 4),
                 Row(children: [
-                  const Icon(Icons.near_me_outlined, size: 14, color: AppTheme.textSecondary),
+                  Icon(Icons.near_me_outlined, size: 14, color: AppTheme.textSecondary),
                   const SizedBox(width: 3),
                   Text(AppUtils.formatJarakKm(s.jarakKm),
-                      style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                      style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                 ]),
               ]),
             ),
@@ -1063,7 +1066,7 @@ Future<void> _menuAdminJasa(ServiceModel s) async {
   final pilih = await Get.bottomSheet<String>(
     SafeArea(
       child: Container(
-        color: Colors.white,
+        color: AppTheme.surface,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1250,7 +1253,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
         if (s == null) {
           return Scaffold(
             appBar: AppBar(),
-            body: const EmptyState(
+            body: EmptyState(
                 icon: Icons.search_off,
                 title: 'Jasa tidak ditemukan',
                 subtitle: 'Profil jasa ini sudah tidak tersedia.'),
@@ -1403,7 +1406,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
                 const SizedBox(height: 26),
                 CircleAvatar(
                   radius: 44,
-                  backgroundColor: Colors.white,
+                  backgroundColor: AppTheme.surface,
                   child: _avatarJasa(s, radius: 41),
                 ),
                 const SizedBox(height: 10),
@@ -1568,7 +1571,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(14),
               boxShadow: [BoxShadow(color: AppTheme.primaryColor(_auth.role).withOpacity(0.14), blurRadius: 10, offset: const Offset(0, 4))],
             ),
@@ -1580,7 +1583,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 Text(label,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 10.5, color: AppTheme.textSecondary)),
               ],
             ),
@@ -1668,7 +1671,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(p.deskripsi,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
                   ),
                 const SizedBox(height: 4),
@@ -1704,7 +1707,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (s.jadwal.isEmpty)
-            const Text('Penyedia belum mengatur jam kerja.',
+            Text('Penyedia belum mengatur jam kerja.',
                 style: TextStyle(fontSize: 13, color: AppTheme.textSecondary))
           else
             ...List.generate(_jadwalTerbuka ? 7 : 1, (i) {
@@ -1730,7 +1733,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
                                 ? AppTheme.textPrimary
                                 : Colors.red.shade700)),
                     if (ini)
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(left: 6),
                         child: Text('(hari ini)',
                             style: TextStyle(
@@ -1742,7 +1745,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
             }),
           if (libur.isNotEmpty) ...[
             const SizedBox(height: 8),
-            const Text('Libur / tidak tersedia:',
+            Text('Libur / tidak tersedia:',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             const SizedBox(height: 4),
             Wrap(
@@ -1810,7 +1813,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
           return const ShimmerBox(height: 100);
         }
         if (semua.isEmpty) {
-          return const Text('Belum ada foto portofolio.',
+          return Text('Belum ada foto portofolio.',
               style: TextStyle(fontSize: 13, color: AppTheme.textSecondary));
         }
         return SizedBox(
@@ -1869,7 +1872,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
     }
 
     final ringkasan = s.ratingCount == 0
-        ? const Padding(
+        ? Padding(
             padding: EdgeInsets.symmetric(vertical: 6),
             child: Text(
                 'Belum ada ulasan. Ulasan hanya dari warga yang sudah menyelesaikan pesanan.',
@@ -1888,7 +1891,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
                       RatingStars(rating: s.ratingAvg, size: 15),
                       const SizedBox(height: 2),
                       Text('${s.ratingCount} ulasan',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 11, color: AppTheme.textSecondary)),
                     ],
                   ),
@@ -1921,7 +1924,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
                                   width: 26,
                                   child: Text('${s.ratingDist[b] ?? 0}',
                                       textAlign: TextAlign.right,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                           fontSize: 11,
                                           color: AppTheme.textSecondary)),
                                 ),
@@ -2001,7 +2004,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
                         style: const TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 13)),
                     Text(AppUtils.formatRelatif(r.createdAt),
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 11, color: AppTheme.textSecondary)),
                   ],
                 ),
@@ -2036,7 +2039,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Balasan penyedia',
+                  Text('Balasan penyedia',
                       style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w700,
@@ -2077,7 +2080,7 @@ class _JasaDetailViewState extends State<JasaDetailView> {
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface,
               boxShadow: [
                 BoxShadow(
                     color: Colors.black.withOpacity(0.08),
@@ -2344,7 +2347,7 @@ class _FormJasaViewState extends State<FormJasaView> {
               onPressed: () => setState(() => _isiTarif(paksa: true)),
               child: const Text('Pakai kisaran ini'),
             ),
-            const Expanded(
+            Expanded(
                 child: Text('Perkiraan umum, bukan harga tetap atau data resmi.',
                     style: TextStyle(fontSize: 11, color: AppTheme.textSecondary))),
           ]),
@@ -2383,7 +2386,7 @@ class _FormJasaViewState extends State<FormJasaView> {
           if (catatan != null) ...[
             const SizedBox(height: 4),
             Text(catatan,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 11.5, color: AppTheme.textSecondary, height: 1.35)),
           ],
           const SizedBox(height: 12),
@@ -2432,7 +2435,7 @@ class _FormJasaViewState extends State<FormJasaView> {
           ),
         if (saran.isNotEmpty) ...[
           const SizedBox(height: 6),
-          const Text('Saran (ketuk untuk menambah):',
+          Text('Saran (ketuk untuk menambah):',
               style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
           Wrap(
             spacing: 6,
@@ -2520,7 +2523,7 @@ class _FormJasaViewState extends State<FormJasaView> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                       'Contoh harga: ${_pt.contoh.take(2).join('; ')}',
-                      style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.3)),
+                      style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, height: 1.3)),
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
@@ -2580,7 +2583,7 @@ class _FormJasaViewState extends State<FormJasaView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_in.paket.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(bottom: 8),
             child: Text(
                 'Belum ada layanan. Tambahkan minimal satu agar warga bisa langsung memesan paket tertentu.',
@@ -3077,7 +3080,7 @@ class _FormJasaViewState extends State<FormJasaView> {
               const SizedBox(height: 8),
               const Text('Maksimal pesanan berjalan bersamaan',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              const Text(
+              Text(
                   'Bila tercapai, status otomatis menjadi "Penuh" lalu terbuka lagi saat ada pekerjaan selesai.',
                   style: TextStyle(
                       fontSize: 11.5, color: AppTheme.textSecondary, height: 1.35)),
@@ -3414,7 +3417,7 @@ class _BuatPesananViewState extends State<BuatPesananView> {
                             fontWeight: FontWeight.w600, fontSize: 13.5)),
                     if (sub.isNotEmpty)
                       Text(sub,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 12, color: AppTheme.textSecondary)),
                   ],
                 ),
@@ -3561,10 +3564,10 @@ class _BuatPesananViewState extends State<BuatPesananView> {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(_infoJamKerja,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary)),
               ),
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 4),
               child: Text(
                   'Tanggal yang libur atau di luar hari kerja penyedia tidak bisa dipilih.',
@@ -3633,7 +3636,7 @@ class _BuatPesananViewState extends State<BuatPesananView> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                       'Penyedia dapat menerima atau mengajukan penawaran (harga/tanggal). Anda memutuskan setuju atau tidak. Pembayaran langsung ke penyedia setelah pekerjaan selesai — tidak lewat aplikasi.',
                       style: TextStyle(
                           fontSize: 11.5, color: AppTheme.textSecondary, height: 1.4)),
@@ -3647,7 +3650,7 @@ class _BuatPesananViewState extends State<BuatPesananView> {
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.surface,
             boxShadow: [
               BoxShadow(
                   color: Colors.black.withOpacity(0.08),
@@ -3730,12 +3733,12 @@ class _KartuPesanan extends StatelessWidget {
                   Text('${sebagaiPenyedia ? 'Pemesan' : 'Penyedia'}: $pihak',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 2),
                   Text(
                       '${AppUtils.formatTanggal(o.tanggalAkhir)}${_jamLabel(o.jam)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 6),
                   Wrap(spacing: 6, runSpacing: 4, children: [
@@ -3748,7 +3751,7 @@ class _KartuPesanan extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+            Icon(Icons.chevron_right, color: AppTheme.textSecondary),
           ],
         ),
       ),
@@ -3916,7 +3919,7 @@ class _PesananDetailViewState extends State<PesananDetailView> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                     'Ubah harga atau tanggal bila perlu. Jika berbeda dari permintaan, pemesan harus menyetujui dulu sebelum pesanan diterima.',
                     style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
@@ -4095,7 +4098,7 @@ class _PesananDetailViewState extends State<PesananDetailView> {
               children: [
                 Text(o.namaLayanan,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 13, color: AppTheme.textSecondary)),
                 const SizedBox(height: 8),
                 RatingStars(
@@ -4155,7 +4158,7 @@ class _PesananDetailViewState extends State<PesananDetailView> {
         if (o == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Detail Pesanan')),
-            body: const EmptyState(
+            body: EmptyState(
                 icon: Icons.search_off,
                 title: 'Pesanan tidak ditemukan',
                 subtitle: 'Pesanan ini sudah tidak tersedia.'),
@@ -4583,7 +4586,7 @@ class _PesananDetailViewState extends State<PesananDetailView> {
   Widget _riwayat(OrderModel o) {
     final log = o.log;
     if (log.isEmpty) {
-      return const Text('Belum ada riwayat.',
+      return Text('Belum ada riwayat.',
           style: TextStyle(fontSize: 13, color: AppTheme.textSecondary));
     }
     return kartu(
@@ -4623,7 +4626,7 @@ class _PesananDetailViewState extends State<PesananDetailView> {
                                 color: c)),
                         Text(
                             '${l.oleh.isEmpty ? '' : '${l.oleh} • '}${AppUtils.formatTanggalWaktu(l.waktu)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 11, color: AppTheme.textSecondary)),
                         if (l.catatan.isNotEmpty)
                           Padding(
@@ -4653,7 +4656,7 @@ class _PesananDetailViewState extends State<PesananDetailView> {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Text(teks,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+              style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
         );
 
     Widget utama(String label, IconData i, VoidCallback onTap, {Color? warna}) =>
@@ -4768,7 +4771,7 @@ class _PesananDetailViewState extends State<PesananDetailView> {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface,
           boxShadow: [
             BoxShadow(
                 color: Colors.black.withOpacity(0.08),
@@ -4850,7 +4853,7 @@ Widget _statKotak(IconData ikon, String nilai, String label, Color c) {
   return Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: AppTheme.surface,
       borderRadius: BorderRadius.circular(12),
       boxShadow: [
         BoxShadow(
@@ -4873,7 +4876,7 @@ Widget _statKotak(IconData ikon, String nilai, String label, Color c) {
         Text(label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+            style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
       ],
     ),
   );
@@ -4897,7 +4900,7 @@ Future<void> showDialogKetersediaan(ServiceModel saya) async {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                   'Profil tetap tampil, tetapi warga melihat label status dan tidak bisa memesan saat Penuh atau Tutup.',
                   style: TextStyle(
                       fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
@@ -5002,13 +5005,13 @@ Future<void> showDialogLibur(ServiceModel saya) async {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                   'Warga tidak bisa memesan jasa Anda pada tanggal yang ditandai libur. Maksimal 30 tanggal.',
                   style: TextStyle(
                       fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
               const SizedBox(height: 12),
               if (daftar.isEmpty)
-                const Text('Belum ada tanggal libur.',
+                Text('Belum ada tanggal libur.',
                     style: TextStyle(fontSize: 13, color: AppTheme.textSecondary))
               else
                 Wrap(
@@ -5099,7 +5102,7 @@ class DasborJasaView extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                       'Daftarkan keahlian atau usaha Anda agar warga sekitar bisa memesan.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -5144,7 +5147,7 @@ class DasborJasaView extends StatelessWidget {
                           padding:
                               const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                           decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: AppTheme.surface,
                               borderRadius: BorderRadius.circular(10)),
                           child: Text('$baru',
                               style: TextStyle(
@@ -5241,7 +5244,7 @@ class _DsbRingkasan extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: sColor.withOpacity(0.4)),
             ),
@@ -5263,7 +5266,7 @@ class _DsbRingkasan extends StatelessWidget {
                                   fontWeight: FontWeight.bold, fontSize: 15)),
                           const SizedBox(height: 2),
                           Text(AppUtils.labelKategoriJasa(saya.kategori),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 12, color: AppTheme.textSecondary)),
                         ],
                       ),
@@ -5274,7 +5277,7 @@ class _DsbRingkasan extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(_teksStatusProfil(saya.status),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12.5, color: AppTheme.textSecondary, height: 1.4)),
                 if ((saya.status == 'ditolak' ||
                         saya.status == 'diblokir' ||
@@ -5404,7 +5407,7 @@ class _DsbRingkasan extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   if (saya.penuhOtomatis)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(bottom: 8),
                       child: Text(
                           'Status "Penuh" diatur otomatis karena jumlah pesanan berjalan sudah mencapai kapasitas. Akan terbuka sendiri setelah ada pesanan selesai.',
@@ -5484,7 +5487,7 @@ class _DsbRingkasan extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Perkiraan pendapatan bulan ini',
+                          Text('Perkiraan pendapatan bulan ini',
                               style: TextStyle(
                                   fontSize: 12, color: AppTheme.textSecondary)),
                           const SizedBox(height: 2),
@@ -5496,7 +5499,7 @@ class _DsbRingkasan extends StatelessWidget {
                     ),
                     Text('${ord.selesaiBulanIni} pesanan\nselesai',
                         textAlign: TextAlign.right,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 11.5, color: AppTheme.textSecondary)),
                   ],
                 ),
@@ -5532,14 +5535,14 @@ class _DsbRingkasan extends StatelessWidget {
                   const Text('Profil Anda sudah lengkap. Mantap!',
                       style: TextStyle(fontSize: 13, color: Color(0xFF2E7D32)))
                 else ...[
-                  const Text('Profil lengkap lebih dipercaya warga. Yang masih kurang:',
+                  Text('Profil lengkap lebih dipercaya warga. Yang masih kurang:',
                       style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 6),
                   ...kurang.map((e) => Padding(
                         padding: const EdgeInsets.only(bottom: 3),
                         child: Row(
                           children: [
-                            const Icon(Icons.radio_button_unchecked,
+                            Icon(Icons.radio_button_unchecked,
                                 size: 14, color: AppTheme.textSecondary),
                             const SizedBox(width: 8),
                             Expanded(
@@ -5571,7 +5574,7 @@ Future<void> _dialogBalasUlasan(String serviceId, ReviewModel r) async {
           Text('"${r.komentar.isEmpty ? 'Tanpa komentar' : r.komentar}"',
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12.5, fontStyle: FontStyle.italic, color: AppTheme.textSecondary)),
           const SizedBox(height: 10),
           TextField(
@@ -5631,7 +5634,7 @@ class _DsbUlasan extends StatelessWidget {
               width: 28,
               child: Text('$jumlah',
                   textAlign: TextAlign.right,
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary))),
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary))),
         ],
       ),
     );
@@ -5654,7 +5657,7 @@ class _DsbUlasan extends StatelessWidget {
             kartu(
               margin: EdgeInsets.zero,
               child: saya.ratingCount == 0
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
                       child: Text(
                           'Belum ada ulasan. Ulasan muncul setelah pesanan selesai dan dikonfirmasi warga.',
@@ -5675,7 +5678,7 @@ class _DsbUlasan extends StatelessWidget {
                                 RatingStars(rating: saya.ratingAvg, size: 15),
                                 const SizedBox(height: 2),
                                 Text('${saya.ratingCount} ulasan',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 11, color: AppTheme.textSecondary)),
                               ],
                             ),
@@ -5708,7 +5711,7 @@ class _DsbUlasan extends StatelessWidget {
             ),
             _judulSeksi('Ulasan Warga'),
             if (semua.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
                 child: Center(
                   child: Text('Belum ada ulasan.',
@@ -5729,7 +5732,7 @@ class _DsbUlasan extends StatelessWidget {
                                       fontWeight: FontWeight.w600, fontSize: 13.5)),
                             ),
                             Text(AppUtils.formatRelatif(r.createdAt),
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 11, color: AppTheme.textSecondary)),
                           ],
                         ),
@@ -5743,7 +5746,7 @@ class _DsbUlasan extends StatelessWidget {
                                 child: Text(r.namaLayanan,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 11.5, color: AppTheme.textSecondary)),
                               ),
                             ],
@@ -5872,7 +5875,7 @@ class _AdminJasaTabState extends State<AdminJasaTab> {
                 prefixIcon: const Icon(Icons.search),
                 isDense: true,
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: AppTheme.surface,
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: BorderSide.none),
@@ -5956,7 +5959,7 @@ class _AdminJasaTabState extends State<AdminJasaTab> {
                           style: const TextStyle(
                               fontSize: 15, fontWeight: FontWeight.bold)),
                       Text('Pemilik: ${s.namaPenyedia}',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 12, color: AppTheme.textSecondary)),
                       const SizedBox(height: 4),
                       Wrap(spacing: 6, runSpacing: 4, children: [
@@ -6001,7 +6004,7 @@ class _AdminJasaTabState extends State<AdminJasaTab> {
             Text(s.deskripsi,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12.5, color: AppTheme.textSecondary, height: 1.4)),
           if ((s.alasanPenolakan ?? '').isNotEmpty && !antre)
             Padding(
@@ -6084,7 +6087,7 @@ class _BoxContoh extends StatelessWidget {
                         fontWeight: FontWeight.bold, fontSize: 13))),
           ]),
           const SizedBox(height: 4),
-          const Text('Ketuk salah satu contoh untuk mengisi otomatis, lalu ubah sesuai keadaan Anda.',
+          Text('Ketuk salah satu contoh untuk mengisi otomatis, lalu ubah sesuai keadaan Anda.',
               style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
           const SizedBox(height: 6),
           for (final c in contoh)
@@ -6095,7 +6098,7 @@ class _BoxContoh extends StatelessWidget {
                 margin: const EdgeInsets.only(top: 6),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                    color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                    color: AppTheme.surface, borderRadius: BorderRadius.circular(8)),
                 child: Text(c, style: const TextStyle(fontSize: 12.5, height: 1.35)),
               ),
             ),
@@ -6369,7 +6372,7 @@ class PanduanJasaView extends StatelessWidget {
                     style: const TextStyle(fontSize: 12.5, height: 1.35)),
               ),
             const SizedBox(height: 4),
-            const Text('Angka upah hanyalah perkiraan umum, bukan data resmi. Sesuaikan dengan kesepakatan.',
+            Text('Angka upah hanyalah perkiraan umum, bukan data resmi. Sesuaikan dengan kesepakatan.',
                 style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
           ],
         ),
@@ -6420,7 +6423,7 @@ class _LowonganTabState extends State<LowonganTab> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.shade300)),
           child: Column(children: [
@@ -6494,7 +6497,7 @@ class _LowonganTabState extends State<LowonganTab> {
                   hintText: 'Cari lowongan: kuli, setrika, guru ngaji…',
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: AppTheme.surface,
                   contentPadding: EdgeInsets.zero,
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -6539,7 +6542,7 @@ class _LowonganTabState extends State<LowonganTab> {
                       _c.isLoading.value && list.isEmpty
                           ? 'Memuat…'
                           : '${list.length} lowongan dibuka',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 ),
                 ChoiceChip(
                     label: const Text('Daftar', style: TextStyle(fontSize: 12)),
@@ -6626,7 +6629,7 @@ class _KartuLowongan extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
               const SizedBox(height: 2),
               Text('${l.namaPemberi} • ${AppUtils.formatRelatif(l.createdAt)}',
-                  style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                  style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
             ]),
           ),
         ]),
@@ -6868,7 +6871,7 @@ class _FormLowonganViewState extends State<FormLowonganView> {
               alignLabelWithHint: true,
               counterText: '',
               filled: true,
-              fillColor: Colors.white),
+              fillColor: AppTheme.surface),
         ),
       );
 
@@ -6914,7 +6917,7 @@ class _FormLowonganViewState extends State<FormLowonganView> {
               onPressed: () => setState(() => _terapkanPatokan(paksa: true)),
               child: const Text('Pakai patokan'),
             ),
-            const Expanded(
+            Expanded(
                 child: Text('Angka ini perkiraan umum, bukan data resmi.',
                     style: TextStyle(fontSize: 11, color: AppTheme.textSecondary))),
           ]),
@@ -6935,7 +6938,7 @@ class _FormLowonganViewState extends State<FormLowonganView> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         children: [
-          const Text(
+          Text(
               'Isi selengkap mungkin supaya pelamar paham pekerjaannya. Lowongan diperiksa Admin dulu sebelum tayang (supaya aman dari penipuan). Setelah tayang, bisa Anda tutup kapan saja.',
               style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.4)),
           _judulSeksi('1. Pekerjaan apa?'),
@@ -6950,7 +6953,7 @@ class _FormLowonganViewState extends State<FormLowonganView> {
           ),
           const SizedBox(height: 6),
           Text(info.apaItu,
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.35)),
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.35)),
           const SizedBox(height: 10),
           if (widget.existing == null)
             Container(
@@ -6976,7 +6979,7 @@ class _FormLowonganViewState extends State<FormLowonganView> {
                       ),
                     ),
                   const SizedBox(height: 4),
-                  const Text('Setiap contoh sudah mengisi jenis kerja, jumlah orang, dan upah yang masuk akal. Isi hanya contoh, ubah sesuai kebutuhan Anda.',
+                  Text('Setiap contoh sudah mengisi jenis kerja, jumlah orang, dan upah yang masuk akal. Isi hanya contoh, ubah sesuai kebutuhan Anda.',
                       style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                 ],
               ),
@@ -7008,15 +7011,15 @@ class _FormLowonganViewState extends State<FormLowonganView> {
                   ),
               ]),
               const SizedBox(height: 4),
-              const Text('Ganti bidang atau jenis kerja, contoh ikut berubah. Boleh diubah setelah diisi.',
+              Text('Ganti bidang atau jenis kerja, contoh ikut berubah. Boleh diubah setelah diisi.',
                   style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
             ]),
           ),
           _judulSeksi('2. Jenis kerja, jumlah, dan upah'),
           DropdownButtonFormField<String>(
             value: _jenis,
-            decoration: const InputDecoration(
-                labelText: 'Jenis kerja', filled: true, fillColor: Colors.white),
+            decoration: InputDecoration(
+                labelText: 'Jenis kerja', filled: true, fillColor: AppTheme.surface),
             items: [
               for (final j in LowonganModel.daftarJenis)
                 DropdownMenuItem(value: j['value'], child: Text(j['label']!)),
@@ -7032,7 +7035,7 @@ class _FormLowonganViewState extends State<FormLowonganView> {
             child: Text(
                 LowonganModel.daftarJenis
                     .firstWhere((j) => j['value'] == _jenis)['info']!,
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
           ),
           Row(children: [
             const Expanded(
@@ -7058,8 +7061,8 @@ class _FormLowonganViewState extends State<FormLowonganView> {
               child: DropdownButtonFormField<String>(
                 value: _satuan,
                 isExpanded: true,
-                decoration: const InputDecoration(
-                    labelText: 'Satuan', filled: true, fillColor: Colors.white),
+                decoration: InputDecoration(
+                    labelText: 'Satuan', filled: true, fillColor: AppTheme.surface),
                 items: [
                   for (final s in LowonganModel.daftarSatuan)
                     DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13))),
@@ -7378,7 +7381,7 @@ class _LowonganDetailViewState extends State<LowonganDetailView> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                      color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                      color: AppTheme.surface, borderRadius: BorderRadius.circular(12)),
                   child: Row(children: [
                     Icon(Icons.payments_outlined, color: Colors.green.shade800),
                     const SizedBox(width: 8),
@@ -7549,7 +7552,7 @@ class _LowonganDetailViewState extends State<LowonganDetailView> {
                   ),
                 ),
               if (lam == null && l.buka)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 6),
                   child: Text(
                       'Setelah melamar, pemberi kerja akan menjawab. Anda mendapat pemberitahuan di aplikasi.',
@@ -7568,7 +7571,7 @@ class _LowonganDetailViewState extends State<LowonganDetailView> {
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
                     'Tips aman: ${info.apaItu.isEmpty ? '' : ''}jangan membayar uang apa pun untuk bisa diterima bekerja. Lowongan yang meminta uang dari pelamar dapat dilaporkan ke Admin.',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4)),
               ),
           ],
         ),
@@ -7657,23 +7660,23 @@ class _LamarViewState extends State<LamarView> {
             minLines: 4,
             maxLines: 8,
             maxLength: 400,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
                 labelText: 'Perkenalan singkat',
                 hintText: 'Siapa Anda, pengalaman, dan kapan bisa mulai bekerja',
                 alignLabelWithHint: true,
                 filled: true,
-                fillColor: Colors.white),
+                fillColor: AppTheme.surface),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _telp,
             keyboardType: TextInputType.phone,
             maxLength: 16,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
                 labelText: 'Nomor telepon / WhatsApp',
                 counterText: '',
                 filled: true,
-                fillColor: Colors.white),
+                fillColor: AppTheme.surface),
           ),
           const SizedBox(height: 10),
           TextField(
@@ -7686,7 +7689,7 @@ class _LamarViewState extends State<LamarView> {
                 helperText: 'Kosongkan bila setuju dengan upah: ${l.labelUpah}',
                 counterText: '',
                 filled: true,
-                fillColor: Colors.white),
+                fillColor: AppTheme.surface),
           ),
           const SizedBox(height: 16),
           Obx(() => SizedBox(
@@ -7850,7 +7853,7 @@ class _LamaranSayaViewState extends State<LamaranSayaView> {
                         ]),
                         const SizedBox(height: 4),
                         Text(AppUtils.formatRelatif(x.createdAt),
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 11.5, color: AppTheme.textSecondary)),
                         const SizedBox(height: 4),
                         Text(x.pesan,
@@ -7877,7 +7880,7 @@ Future<String?> pilihKategoriJasa({String? terpilih, bool denganUmum = false}) {
   return Get.bottomSheet<String>(
     _SheetKategori(terpilih: terpilih, denganUmum: denganUmum),
     isScrollControlled: true,
-    backgroundColor: Colors.white,
+    backgroundColor: AppTheme.surface,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
   );
@@ -7909,7 +7912,7 @@ class _SheetKategori extends StatelessWidget {
             const Text('Pilih kategori',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            const Text(
+            Text(
                 'Pilih yang paling mirip dengan pekerjaannya. Contoh ada di bawah setiap nama.',
                 style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
             for (final g in AppUtils.kelompokJasa) ...[
@@ -7967,7 +7970,7 @@ class _SheetKategori extends StatelessWidget {
                                     fontSize: 12.5, fontWeight: FontWeight.bold, height: 1.2)),
                             const SizedBox(height: 3),
                             Text(AppUtils.contohKategoriJasa(k),
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 11, color: AppTheme.textSecondary, height: 1.3)),
                           ],
                         ),
@@ -8007,7 +8010,7 @@ class _FieldKategori extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: c.withOpacity(0.5))),
         child: Row(children: [
@@ -8020,14 +8023,14 @@ class _FieldKategori extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label,
-                    style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                    style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                 Text(
                     value == 'umum'
                         ? 'Pekerja Umum / Serabutan'
                         : AppUtils.labelKategoriJasa(value),
                     style: const TextStyle(fontWeight: FontWeight.bold)),
                 Text(AppUtils.contohKategoriJasa(value),
-                    style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                    style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
               ],
             ),
           ),
@@ -8059,7 +8062,7 @@ class _FilterKategoriBar extends StatelessWidget {
         selected: on,
         onSelected: (_) => tap(),
         selectedColor: c.withOpacity(0.15),
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.surface,
         labelStyle: TextStyle(
             color: on ? c : AppTheme.textSecondary,
             fontWeight: on ? FontWeight.w600 : FontWeight.normal,

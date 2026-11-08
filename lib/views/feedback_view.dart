@@ -92,7 +92,7 @@ class _BeriUmpanBalikViewState extends State<BeriUmpanBalikView> {
                   _target == 'admin'
                       ? 'Penilaian tentang Admin dibaca oleh Kepala Desa.'
                       : 'Penilaian tentang Kepala Desa dibaca oleh Admin. Hanya warga terverifikasi yang dapat menilai pelayanan.',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12,
                       color: AppTheme.textSecondary,
                       height: 1.4)),
@@ -110,7 +110,7 @@ class _BeriUmpanBalikViewState extends State<BeriUmpanBalikView> {
                 _rating == 0
                     ? 'Ketuk bintang untuk menilai'
                     : const ['', 'Sangat buruk', 'Buruk', 'Cukup', 'Baik', 'Sangat baik'][_rating],
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12, color: AppTheme.textSecondary)),
           ),
           const SizedBox(height: 18),
@@ -164,7 +164,7 @@ class _BeriUmpanBalikViewState extends State<BeriUmpanBalikView> {
                 ),
               )),
           const SizedBox(height: 10),
-          const Text(
+          Text(
               'Penilaian dibatasi 1x per sasaran per 14 hari dan dihapus otomatis setelah 180 hari.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
@@ -245,7 +245,7 @@ class _UmpanBalikStafViewState extends State<UmpanBalikStafView> {
                             color: Color(0xFFFFA726)),
                       ]),
                       Text('${data.length} penilaian',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 12, color: AppTheme.textSecondary)),
                       const SizedBox(height: 8),
                       for (int i = 0; i < 5; i++)
@@ -303,7 +303,7 @@ class _UmpanBalikStafViewState extends State<UmpanBalikStafView> {
                     padding: EdgeInsets.all(32),
                     child: Center(child: CircularProgressIndicator()))
               else if (list.isEmpty)
-                const Padding(
+                Padding(
                   padding: EdgeInsets.all(32),
                   child: Text('Belum ada umpan balik.',
                       textAlign: TextAlign.center,
@@ -318,7 +318,7 @@ class _UmpanBalikStafViewState extends State<UmpanBalikStafView> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(FeedbackModel.labelTarget(f.target),
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 12,
                                     color: AppTheme.textSecondary)),
                           ),
@@ -349,7 +349,7 @@ class _UmpanBalikStafViewState extends State<UmpanBalikStafView> {
                           Expanded(
                             child: Text(
                                 '${f.nama} • ${AppUtils.formatRelatif(f.createdAt)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 11,
                                     color: AppTheme.textSecondary)),
                           ),

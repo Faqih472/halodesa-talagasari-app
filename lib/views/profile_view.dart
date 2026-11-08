@@ -56,13 +56,13 @@ class TabMyRequestView extends StatelessWidget {
                   Icon(Icons.assignment_outlined,
                       size: 72, color: primaryColor.withOpacity(0.3)),
                   const SizedBox(height: 16),
-                  const Text('Belum ada pengajuan',
+                  Text('Belum ada pengajuan',
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.textPrimary)),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                       'Pengajuan informasi yang Anda kirim akan muncul di sini.\nAjukan lewat tombol + di Beranda.',
                       style: TextStyle(
                           fontSize: 13, color: AppTheme.textSecondary),
@@ -107,7 +107,7 @@ class TabMyRequestView extends StatelessWidget {
               children: [
                 Text(
                   NewsModel.labelKategori(news.kategori),
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12,
                       color: AppTheme.textSecondary,
                       fontWeight: FontWeight.w500),
@@ -140,7 +140,7 @@ class TabMyRequestView extends StatelessWidget {
 
             // Judul
             Text(news.judul,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary),
@@ -150,7 +150,7 @@ class TabMyRequestView extends StatelessWidget {
 
             // Isi preview
             Text(news.isi,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
@@ -188,7 +188,7 @@ class TabMyRequestView extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Diajukan ${AppUtils.formatRelatif(news.createdAt)}',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 11, color: AppTheme.textSecondary),
             ),
           ],

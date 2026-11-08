@@ -44,7 +44,7 @@ class TemaView extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                     color: x.$1 == aktif ? TemaApp.sekarang.utama : const Color(0xFFE3E3E3),
@@ -131,13 +131,13 @@ class TemaView extends StatelessWidget {
           _grid(la, (id) {
             TemaApp.pilihLatar(id);
             _segarkan();
-          }, (x) => Color.lerp(Colors.white, x.terang, 0.30)!,
+          }, (x) => TemaApp.latarContoh(x),
               namaDefault: 'Krem Putih', warnaDefault: const Color(0xFFFAF6EC)),
           _judul('3. Warna teks', 'Tulisan utama (judul, isi, nama)'),
           _grid(te, (id) {
             TemaApp.pilihTeks(id);
             _segarkan();
-          }, (x) => Color.lerp(x.gelap, Colors.black, 0.35)!,
+          }, (x) => TemaApp.teksDari(x),
               namaDefault: 'Gelap Biasa', warnaDefault: const Color(0xFF2B2A22)),
         ]),
       );

@@ -145,7 +145,7 @@ class _InfoSayaViewState extends State<InfoSayaView> {
             stream: _stream,
             builder: (context, snap) {
               if (snap.hasError) {
-                return const EmptyState(
+                return EmptyState(
                     icon: Icons.error_outline,
                     title: 'Info tidak dapat dimuat',
                     subtitle: 'Periksa koneksi internet Anda.');
@@ -159,7 +159,7 @@ class _InfoSayaViewState extends State<InfoSayaView> {
                   .toList()
                 ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
               if (list.isEmpty) {
-                return const EmptyState(
+                return EmptyState(
                     icon: Icons.inbox_outlined,
                     title: 'Tidak ada info',
                     subtitle: 'Info yang Anda ajukan lewat tombol "Ajukan Info" akan muncul di sini.');
@@ -173,7 +173,7 @@ class _InfoSayaViewState extends State<InfoSayaView> {
                       padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
                       child: Text(
                           '${list.length} info. Untuk mengubah info yang sudah tayang, tekan "Ajukan perubahan": info lama tetap tayang sampai Admin menyetujui.',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                     );
                   }
                   return _Kartu(n: list[i - 1]);
@@ -209,7 +209,7 @@ class _Kartu extends StatelessWidget {
               child: Text(NewsModel.labelKategori(n.kategori),
                   style: TextStyle(fontSize: 11.5, color: w, fontWeight: FontWeight.w600))),
           Text(AppUtils.formatTanggal(n.createdAt),
-              style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
         ]),
         const SizedBox(height: 6),
         Text(n.judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
@@ -219,7 +219,7 @@ class _Kartu extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text('🖼 ${n.semuaFoto.length} foto${n.punyaLokasi ? '  ·  📍 ada lokasi' : ''}',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
           ),
         if (n.status == 'ditolak' && (n.alasanPenolakan ?? '').isNotEmpty)
           Container(
@@ -366,7 +366,7 @@ class RevisiInfoTab extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
         Container(
           width: double.infinity,
           margin: const EdgeInsets.only(top: 2),
@@ -397,7 +397,7 @@ class RevisiInfoTab extends StatelessWidget {
           .snapshots(),
       builder: (context, snap) {
         if (snap.hasError) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.error_outline, title: 'Tidak dapat memuat', subtitle: 'Periksa koneksi internet.');
         }
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
@@ -405,7 +405,7 @@ class RevisiInfoTab extends StatelessWidget {
           ..sort((a, b) => ((b.revisi['diajukan_at'] as Timestamp?)?.millisecondsSinceEpoch ?? 0)
               .compareTo((a.revisi['diajukan_at'] as Timestamp?)?.millisecondsSinceEpoch ?? 0));
         if (list.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.edit_note_outlined,
               title: 'Tidak ada perubahan menunggu',
               subtitle: 'Pengajuan perubahan info dari warga akan muncul di sini.');

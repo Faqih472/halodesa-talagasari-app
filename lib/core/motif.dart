@@ -433,7 +433,7 @@ class JudulBagian extends StatelessWidget {
               children: [
                 Text(
                   judul,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: AppTheme.fontJudul,
                     fontSize: 18,
                     fontWeight: FontWeight.w400,
@@ -442,7 +442,7 @@ class JudulBagian extends StatelessWidget {
                 ),
                 if (subjudul != null)
                   Text(subjudul!,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11.5, color: AppTheme.textSecondary)),
               ],
             ),

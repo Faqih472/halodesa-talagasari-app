@@ -187,7 +187,7 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
                 kartu(
                   margin: EdgeInsets.zero,
                   child: Text('ktp_info'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 13,
                           color: AppTheme.textSecondary,
                           height: 1.5)),
@@ -302,7 +302,7 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
                   },
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Foto hanya dilihat Admin untuk mencocokkan data, dan DIHAPUS otomatis setelah diperiksa. Hanya bisa lewat kamera (tidak dari galeri).',
                   style: TextStyle(
                       fontSize: 11.5, color: AppTheme.textSecondary, height: 1.4),
@@ -340,7 +340,7 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
               color: ada ? Colors.green.shade600 : Colors.grey.shade400),
@@ -375,7 +375,7 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
                           fontWeight: FontWeight.bold, fontSize: 13.5)),
                   const SizedBox(height: 3),
                   Text(bantuan,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11.5,
                           color: AppTheme.textSecondary,
                           height: 1.3)),
@@ -503,7 +503,7 @@ class KtpReviewView extends StatelessWidget {
             SizedBox(
                 width: 110,
                 child: Text(a,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary))),
             Expanded(
               child: Text(b.isEmpty ? '-' : b,
@@ -523,7 +523,7 @@ class KtpReviewView extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Text('ktp_review_note'.tr,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 12, color: AppTheme.textSecondary, height: 1.5)),
           const SizedBox(height: 10),
           if (k.fotoSelfie.isNotEmpty || k.fotoKtp.isNotEmpty) ...[
@@ -555,7 +555,7 @@ class KtpReviewView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
                 'Cocokkan wajah di selfie dengan foto di KTP, dan data KTP dengan isian di bawah.',
                 style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
           ] else

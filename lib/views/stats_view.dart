@@ -206,7 +206,7 @@ class _StatistikViewState extends State<StatistikView> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -221,7 +221,7 @@ class _StatistikViewState extends State<StatistikView> {
                 child: Text(label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 11.5, color: AppTheme.textSecondary)),
               ),
             ],
@@ -248,7 +248,7 @@ class _StatistikViewState extends State<StatistikView> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -311,7 +311,7 @@ class UkuranHurufView extends StatelessWidget {
     Widget opsi(double nilai, String label) => Obx(() {
           final bool aktif = AppSettings.fontScale.value == nilai;
           return Container(
-            color: Colors.white,
+            color: AppTheme.surface,
             child: ListTile(
               onTap: () => AppSettings.setFontScale(nilai),
               leading: CircleAvatar(
@@ -324,7 +324,7 @@ class UkuranHurufView extends StatelessWidget {
                       fontSize: 14.5, fontWeight: FontWeight.w600)),
               trailing: aktif
                   ? Icon(Icons.check_circle, color: primary)
-                  : const Icon(Icons.radio_button_unchecked,
+                  : Icon(Icons.radio_button_unchecked,
                       color: AppTheme.textSecondary),
             ),
           );
@@ -349,7 +349,7 @@ class UkuranHurufView extends StatelessWidget {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text('font_preview'.tr,

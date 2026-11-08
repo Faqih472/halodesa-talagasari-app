@@ -577,11 +577,11 @@ class AkunDibekukanView extends StatelessWidget {
           kartu(
             margin: EdgeInsets.zero,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Lama pembekuan',
+              Text('Lama pembekuan',
                   style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
               Text(lama, style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              const Text('Alasan dari Admin',
+              Text('Alasan dari Admin',
                   style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
               Text(user.suspendAlasan.isEmpty ? '-' : user.suspendAlasan),
             ]),
@@ -742,7 +742,7 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
           const SizedBox(width: 10),
           SizedBox(
               width: 108,
-              child: Text(l, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
+              child: Text(l, style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
           Expanded(child: Text(v, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500))),
         ]),
       );
@@ -756,8 +756,8 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
         minChildSize: 0.5,
         expand: false,
         builder: (_, sc) => Container(
-          decoration: const BoxDecoration(
-              color: Colors.white,
+          decoration: BoxDecoration(
+              color: AppTheme.surface,
               borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
           child: ListView(controller: sc, padding: const EdgeInsets.all(16), children: [
             Center(
@@ -773,7 +773,7 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
             const SizedBox(height: 4),
             Text(
                 '${NewsModel.labelKategori(n.kategori)} · ${AppUtils.formatTanggal(n.publishedAt ?? n.createdAt)}',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             const SizedBox(height: 10),
             Text(n.isi, style: const TextStyle(fontSize: 14.5, height: 1.5)),
             if (n.punyaLokasi) ...[
@@ -795,7 +795,7 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
         child: Center(
             child: Text(t,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppTheme.textSecondary))),
+                style: TextStyle(color: AppTheme.textSecondary))),
       );
 
   List<Widget> _isiTab(bool sendiri) {
@@ -830,7 +830,7 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
                       ),
                       const Spacer(),
                       Text(AppUtils.formatRelatif(n.publishedAt ?? n.createdAt),
-                          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                          style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                     ]),
                     const SizedBox(height: 6),
                     Text(n.judul,
@@ -887,7 +887,7 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
                         Text(s.namaUsaha.trim().isNotEmpty ? s.namaUsaha : AppUtils.labelKategoriJasa(s.kategori),
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
                         Text(AppUtils.labelKategoriJasa(s.kategori),
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                         if (s.ratingCount > 0)
                           Row(children: [
                             const Icon(Icons.star, size: 14, color: Colors.amber),
@@ -923,9 +923,9 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
                         Text(l.judul, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
                         Text(
                             '${l.upah > 0 ? '${rupiah(l.upah)} ${l.satuanUpah}' : 'Upah dibicarakan'} · butuh ${l.jumlahOrang} orang',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                         Text('Batas: ${AppUtils.formatTanggal(l.batas)}',
-                            style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                            style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                       ]),
                     ),
                     const Icon(Icons.chevron_right),
@@ -1036,14 +1036,14 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
         stream: db.collection('users').doc(widget.uid).snapshots(),
         builder: (context, snap) {
           if (snap.hasError) {
-            return const EmptyState(
+            return EmptyState(
                 icon: Icons.error_outline,
                 title: 'Profil tidak dapat dimuat',
                 subtitle: 'Periksa koneksi internet Anda.');
           }
           if (!snap.hasData) return const Center(child: CircularProgressIndicator());
           if (!snap.data!.exists) {
-            return const EmptyState(
+            return EmptyState(
                 icon: Icons.person_off_outlined,
                 title: 'Akun tidak ditemukan',
                 subtitle: 'Akun ini mungkin sudah dihapus.');
@@ -1064,7 +1064,7 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
               child: Column(children: [
                 Container(
                   padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: AppTheme.surface, shape: BoxShape.circle),
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: primary.withOpacity(0.15),
@@ -1141,7 +1141,7 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
                     child: Text(u.bio, style: const TextStyle(fontSize: 14, height: 1.45)),
                   )
                 else
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(bottom: 6),
                     child: Text('Belum menulis bio.',
                         style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
@@ -1165,7 +1165,7 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
                         ? 'Warga terverifikasi (KTP Talagasari)'
                         : 'Belum diverifikasi'),
                 if (!admin)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.only(top: 6),
                     child: Text(
                         'Nomor telepon dan alamat lengkap disembunyikan demi privasi. Hubungi lewat Kirim pesan.',
@@ -1188,7 +1188,7 @@ class _ProfilPublikViewState extends State<ProfilPublikView> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text('👍 $totalSuka reaksi diterima dari postingan',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                   ),
               ]),
             ),
@@ -1303,7 +1303,7 @@ class _ModerasiTabState extends State<ModerasiTab> {
           .snapshots(),
       builder: (context, snap) {
         if (snap.hasError) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.error_outline,
               title: 'Laporan tidak dapat dimuat',
               subtitle: 'Pastikan aturan Firestore terbaru sudah dipasang.');
@@ -1311,7 +1311,7 @@ class _ModerasiTabState extends State<ModerasiTab> {
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final baru = snap.data!.docs.where((d) => d.data()['status'] == 'baru').toList();
         if (baru.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.verified_user_outlined,
               title: 'Tidak ada laporan baru',
               subtitle: 'Laporan warga akan muncul di sini.');
@@ -1347,7 +1347,7 @@ class _ModerasiTabState extends State<ModerasiTab> {
                   const Spacer(),
                   if (t != null)
                     Text(AppUtils.formatRelatif(t),
-                        style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                 ]),
                 const SizedBox(height: 4),
                 Text('${m['target_nama']}',
@@ -1374,7 +1374,7 @@ class _ModerasiTabState extends State<ModerasiTab> {
                   ),
                 const SizedBox(height: 4),
                 Text('Dilaporkan oleh ${m['nama_pelapor']}',
-                    style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                    style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                 const SizedBox(height: 6),
                 Wrap(spacing: 6, runSpacing: 0, children: [
                   OutlinedButton(
@@ -1424,7 +1424,7 @@ class _ModerasiTabState extends State<ModerasiTab> {
       stream: db.collection('users').where('dibekukan', isEqualTo: true).limit(100).snapshots(),
       builder: (context, snap) {
         if (snap.hasError) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.error_outline,
               title: 'Daftar tidak dapat dimuat',
               subtitle: 'Periksa koneksi internet.');
@@ -1432,7 +1432,7 @@ class _ModerasiTabState extends State<ModerasiTab> {
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final list = snap.data!.docs.map((d) => UserModel.fromFirestore(d)).toList();
         if (list.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.lock_open_outlined,
               title: 'Tidak ada akun dibekukan',
               subtitle: 'Akun yang Anda bekukan akan tercatat di sini.');
@@ -1493,7 +1493,7 @@ class _ModerasiTabState extends State<ModerasiTab> {
         if (!snap.hasData) return const Center(child: CircularProgressIndicator());
         final docs = snap.data!.docs;
         if (docs.isEmpty) {
-          return const EmptyState(
+          return EmptyState(
               icon: Icons.history,
               title: 'Belum ada riwayat',
               subtitle: 'Pembekuan dan pembukaan akun tercatat di sini.');
@@ -1544,7 +1544,7 @@ class AturanKomunitasView extends StatelessWidget {
               Text(judul, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               const SizedBox(height: 2),
               Text(contoh,
-                  style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
+                  style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
             ]),
           ),
         ]),
@@ -1625,7 +1625,7 @@ class AturanKomunitasView extends StatelessWidget {
             _sanksi('Berat', '3 bulan – 1 tahun', 'kekerasan/ancaman, penipuan, SARA, pelecehan'),
             _sanksi('Sangat berat / berulang', 'Permanen', 'pelanggaran berat yang diulang atau membahayakan warga'),
             const SizedBox(height: 6),
-            const Text('Konten yang melanggar juga dapat dihapus. Merasa dibekukan keliru? Hubungi Admin lewat Pusat Bantuan.',
+            Text('Konten yang melanggar juga dapat dihapus. Merasa dibekukan keliru? Hubungi Admin lewat Pusat Bantuan.',
                 style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
           ]),
         ),

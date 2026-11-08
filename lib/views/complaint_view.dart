@@ -93,7 +93,7 @@ Widget _kartuPengaduan(ComplaintModel c, VoidCallback onTap,
     elevation: 0,
     shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppTheme.kremTua)),
+        side: BorderSide(color: AppTheme.kremTua)),
     child: InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
@@ -109,7 +109,7 @@ Widget _kartuPengaduan(ComplaintModel c, VoidCallback onTap,
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(ComplaintModel.labelKategori(c.kategori),
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12,
                           color: AppTheme.textSecondary,
                           fontWeight: FontWeight.w500)),
@@ -127,7 +127,7 @@ Widget _kartuPengaduan(ComplaintModel c, VoidCallback onTap,
             Text(c.judul,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.textPrimary)),
@@ -135,12 +135,12 @@ Widget _kartuPengaduan(ComplaintModel c, VoidCallback onTap,
             Text(c.isi,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 13, color: AppTheme.textSecondary, height: 1.4)),
             const SizedBox(height: 8),
             Text(
               '${subtitle != null ? '$subtitle • ' : ''}${AppUtils.formatRelatif(c.createdAt)}',
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 11, color: AppTheme.textSecondary),
             ),
           ],
@@ -340,7 +340,7 @@ class PengaduanWargaTabState extends State<PengaduanWargaTab> {
                           fontWeight: FontWeight.bold, color: warna)),
                   const SizedBox(height: 2),
                   Text(isi,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12, color: AppTheme.textSecondary)),
                 ],
               ),
@@ -404,8 +404,8 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
     final v = await Get.bottomSheet<String>(
       Container(
         height: Get.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(children: [
@@ -421,7 +421,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
             child: Text('Apa yang ingin dilaporkan?',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text('Pilih yang paling dekat dengan masalah Anda. Contoh ada di bawah tiap pilihan.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
@@ -554,14 +554,14 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('cmp_form_info'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary,
                         height: 1.4)),
@@ -705,7 +705,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                       onSelected: (_) => setState(() => _urgensi = u),
                     ),
                 ]),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(top: 4),
                   child: Text('Biasa: bisa menunggu. Penting: mengganggu banyak orang. Mendesak: berbahaya bila dibiarkan.',
                       style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
@@ -783,7 +783,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                 ),
                 const SizedBox(height: 4),
                 Text('cmp_map_hint'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 11, color: AppTheme.textSecondary)),
                 const SizedBox(height: 14),
                 Text('cmp_photos'.tr,
@@ -846,7 +846,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                 ),
                 const SizedBox(height: 4),
                 Text('cmp_photos_note'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 11, color: AppTheme.textSecondary)),
                 const SizedBox(height: 10),
                 SwitchListTile(
@@ -858,7 +858,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
                       style: const TextStyle(
                           fontSize: 13.5, fontWeight: FontWeight.w600)),
                   subtitle: Text('cmp_secret_sub'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11.5, color: AppTheme.textSecondary)),
                 ),
                 const SizedBox(height: 10),
@@ -976,7 +976,7 @@ class PengaduanDetailView extends StatelessWidget {
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                  decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(20)),
                   child: _statusChip(c.status),
                 ),
               ]),
@@ -988,7 +988,7 @@ class PengaduanDetailView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.grey.shade200),
               ),
@@ -1027,15 +1027,15 @@ class PengaduanDetailView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.grey.shade200),
               ),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Isi laporan',
+                Text('Isi laporan',
                     style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppTheme.textSecondary)),
                 const SizedBox(height: 6),
-                Text(c.isi, style: const TextStyle(fontSize: 15, height: 1.6, color: AppTheme.textPrimary)),
+                Text(c.isi, style: TextStyle(fontSize: 15, height: 1.6, color: AppTheme.textPrimary)),
               ]),
             ),
             if (c.fotoUrls.isNotEmpty) ...[
@@ -1137,10 +1137,10 @@ class PengaduanDetailView extends StatelessWidget {
           const SizedBox(width: 10),
           SizedBox(
               width: 104,
-              child: Text(label, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
+              child: Text(label, style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
           Expanded(
               child: Text(nilai,
-                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary, height: 1.3))),
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary, height: 1.3))),
         ]),
       );
 
@@ -1320,7 +1320,7 @@ class _AktivitasSectionState extends State<_AktivitasSection> {
             final list = snap.data ?? [];
             if (list.isEmpty) {
               return Text('cmp_timeline_empty'.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 12, color: AppTheme.textSecondary));
             }
             return Column(
@@ -1349,7 +1349,7 @@ class _AktivitasSectionState extends State<_AktivitasSection> {
                           Expanded(
                             child: Text(
                                 '$nama • ${AppUtils.formatTanggalWaktu(a.createdAt)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 11,
                                     color: AppTheme.textSecondary)),
                           ),

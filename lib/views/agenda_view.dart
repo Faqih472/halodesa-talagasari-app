@@ -269,7 +269,7 @@ class _AgendaListViewState extends State<AgendaListView> {
         stream: _stream,
         builder: (context, snap) {
           if (snap.hasError) {
-            return const EmptyState(
+            return EmptyState(
                 icon: Icons.error_outline,
                 title: 'Agenda tidak dapat dimuat',
                 subtitle: 'Periksa koneksi internet Anda.');
@@ -472,7 +472,7 @@ class _AgendaListViewState extends State<AgendaListView> {
               Expanded(
                   child: Center(
                       child: Text(h,
-                          style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)))),
+                          style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)))),
           ]),
           GridView.count(
             crossAxisCount: 7,
@@ -488,7 +488,7 @@ class _AgendaListViewState extends State<AgendaListView> {
         child: Text(_tgl(_dipilih), style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       if (hariPilih.isEmpty)
-        const Padding(
+        Padding(
           padding: EdgeInsets.all(20),
           child: Center(
               child: Text('Tidak ada kegiatan di tanggal ini.',
@@ -560,7 +560,7 @@ class KartuAgenda extends StatelessWidget {
                   style: TextStyle(fontSize: 11.5, color: k.warna, fontWeight: FontWeight.w600)),
               const SizedBox(height: 3),
               Row(children: [
-                const Icon(Icons.schedule, size: 14, color: AppTheme.textSecondary),
+                Icon(Icons.schedule, size: 14, color: AppTheme.textSecondary),
                 const SizedBox(width: 4),
                 Text('${_jam(w)} – ${_jam(a.akhir.isAfter(a.waktu) ? w.add(a.akhir.difference(a.waktu)) : w)}',
                     style: const TextStyle(fontSize: 12)),
@@ -568,7 +568,7 @@ class KartuAgenda extends StatelessWidget {
               ]),
               if (a.lokasi.isNotEmpty)
                 Row(children: [
-                  const Icon(Icons.place_outlined, size: 14, color: AppTheme.textSecondary),
+                  Icon(Icons.place_outlined, size: 14, color: AppTheme.textSecondary),
                   const SizedBox(width: 4),
                   Expanded(
                       child: Text(a.lokasi,
@@ -747,8 +747,8 @@ class _AgendaDetailViewState extends State<AgendaDetailView> {
     Get.bottomSheet(
       Container(
         height: Get.height * 0.7,
-        decoration: const BoxDecoration(
-            color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        decoration: BoxDecoration(
+            color: AppTheme.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
         child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: _ref.collection('hadir').limit(300).snapshots(),
           builder: (_, s) {
@@ -825,7 +825,7 @@ class _AgendaDetailViewState extends State<AgendaDetailView> {
           const SizedBox(width: 10),
           SizedBox(
               width: 92,
-              child: Text(l, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
+              child: Text(l, style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
           Expanded(child: Text(v, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500))),
         ]),
       );
@@ -852,7 +852,7 @@ class _AgendaDetailViewState extends State<AgendaDetailView> {
         if (!snap.data!.exists) {
           return Scaffold(
               appBar: AppBar(backgroundColor: primary),
-              body: const EmptyState(
+              body: EmptyState(
                   icon: Icons.event_busy_outlined,
                   title: 'Agenda tidak ditemukan',
                   subtitle: 'Agenda ini sudah dihapus.'));
@@ -1031,7 +1031,7 @@ class _AgendaDetailViewState extends State<AgendaDetailView> {
         return kartu(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('Apakah Anda akan hadir?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            const Text('Jawaban Anda membantu panitia menyiapkan acara.',
+            Text('Jawaban Anda membantu panitia menyiapkan acara.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             const SizedBox(height: 8),
             Row(children: [
@@ -1092,7 +1092,7 @@ class _AgendaDetailViewState extends State<AgendaDetailView> {
         builder: (_, s) {
           final docs = s.data?.docs ?? const [];
           if (docs.isEmpty) {
-            return const Padding(
+            return Padding(
                 padding: EdgeInsets.all(18),
                 child: Text('Belum ada pertanyaan.', style: TextStyle(color: AppTheme.textSecondary)));
           }
@@ -1263,7 +1263,7 @@ class _AgendaFormViewState extends State<AgendaFormView> {
           ]),
           Padding(
             padding: const EdgeInsets.only(left: 32, top: 2),
-            child: Text(bantu, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
+            child: Text(bantu, style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
           ),
         ]),
       );
@@ -1397,7 +1397,7 @@ class _AgendaFormViewState extends State<AgendaFormView> {
         ]),
         if (kel != null) ...[
           const SizedBox(height: 6),
-          Text(kel.ringkas, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+          Text(kel.ringkas, style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
           TextButton.icon(
               onPressed: _pakaiContoh,
               icon: const Icon(Icons.auto_fix_high, size: 18),
@@ -1444,7 +1444,7 @@ class _AgendaFormViewState extends State<AgendaFormView> {
             ),
         ]),
         if (_ulang.isNotEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 4),
             child: Text('Contoh: Posyandu tiap bulan di tanggal yang sama, ronda tiap minggu. Kegiatan rutin tidak memakai konfirmasi hadir.',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
@@ -1610,7 +1610,7 @@ class _UsulAgendaViewState extends State<UsulAgendaView> {
           Padding(
             padding: const EdgeInsets.only(left: 32, top: 2),
             child: Text(bantu,
-                style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
+                style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.35)),
           ),
         ]),
       );
@@ -1674,7 +1674,7 @@ class _UsulAgendaViewState extends State<UsulAgendaView> {
                       child: Text(k.ringkas,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary)),
+                          style: TextStyle(fontSize: 10.5, color: AppTheme.textSecondary)),
                     ),
                   ]),
                 ),
@@ -1716,7 +1716,7 @@ class _UsulAgendaViewState extends State<UsulAgendaView> {
           label: Text(_kirim ? 'Mengirim...' : 'Kirim usulan'),
         ),
         const SizedBox(height: 6),
-        const Text('Usulan bisa ditolak jika tidak sesuai. Alasan penolakan selalu ditampilkan.',
+        Text('Usulan bisa ditolak jika tidak sesuai. Alasan penolakan selalu ditampilkan.',
             style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
       ]),
     );
@@ -1773,7 +1773,7 @@ class _UsulanAgendaTab extends StatelessWidget {
       stream: q.snapshots(),
       builder: (context, snap) {
         if (snap.hasError) {
-          return const Padding(
+          return Padding(
               padding: EdgeInsets.only(top: 30),
               child: EmptyState(icon: Icons.error_outline, title: 'Tidak dapat memuat', subtitle: 'Periksa koneksi internet.'));
         }
@@ -1820,10 +1820,10 @@ class _UsulanAgendaTab extends StatelessWidget {
                   Text('${m['isi']}', style: const TextStyle(fontSize: 12.5)),
                   if ('${m['waktu_saran'] ?? ''}'.isNotEmpty || '${m['lokasi'] ?? ''}'.isNotEmpty)
                     Text('Saran: ${m['waktu_saran'] ?? ''} ${('${m['lokasi'] ?? ''}').isNotEmpty ? '· ${m['lokasi']}' : ''}',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                   if (staf)
                     Text('Oleh ${m['nama']}',
-                        style: const TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+                        style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                   if (st == 'ditolak')
                     Text('Alasan penolakan: ${m['alasan_tolak']}',
                         style: TextStyle(fontSize: 12.5, color: Colors.red.shade800)),

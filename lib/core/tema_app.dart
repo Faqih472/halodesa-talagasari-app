@@ -77,28 +77,54 @@ class TemaApp {
 
   static const Color _latarBawaan = Color(0xFFFAF6EC);
   static const Color _teksBawaan = Color(0xFF2B2A22);
+  static const Map<String, Color> _latarGelap = {
+    'phantom': Color(0xFF0E0E14),
+    'oceanic': Color(0xFF0A1530),
+    'terra': Color(0xFF1E130C),
+    'storm': Color(0xFF15191D),
+  };
+
+  /// Latar gelap = "mode malam" versi pilihan sendiri.
+  static bool get gelap => _latarGelap.containsKey(latarId.value);
+
+  static Color latarContoh(TemaWarna t) =>
+      _latarGelap[t.id] ?? Color.lerp(Colors.white, t.terang, 0.40)!;
 
   static Color get warnaLatar {
     final t = _cari(latarId.value);
     if (latarId.value == 'default' || t == null) return _latarBawaan;
-    return Color.lerp(Colors.white, t.terang, 0.24)!;
+    if (gelap) return _latarGelap[latarId.value]!;
+    return Color.lerp(Colors.white, t.terang, 0.40)!;
   }
 
   static Color get warnaKartu {
     final t = _cari(latarId.value);
     if (latarId.value == 'default' || t == null) return Colors.white;
-    return Color.lerp(Colors.white, t.terang, 0.08)!;
+    if (gelap) return Color.lerp(warnaLatar, Colors.white, 0.09)!;
+    return Color.lerp(Colors.white, t.terang, 0.15)!;
+  }
+
+  static Color teksDari(TemaWarna t) {
+    if (t.id == 'nova') return Colors.white;
+    if (t.id == 'lunar') return const Color(0xFFE6E9ED);
+    return Color.lerp(t.gelap, Colors.black, 0.15)!;
   }
 
   static Color get warnaTeks {
     final t = _cari(teksId.value);
-    if (teksId.value == 'default' || t == null) return _teksBawaan;
-    return Color.lerp(t.gelap, Colors.black, 0.35)!;
+    if (teksId.value == 'default' || t == null) {
+      return gelap ? const Color(0xFFF2F2F7) : _teksBawaan;
+    }
+    return teksDari(t);
   }
+
+  static Color get warnaTeksRedup => Color.lerp(warnaTeks, warnaLatar, 0.36)!;
+  static Color get warnaGaris => Color.lerp(warnaLatar, warnaTeks, 0.16)!;
 
   static TemaWarna get sekarang =>
       daftar.firstWhere((t) => t.id == aktif.value, orElse: () => daftar.first);
 
+  static bool get bawaanLatar => latarId.value == 'default';
   static bool get bawaan => aktif.value == 'desa';
 
   static void muat() {

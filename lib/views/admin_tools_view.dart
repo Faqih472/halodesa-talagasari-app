@@ -92,7 +92,7 @@ class _ComplaintMapViewState extends State<ComplaintMapView> {
 
   Widget _filter() {
     return Container(
-      color: Colors.white,
+      color: AppTheme.surface,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: Row(
         children: [
@@ -148,7 +148,7 @@ class _ComplaintMapViewState extends State<ComplaintMapView> {
                         fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 if (urut.isEmpty)
-                  const Text('Tidak ada data untuk filter ini.',
+                  Text('Tidak ada data untuk filter ini.',
                       style: TextStyle(color: AppTheme.textSecondary))
                 else
                   Wrap(
@@ -189,18 +189,18 @@ class _ComplaintMapViewState extends State<ComplaintMapView> {
                           const SizedBox(height: 2),
                           Text(
                               '${ComplaintModel.labelKategori(c.kategori)} • ${ComplaintModel.labelStatus(c.status)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.textSecondary)),
                           if (!sembunyi && c.alamat.isNotEmpty)
                             Text(c.alamat,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 12,
                                     color: AppTheme.textSecondary)),
                           Text(AppUtils.formatRelatif(c.createdAt),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 11,
                                   color: AppTheme.textSecondary)),
                         ],
@@ -365,7 +365,7 @@ class _AuditLogViewState extends State<AuditLogView> {
       body: Column(
         children: [
           Container(
-            color: Colors.white,
+            color: AppTheme.surface,
             height: 48,
             child: ListView(
               scrollDirection: Axis.horizontal,
@@ -402,7 +402,7 @@ class _AuditLogViewState extends State<AuditLogView> {
                   itemCount: list.length + 1,
                   itemBuilder: (_, i) {
                     if (i == list.length) {
-                      return const Padding(
+                      return Padding(
                         padding: EdgeInsets.all(16),
                         child: Text(
                             'Log disimpan 90 hari, lalu dihapus otomatis.',
@@ -448,7 +448,7 @@ class _AuditLogViewState extends State<AuditLogView> {
                                 const SizedBox(height: 4),
                                 Text(
                                     '${a.aktorNama} (${a.aktorPeran}) • ${AppUtils.formatTanggalWaktu(a.createdAt)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: 11,
                                         color: AppTheme.textSecondary)),
                               ],
@@ -534,7 +534,7 @@ class LaporanJasaTab extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                       '${'report_by'.tr} ${r.namaPelapor} • ${AppUtils.formatRelatif(r.createdAt)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 8),
                   Container(
@@ -553,7 +553,7 @@ class LaporanJasaTab extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(r.alasan, style: const TextStyle(height: 1.4)),
                   if (r.orderId.isNotEmpty)
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(top: 6),
                       child: Text('Terkait sebuah pesanan di aplikasi.',
                           style: TextStyle(
@@ -684,7 +684,7 @@ class _FotoStaffTabState extends State<FotoStaffTab> {
                       style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.bold)),
                   Text(AppUtils.formatRelatif(f.createdAt),
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 10),
                   ClipOval(
@@ -783,7 +783,7 @@ class _LowonganStaffTabState extends State<LowonganStaffTab> {
                   Text(l.judul,
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   Text('${l.namaPemberi} • ${AppUtils.formatRelatif(l.createdAt)}',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 6),
                   Text(
                       '${LowonganModel.labelKategori(l.kategori)} • ${LowonganModel.labelJenis(l.jenis)} • butuh ${l.jumlahOrang} orang\n${l.labelUpah}',
@@ -886,7 +886,7 @@ class _HapusStaffTabState extends State<HapusStaffTab> {
         final js = _sc.antrianHapus.toList();
         final ls = _lc.antrianHapus.toList();
         if (js.isEmpty && ls.isEmpty) {
-          return ListView(children: const [
+          return ListView(children: [
             SizedBox(height: 80),
             EmptyState(
                 icon: Icons.delete_sweep_outlined,
@@ -901,7 +901,7 @@ class _HapusStaffTabState extends State<HapusStaffTab> {
                 Text('Jasa: ${s.nama}',
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 Text(s.namaPenyedia,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 6),
                 Text('Alasan pemilik:\n${s.hapusAlasan}',
                     style: const TextStyle(fontSize: 13, height: 1.4)),
@@ -919,7 +919,7 @@ class _HapusStaffTabState extends State<HapusStaffTab> {
                 Text('Lowongan: ${l.judul}',
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 Text(l.namaPemberi,
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 6),
                 Text('Alasan pemilik:\n${l.hapusAlasan}',
                     style: const TextStyle(fontSize: 13, height: 1.4)),
