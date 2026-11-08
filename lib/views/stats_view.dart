@@ -312,7 +312,7 @@ class UkuranHurufView extends StatelessWidget {
           final bool aktif = AppSettings.fontScale.value == nilai;
           return Container(
             color: AppTheme.surface,
-            child: ListTile(
+            child: Material(color: Colors.transparent, child: ListTile(
               onTap: () => AppSettings.setFontScale(nilai),
               leading: CircleAvatar(
                 radius: 19,
@@ -326,7 +326,7 @@ class UkuranHurufView extends StatelessWidget {
                   ? Icon(Icons.check_circle, color: primary)
                   : Icon(Icons.radio_button_unchecked,
                       color: AppTheme.textSecondary),
-            ),
+            )),
           );
         });
 

@@ -10,7 +10,7 @@ class TemaView extends StatelessWidget {
   const TemaView({super.key});
 
   void _segarkan() {
-    Get.changeTheme(AppTheme.buildTheme('warga'));
+    Get.changeTheme(AppTheme.buildTheme(TemaApp.rol.value));
     Get.forceAppUpdate();
   }
 

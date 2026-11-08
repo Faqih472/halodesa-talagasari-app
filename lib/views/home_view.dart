@@ -1259,7 +1259,7 @@ class NotificationView extends StatelessWidget {
       },
       child: Container(
         color: n.dibaca ? Colors.transparent : primaryColor.withOpacity(0.06),
-        child: ListTile(
+        child: Material(color: Colors.transparent, child: ListTile(
           onTap: () {
             notifCtrl.tandaiDibaca(n.id);
             // Navigasi ringan sesuai tipe
@@ -1332,7 +1332,7 @@ class NotificationView extends StatelessWidget {
                 ),
             ],
           ),
-        ),
+        )),
       ),
     );
   }

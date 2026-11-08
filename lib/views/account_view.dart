@@ -119,7 +119,7 @@ Widget _infoTile(IconData icon, String label, String value, Color primary) {
   return Container(
     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
     decoration: kartuTalagasari(radius: 16),
-    child: ListTile(
+    child: Material(color: Colors.transparent, child: ListTile(
       dense: true,
       leading: Icon(icon, color: primary, size: 22),
       title: Text(label,
@@ -129,7 +129,7 @@ Widget _infoTile(IconData icon, String label, String value, Color primary) {
               fontSize: 14,
               color: AppTheme.textPrimary,
               fontWeight: FontWeight.w500)),
-    ),
+    )),
   );
 }
 
@@ -423,7 +423,7 @@ class TabSettingsView extends StatelessWidget {
     return Obx(() => Container(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: kartuTalagasari(radius: 18),
-          child: SwitchListTile(
+          child: Material(color: Colors.transparent, child: SwitchListTile(
             value: authCtrl.rememberMeEnabled.value,
             onChanged: (v) => authCtrl.toggleRememberMe(v),
             activeColor: primary,
@@ -434,7 +434,7 @@ class TabSettingsView extends StatelessWidget {
             subtitle: Text('acc_quick_login_sub'.tr,
                 style: TextStyle(
                     fontSize: 12, color: AppTheme.textSecondary)),
-          ),
+          )),
         ));
   }
 
@@ -1238,7 +1238,7 @@ class _BahasaViewState extends State<BahasaView> {
 
     Widget opsi(String kode, String label) => Container(
           color: AppTheme.surface,
-          child: ListTile(
+          child: Material(color: Colors.transparent, child: ListTile(
             onTap: () => _pilih(kode),
             leading: CircleAvatar(
               radius: 19,
@@ -1252,7 +1252,7 @@ class _BahasaViewState extends State<BahasaView> {
                 ? Icon(Icons.check_circle, color: primary)
                 : Icon(Icons.radio_button_unchecked,
                     color: AppTheme.textSecondary),
-          ),
+          )),
         );
 
     return Scaffold(

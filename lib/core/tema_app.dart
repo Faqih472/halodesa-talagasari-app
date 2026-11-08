@@ -14,6 +14,9 @@ class TemaWarna {
 class TemaApp {
   static const _kunci = 'tema_warna';
   static final RxString aktif = 'desa'.obs;
+  /// Peran akun yang sedang masuk: menentukan warna bawaan (warga/admin/kades).
+  static final RxString rol = 'warga'.obs;
+  static String _uid = 'tamu';
 
   static const List<TemaWarna> daftar = [
     TemaWarna('desa', 'Hijau Desa', 'Hijau (bawaan)', Color(0xFF2F6F4E),
@@ -149,43 +152,59 @@ class TemaApp {
   static bool get bawaanLatar => latarId.value == 'default';
   static bool get bawaan => aktif.value == 'desa';
 
-  static void muat() {
+  static Map<String, dynamic> _baca(String uid) {
     try {
-      aktif.value = GetStorage().read<String>(_kunci) ?? 'desa';
-      latarId.value = GetStorage().read<String>('tema_latar') ?? 'default';
-      teksId.value = GetStorage().read<String>('tema_teks') ?? 'default';
-      satTema.value = GetStorage().read<int>('sat_tema') ?? 100;
-      satLatar.value = GetStorage().read<int>('sat_latar') ?? 100;
-      satTeks.value = GetStorage().read<int>('sat_teks') ?? 100;
+      final m = GetStorage().read('tema_akun_$uid');
+      if (m is Map) return Map<String, dynamic>.from(m);
+    } catch (_) {}
+    return {};
+  }
+
+  static void _tulis() {
+    try {
+      GetStorage().write('tema_akun_$_uid', {
+        'tema': aktif.value,
+        'latar': latarId.value,
+        'teks': teksId.value,
+        'st': satTema.value,
+        'sl': satLatar.value,
+        'sk': satTeks.value,
+      });
     } catch (_) {}
   }
 
+  /// Dipanggil saat akun masuk/ganti/keluar: tiap akun punya tema sendiri.
+  /// Akun baru memakai warna bawaan sesuai perannya.
+  static void untukAkun(String? uid, String role) {
+    _uid = uid ?? 'tamu';
+    rol.value = role;
+    final m = _baca(_uid);
+    aktif.value = (m['tema'] as String?) ?? 'desa';
+    latarId.value = (m['latar'] as String?) ?? 'default';
+    teksId.value = (m['teks'] as String?) ?? 'default';
+    satTema.value = (m['st'] as int?) ?? 100;
+    satLatar.value = (m['sl'] as int?) ?? 100;
+    satTeks.value = (m['sk'] as int?) ?? 100;
+  }
+
+  static void muat() => untukAkun(null, 'warga');
+
   static void pilih(String id) {
     aktif.value = id;
-    try {
-      GetStorage().write(_kunci, id);
-    } catch (_) {}
+    _tulis();
   }
 
   static void pilihLatar(String id) {
     latarId.value = id;
-    try {
-      GetStorage().write('tema_latar', id);
-    } catch (_) {}
+    _tulis();
   }
 
   static void pilihTeks(String id) {
     teksId.value = id;
-    try {
-      GetStorage().write('tema_teks', id);
-    } catch (_) {}
+    _tulis();
   }
 
   static void simpanSat() {
-    try {
-      GetStorage().write('sat_tema', satTema.value);
-      GetStorage().write('sat_latar', satLatar.value);
-      GetStorage().write('sat_teks', satTeks.value);
-    } catch (_) {}
+    _tulis();
   }
 }

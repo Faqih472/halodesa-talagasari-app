@@ -64,7 +64,7 @@ class AppTheme {
   // ─────────────────────────────────────────────────────────
   static Color primaryColor(String role) {
     if (!TemaApp.bawaan) return TemaApp.sekarang.utama;
-    switch (role) {
+    switch (TemaApp.rol.value) {
       case 'admin':
         return warnaAdmin;
       case 'kades':
@@ -76,7 +76,7 @@ class AppTheme {
 
   static Color primaryColorLight(String role) {
     if (!TemaApp.bawaan) return TemaApp.sekarang.terang;
-    switch (role) {
+    switch (TemaApp.rol.value) {
       case 'admin':
         return warnaAdminLight;
       case 'kades':
@@ -88,7 +88,7 @@ class AppTheme {
 
   static Color primaryColorDark(String role) {
     if (!TemaApp.bawaan) return TemaApp.sekarang.gelap;
-    switch (role) {
+    switch (TemaApp.rol.value) {
       case 'admin':
         return warnaAdminDark;
       case 'kades':

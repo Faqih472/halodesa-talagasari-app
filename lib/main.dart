@@ -1,3 +1,4 @@
+import 'core/models.dart' show UserModel;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
@@ -54,7 +55,12 @@ class TalagasariHubApp extends StatelessWidget {
       initialBinding: BindingsBuilder(() {
         // Urutan penting: controller yang memakai Get.find() controller
         // lain harus didaftarkan belakangan.
-        Get.put<AuthController>(AuthController(), permanent: true);
+        final authC = Get.put<AuthController>(AuthController(), permanent: true);
+        ever<UserModel?>(authC.currentUser, (u) {
+          TemaApp.untukAkun(u?.uid, u?.role ?? 'warga');
+          Get.changeTheme(AppTheme.buildTheme(TemaApp.rol.value));
+          Get.forceAppUpdate();
+        });
         Get.put<MainController>(MainController(), permanent: true);
         Get.put<NotificationController>(NotificationController(), permanent: true);
         Get.put<ServiceController>(ServiceController(), permanent: true);
