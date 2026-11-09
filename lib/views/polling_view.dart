@@ -7,6 +7,7 @@
 // menetapkan keputusan yang bisa dibaca semua warga.
 // Warga juga dapat MENGUSULKAN topik. Firestore saja (gratis).
 // ============================================================
+import 'usulan_tempat.dart';
 import 'hapus_info.dart';
 import 'usulan_aksi.dart';
 import 'dart:io';
@@ -1206,8 +1207,15 @@ class BuatPollingView extends StatefulWidget {
   final String? pertanyaanAwal;
   final String? penjelasanAwal;
   final List<String>? opsiAwal;
+  final List<String> fotoUsulan; // foto dari usulan warga (base64)
   const BuatPollingView(
-      {super.key, this.usulanId, this.kategoriAwal, this.pertanyaanAwal, this.penjelasanAwal, this.opsiAwal});
+      {super.key,
+      this.usulanId,
+      this.kategoriAwal,
+      this.pertanyaanAwal,
+      this.penjelasanAwal,
+      this.opsiAwal,
+      this.fotoUsulan = const []});
 
   @override
   State<BuatPollingView> createState() => _BuatPollingViewState();
@@ -1323,7 +1331,7 @@ class _BuatPollingViewState extends State<BuatPollingView> {
     }
     setState(() => _simpan = true);
     try {
-      final foto = <String>[];
+      final foto = <String>[...widget.fotoUsulan];
       for (final f in _fotoBaru) {
         final e = await ImageUtil.encode(f);
         if (e != null) foto.add(e);
@@ -1629,9 +1637,11 @@ class _UsulPollViewState extends State<UsulPollView> {
   final _opsi = TextEditingController();
   String _jenis = 'setuju'; // setuju | pilihan
   bool _kirim = false;
+  final TempatUsulan _tempat = TempatUsulan(maksFoto: 3);
 
   @override
   void dispose() {
+    _tempat.dispose();
     _tanya.dispose();
     _alasan.dispose();
     _opsi.dispose();
@@ -1677,7 +1687,9 @@ class _UsulPollViewState extends State<UsulPollView> {
     }
     setState(() => _kirim = true);
     try {
+      final tempatData = await _tempat.data();
       await FirebaseFirestore.instance.collection('usulan_polling').add({
+        ...tempatData,
         'uid': me.uid,
         'nama': me.nama,
         'kategori': _kat,
@@ -1866,6 +1878,9 @@ class _UsulPollViewState extends State<UsulPollView> {
                 labelText: 'Pilihan jawaban (satu baris satu, minimal 2)',
                 hintText: 'Sabtu pagi\nMinggu pagi\nMinggu sore'),
           ),
+        _judul(5, 'Terkait tempat tertentu? (opsional)',
+            'Isi bila topiknya soal satu lokasi, misalnya jalan rusak atau lampu mati. Boleh dikosongkan.'),
+        StatefulBuilder(builder: (c, setS) => _tempat.bangun(setS, primary)),
         const SizedBox(height: 22),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52)),
@@ -1978,6 +1993,7 @@ class _UsulanTab extends StatelessWidget {
                 Text('${m['pertanyaan']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5)),
                 const SizedBox(height: 2),
                 Text('Alasan: ${m['alasan']}', style: const TextStyle(fontSize: 12.5)),
+                infoTempatUsulan(m),
                 if (staf)
                   Text('Oleh ${m['nama']}', style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
                 if (st == 'ditolak')
@@ -1996,7 +2012,8 @@ class _UsulanTab extends StatelessWidget {
                             usulanId: d.id,
                             kategoriAwal: '${m['kategori']}',
                             pertanyaanAwal: '${m['pertanyaan']}',
-                            penjelasanAwal: '${m['alasan']}',
+                            penjelasanAwal: '${m['alasan']}${('${m['alamat'] ?? ''}').isEmpty ? '' : '\n\nLokasi terkait: ${m['alamat']}'}',
+                            fotoUsulan: (m['foto_list'] is List) ? (m['foto_list'] as List).map((e) => '$e').toList() : const [],
                             opsiAwal: (m['opsi_saran'] is List && (m['opsi_saran'] as List).length >= 2)
                                 ? (m['opsi_saran'] as List).map((e) => '$e').toList()
                                 : null,

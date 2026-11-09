@@ -329,7 +329,7 @@ service cloud.firestore {
         || (login() && resource.data.uid == request.auth.uid && resource.data.status == 'baru'
             && request.resource.data.status == 'baru'
             && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['pertanyaan', 'alasan', 'opsi_saran', 'judul', 'isi', 'lokasi', 'waktu_saran']));
+                 .hasOnly(['pertanyaan', 'alasan', 'opsi_saran', 'judul', 'isi', 'lokasi', 'waktu_saran']));  // alamat/foto: hanya saat membuat
       allow delete: if isStaff()
         || (login() && resource.data.uid == request.auth.uid && resource.data.status == 'baru');
     }
@@ -341,7 +341,7 @@ service cloud.firestore {
         || (login() && resource.data.uid == request.auth.uid && resource.data.status == 'baru'
             && request.resource.data.status == 'baru'
             && request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['pertanyaan', 'alasan', 'opsi_saran', 'judul', 'isi', 'lokasi', 'waktu_saran']));
+                 .hasOnly(['pertanyaan', 'alasan', 'opsi_saran', 'judul', 'isi', 'lokasi', 'waktu_saran']));  // alamat/foto: hanya saat membuat
       allow delete: if isStaff()
         || (login() && resource.data.uid == request.auth.uid && resource.data.status == 'baru');
     }

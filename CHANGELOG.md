@@ -5,6 +5,9 @@
 - Suara Warga dan Agenda: hero berwarna, kartu bergaris warna, formulir buat dengan hero.
 - Jasa/Lowongan/Lapak: strip penjelas berwarna per tab.
 
+## Usulan dengan alamat, peta, foto
+- Usulan Suara Warga (foto maks 3) dan usulan Agenda (foto maks 1): alamat baku, titik peta, dan foto, semuanya opsional. Saat dijadikan agenda, lokasi, titik, dan foto terbawa; saat dijadikan polling, foto dan alamat terbawa.
+
 ## Alamat baku (Blok, No., Kode pos) dan titik ribuan
 - Akun → Alamat dan Verifikasi Identitas memakai format baku: Blok, No. rumah, RT, RW, **Kode pos** (wajib), kampung dan jalan opsional. Wilayah Desa/Kec./Kab. terkunci.
 - Alamat baku ikut ke surat online, pengaduan, jasa, lapak, dan lowongan (kode pos terbawa otomatis). Alamat lama tetap terbaca.

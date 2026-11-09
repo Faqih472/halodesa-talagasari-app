@@ -7,6 +7,7 @@
 // check-in saat acara, bertanya di kolom diskusi.
 // Firestore saja (gratis). Foto base64.
 // ============================================================
+import 'usulan_tempat.dart';
 import 'hapus_info.dart';
 import 'usulan_aksi.dart';
 import 'dart:io';
@@ -1129,8 +1130,19 @@ class AgendaFormView extends StatefulWidget {
   final String? judulAwal;
   final String? isiAwal;
   final String? lokasiAwal;
+  final List<String> fotoUsulan;
+  final double latAwal, lngAwal;
   const AgendaFormView(
-      {super.key, this.awal, this.usulanId, this.kategoriAwal, this.judulAwal, this.isiAwal, this.lokasiAwal});
+      {super.key,
+      this.awal,
+      this.usulanId,
+      this.kategoriAwal,
+      this.judulAwal,
+      this.isiAwal,
+      this.lokasiAwal,
+      this.fotoUsulan = const [],
+      this.latAwal = 0,
+      this.lngAwal = 0});
 
   @override
   State<AgendaFormView> createState() => _AgendaFormViewState();
@@ -1195,6 +1207,11 @@ class _AgendaFormViewState extends State<AgendaFormView> {
       _judul.text = widget.judulAwal ?? '';
       _isi.text = widget.isiAwal ?? '';
       _lokasi.text = widget.lokasiAwal ?? '';
+      _fotoLama = [...widget.fotoUsulan];
+      if (widget.latAwal != 0 || widget.lngAwal != 0) {
+        _pakaiPeta = true;
+        _titik = LatLng(widget.latAwal, widget.lngAwal);
+      }
     }
   }
 
@@ -1533,9 +1550,11 @@ class _UsulAgendaViewState extends State<UsulAgendaView> {
   final _lokasi = TextEditingController();
   final _waktu = TextEditingController();
   bool _kirim = false;
+  final TempatUsulan _tempat = TempatUsulan(maksFoto: 1);
 
   @override
   void dispose() {
+    _tempat.dispose();
     for (final c in [_judul, _isi, _lokasi, _waktu]) {
       c.dispose();
     }
@@ -1567,7 +1586,9 @@ class _UsulAgendaViewState extends State<UsulAgendaView> {
     }
     setState(() => _kirim = true);
     try {
+      final tempatData = await _tempat.data();
       await FirebaseFirestore.instance.collection('usulan_agenda').add({
+        ...tempatData,
         'uid': me.uid,
         'nama': me.nama,
         'kategori': _kat,
@@ -1700,6 +1721,9 @@ class _UsulAgendaViewState extends State<UsulAgendaView> {
           decoration: const InputDecoration(
               labelText: 'Saran tempat', hintText: 'Contoh: Balai warga RW 05'),
         ),
+        _langkah(4, 'Alamat, peta, dan foto tempat (opsional)',
+            'Isi bila tempatnya perlu dijelaskan. Boleh dikosongkan.'),
+        StatefulBuilder(builder: (c, setS) => _tempat.bangun(setS, primary)),
         const SizedBox(height: 22),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(backgroundColor: primary, minimumSize: const Size(0, 52)),
@@ -1824,6 +1848,7 @@ class _UsulanAgendaTab extends StatelessWidget {
                         onPressed: () => Get.to(() => AgendaDetailView(id: '${m['agenda_id']}')),
                         child: const Text('Lihat agendanya')),
                   if (!staf && st == 'baru') barisAksiUsulanWarga(d, agenda: true),
+                  infoTempatUsulan(m),
                   if (staf && st == 'baru')
                     Row(children: [
                       ElevatedButton(
@@ -1833,7 +1858,15 @@ class _UsulanAgendaTab extends StatelessWidget {
                               kategoriAwal: '${m['kategori']}',
                               judulAwal: '${m['judul']}',
                               isiAwal: '${m['isi']}',
-                              lokasiAwal: '${m['lokasi'] ?? ''}',
+                              lokasiAwal: [
+                                if ('${m['lokasi'] ?? ''}'.isNotEmpty) '${m['lokasi']}',
+                                if ('${m['alamat'] ?? ''}'.isNotEmpty) '${m['alamat']}',
+                              ].join(' — '),
+                              fotoUsulan: (m['foto_list'] is List)
+                                  ? (m['foto_list'] as List).map((e) => '$e').toList()
+                                  : const [],
+                              latAwal: (m['lat'] as num?)?.toDouble() ?? 0,
+                              lngAwal: (m['lng'] as num?)?.toDouble() ?? 0,
                             )),
                         child: const Text('Jadikan Agenda'),
                       ),
