@@ -3,6 +3,8 @@
 // baju, bengkel, toko buah, dll.), warga lain melihat, memesan lewat chat,
 // dan memberi ulasan. Firestore saja (gratis). Foto base64.
 // ============================================================
+import '../controllers/village_controller.dart' show notifPeran, AuditLog;
+import 'hapus_info.dart';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -213,6 +215,8 @@ class LapakModel {
   final bool bukaManual; // pemilik menekan "Buka / Tutup"
   final String status; // aktif | disembunyikan
   final String alasanAdmin;
+  final String hapusStatus;
+  final String hapusAlasan;
   final int ratingTotal;
   final int ratingJumlah;
   final int dilihat;
@@ -241,6 +245,8 @@ class LapakModel {
     required this.bukaManual,
     required this.status,
     required this.alasanAdmin,
+    this.hapusStatus = '',
+    this.hapusAlasan = '',
     required this.ratingTotal,
     required this.ratingJumlah,
     required this.dilihat,
@@ -274,6 +280,8 @@ class LapakModel {
       bukaManual: m['buka_manual'] != false,
       status: '${m['status'] ?? 'aktif'}',
       alasanAdmin: '${m['alasan_admin'] ?? ''}',
+      hapusStatus: '${m['hapus_status'] ?? ''}',
+      hapusAlasan: '${m['hapus_alasan'] ?? ''}',
       ratingTotal: (m['rating_total'] ?? 0) as int,
       ratingJumlah: (m['rating_jumlah'] ?? 0) as int,
       dilihat: (m['dilihat'] ?? 0) as int,
@@ -1288,24 +1296,20 @@ class LapakSayaView extends StatelessWidget {
   const LapakSayaView({super.key});
 
   Future<void> _hapus(LapakModel l) async {
-    final ok = await Get.dialog<bool>(AlertDialog(
-      title: const Text('Hapus lapak?'),
-      content: Text('Lapak "${l.nama}" beserta daftar produknya akan dihapus permanen. Bila hanya libur, pakai tombol Tutup saja.'),
-      actions: [
-        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
-        ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                minimumSize: const Size(100, 42), backgroundColor: Colors.red.shade700),
-            onPressed: () => Get.back(result: true),
-            child: const Text('Hapus')),
-      ],
-    ));
-    if (ok != true) return;
+    final alasan = await dialogAlasanHapusInfo(
+        judulInfo: l.nama, ajukan: true, daftar: alasanHapusLapak, judulSheet: 'Ajukan hapus lapak');
+    if (alasan == null) return;
     try {
-      await FirebaseFirestore.instance.collection('lapak_umkm').doc(l.id).delete();
-      showSnack(true, 'Lapak dihapus.', '');
+      await FirebaseFirestore.instance.collection('lapak_umkm').doc(l.id).update({
+        'hapus_status': 'diajukan',
+        'hapus_alasan': alasan,
+        'hapus_at': Timestamp.now(),
+      });
+      await notifPeran(['admin'],
+          judul: 'Permintaan hapus lapak', isi: '${l.namaPemilik}: ${l.nama}', tipe: 'info', targetId: l.id);
+      showSnack(true, 'Permintaan hapus terkirim. Lapak tetap tayang sampai Admin menyetujui.', '');
     } catch (_) {
-      showSnack(false, '', 'Gagal menghapus lapak.');
+      showSnack(false, '', 'Gagal mengirim permintaan.');
     }
   }
 
@@ -1399,9 +1403,9 @@ class LapakSayaView extends StatelessWidget {
                     OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, 40), foregroundColor: Colors.red.shade700),
-                      onPressed: () => _hapus(l),
+                      onPressed: l.hapusStatus == 'diajukan' ? null : () => _hapus(l),
                       icon: const Icon(Icons.delete_outline, size: 18),
-                      label: const Text('Hapus'),
+                      label: Text(l.hapusStatus == 'diajukan' ? 'Menunggu ACC' : 'Ajukan hapus'),
                     ),
                   ]),
                 ]),
@@ -1937,6 +1941,71 @@ class _LapakFormViewState extends State<LapakFormView> {
 class LapakStaffTab extends StatelessWidget {
   const LapakStaffTab({super.key});
 
+  Future<void> _setujuiHapus(LapakModel l) async {
+    try {
+      await FirebaseFirestore.instance.collection('lapak_umkm').doc(l.id).delete();
+      await AuditLog.catat(
+          aksi: 'Menghapus lapak UMKM',
+          targetTipe: 'lapak',
+          targetId: l.id,
+          detail: '${l.nama} | Alasan pemilik: ${l.hapusAlasan}');
+      try {
+        await Get.find<NotificationController>().kirimKe(
+            uidTujuan: l.uid,
+            judul: 'Lapak dihapus',
+            isi: '${l.nama} dihapus sesuai permintaan Anda.',
+            tipe: 'info');
+      } catch (_) {}
+      showSnack(true, 'Lapak dihapus.', '');
+    } catch (_) {
+      showSnack(false, '', 'Gagal menghapus lapak.');
+    }
+  }
+
+  Future<void> _tolakHapus(LapakModel l) async {
+    final c = TextEditingController();
+    final ok = await Get.dialog<bool>(AlertDialog(
+      title: const Text('Tolak permintaan hapus'),
+      content: TextField(
+        controller: c,
+        maxLines: 3,
+        decoration: const InputDecoration(
+            labelText: 'Alasan menolak (wajib)',
+            hintText: 'Contoh: Masih ada pesanan yang belum selesai.'),
+      ),
+      actions: [
+        TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
+        ElevatedButton(
+            style: ElevatedButton.styleFrom(minimumSize: const Size(100, 42)),
+            onPressed: () {
+              if (c.text.trim().length < 10) {
+                showSnack(false, '', 'Alasan wajib (minimal 10 huruf).');
+                return;
+              }
+              Get.back(result: true);
+            },
+            child: const Text('Tolak')),
+      ],
+    ));
+    if (ok != true) return;
+    try {
+      await FirebaseFirestore.instance.collection('lapak_umkm').doc(l.id).update({
+        'hapus_status': 'ditolak',
+        'hapus_alasan': FieldValue.delete(),
+      });
+      try {
+        await Get.find<NotificationController>().kirimKe(
+            uidTujuan: l.uid,
+            judul: 'Permintaan hapus lapak ditolak',
+            isi: '${l.nama}: ${c.text.trim()}',
+            tipe: 'info');
+      } catch (_) {}
+      showSnack(true, 'Permintaan ditolak.', '');
+    } catch (_) {
+      showSnack(false, '', 'Gagal menyimpan.');
+    }
+  }
+
   Future<void> _ubahStatus(LapakModel l) async {
     final admin = Get.find<AuthController>().currentUser.value;
     if (admin == null || admin.role != 'admin') return;
@@ -2026,6 +2095,36 @@ class LapakStaffTab extends StatelessWidget {
                 if (l.status != 'aktif')
                   Text('DISEMBUNYIKAN: ${l.alasanAdmin}',
                       style: TextStyle(color: Colors.red.shade700, fontSize: 12.5)),
+                if (l.hapusStatus == 'diajukan')
+                  Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.all(10),
+                    width: double.infinity,
+                    decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(10)),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Pemilik minta lapak dihapus. Alasan: ${l.hapusAlasan}',
+                          style: TextStyle(fontSize: 13, color: Colors.red.shade900)),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(0, 40), backgroundColor: Colors.red.shade700),
+                            onPressed: () => _setujuiHapus(l),
+                            child: const Text('Setujui hapus', style: TextStyle(color: Colors.white)),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                            onPressed: () => _tolakHapus(l),
+                            child: const Text('Tolak'),
+                          ),
+                        ),
+                      ]),
+                    ]),
+                  ),
                 const SizedBox(height: 6),
                 Wrap(spacing: 6, children: [
                   OutlinedButton(

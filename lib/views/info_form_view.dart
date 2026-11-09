@@ -6,6 +6,7 @@
 // Aturan: masa berlaku WAJIB, foto opsional (1 foto, gratis).
 // ============================================================
 
+import 'hapus_info.dart' show konfirmasiHapusInformasi;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -188,7 +189,22 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
                     borderRadius: BorderRadius.circular(12),
                     onTap: () async {
                       final v = await pilihKategoriInfo(kategori, staf);
-                      if (v != null) setSheet(() => kategori = v);
+                      if (v != null) {
+                        setSheet(() {
+                          kategori = v;
+                          final c = contohKategori[v];
+                          if (c != null) {
+                            if (judulCtrl.text.trim().isEmpty || judulCtrl.text == contohJudulTerakhir) {
+                              judulCtrl.text = c.$1;
+                            }
+                            if (isiCtrl.text.trim().isEmpty || isiCtrl.text == contohIsiTerakhir) {
+                              isiCtrl.text = c.$2;
+                            }
+                            contohJudulTerakhir = c.$1;
+                            contohIsiTerakhir = c.$2;
+                          }
+                        });
+                      }
                     },
                     child: InputDecorator(
                       decoration: const InputDecoration(
@@ -528,27 +544,6 @@ Future<void> showFormInformasi({NewsModel? edit}) async {
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
   );
-}
-
-/// Dialog konfirmasi hapus informasi (Admin & Kades)
-Future<void> konfirmasiHapusInformasi(NewsModel n) async {
-  final dataCtrl = Get.find<DataController>();
-  final ya = await Get.dialog<bool>(AlertDialog(
-    title: const Text('Hapus informasi?'),
-    content: Text(
-        '"${n.judul}" akan dihapus permanen dan hilang dari beranda warga. Tindakan ini tidak bisa dibatalkan.'),
-    actions: [
-      TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
-      ElevatedButton(
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700),
-        onPressed: () => Get.back(result: true),
-        child: const Text('Hapus', style: TextStyle(color: Colors.white)),
-      ),
-    ],
-  ));
-  if (ya != true) return;
-  final ok = await dataCtrl.hapusInformasi(n);
-  showSnack(ok, 'Informasi dihapus.', dataCtrl.errorMsg.value);
 }
 
 

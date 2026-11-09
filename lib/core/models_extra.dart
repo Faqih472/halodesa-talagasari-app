@@ -662,10 +662,18 @@ class LetterModel {
         return 'Sah';
       case 'ditolak':
         return 'Ditolak';
+      case 'dibatalkan':
+        return 'Dibatalkan';
       default:
         return s;
     }
   }
+
+  /// Warga masih boleh mengubah isi surat (sebelum Kades menyetujui).
+  bool get bisaDiubahWarga => status == 'menunggu_review' || status == 'pending_kades';
+
+  /// Warga boleh membatalkan selama belum ditandatangani.
+  bool get bisaDibatalkanWarga => bisaDiubahWarga || status == 'terbit';
 
   static Color warnaStatus(String s) {
     switch (s) {

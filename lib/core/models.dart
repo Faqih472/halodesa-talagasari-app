@@ -259,6 +259,8 @@ class NewsModel {
   final String tema; // '' = otomatis
   final Map<String, dynamic> ekstra; // kolom tambahan sesuai jenis
   final bool banner; // tampil di banner geser Beranda
+  final String hapusStatus; // '' | diajukan | ditolak
+  final String hapusAlasan;
   final String revisiStatus; // '' | diajukan | menunggu_kades | ditolak
   final String revisiCatatan; // alasan penolakan
   final Map<String, dynamic> revisi; // isi perubahan yang diajukan
@@ -289,6 +291,8 @@ class NewsModel {
     this.tema = '',
     this.ekstra = const {},
     this.banner = false,
+    this.hapusStatus = '',
+    this.hapusAlasan = '',
     this.revisiStatus = '',
     this.revisiCatatan = '',
     this.revisi = const {},
@@ -312,6 +316,8 @@ class NewsModel {
       tema: data['tema'] ?? '',
       ekstra: data['ekstra'] is Map ? Map<String, dynamic>.from(data['ekstra'] as Map) : const {},
       banner: data['banner'] == true,
+      hapusStatus: data['hapus_status'] ?? '',
+      hapusAlasan: data['hapus_alasan'] ?? '',
       revisiStatus: data['revisi_status'] ?? '',
       revisiCatatan: data['revisi_catatan'] ?? '',
       revisi: data['revisi'] is Map ? Map<String, dynamic>.from(data['revisi'] as Map) : const {},

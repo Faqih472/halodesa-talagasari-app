@@ -515,7 +515,7 @@ class DataController extends GetxController {
   }
 
   // ─── HAPUS INFORMASI (Admin & Kades, termasuk yang sudah tayang) ─
-  Future<bool> hapusInformasi(NewsModel n) async {
+  Future<bool> hapusInformasi(NewsModel n, {String alasan = ''}) async {
     try {
       final u = _authCtrl.currentUser.value;
       if (u == null || !u.isStaff) {
@@ -527,14 +527,14 @@ class DataController extends GetxController {
           aksi: 'Menghapus informasi',
           targetTipe: 'informasi',
           targetId: n.id,
-          detail: n.judul);
+          detail: alasan.isEmpty ? n.judul : '${n.judul} | Alasan: $alasan');
       // Beri tahu pengaju bila bukan dirinya sendiri
       if (n.authorId.isNotEmpty && n.authorId != u.uid) {
         try {
           await Get.find<NotificationController>().kirimKe(
             uidTujuan: n.authorId,
             judul: 'Informasi Dihapus',
-            isi: '"${n.judul}" telah dihapus oleh ${AppTheme.labelRole(u.role)}.',
+            isi: '"${n.judul}" telah dihapus oleh ${AppTheme.labelRole(u.role)}.${alasan.isEmpty ? '' : ' Alasan: $alasan'}',
             tipe: 'info',
           );
         } catch (_) {}

@@ -2,6 +2,7 @@
 // admin_view.dart — TabManageView + TabPendingView
 // ============================================================
 
+import 'hapus_info.dart';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -59,7 +60,7 @@ class _TabManageViewState extends State<TabManageView> {
   }
 
   // jumlah antrean yang datang dari Firestore (live)
-  int _nRevisi = 0, _nLapKonten = 0, _nLapJasa = 0;
+  int _nRevisi = 0, _nLapKonten = 0, _nLapJasa = 0, _nHapusInfo = 0, _nHapusLapak = 0;
   final List<StreamSubscription> _langganan = [];
 
   @override
@@ -80,8 +81,10 @@ class _TabManageViewState extends State<TabManageView> {
     final db = FirebaseFirestore.instance;
     _dengar(db.collection('announcements').where('revisi_status', whereIn: ['diajukan', 'menunggu_kades']),
         (n) => _nRevisi = n);
+    _dengar(db.collection('announcements').where('hapus_status', isEqualTo: 'diajukan'), (n) => _nHapusInfo = n);
     if (Get.find<AuthController>().role == 'admin') {
       _dengar(db.collection('laporan_konten').where('status', isEqualTo: 'baru'), (n) => _nLapKonten = n);
+      _dengar(db.collection('lapak_umkm').where('hapus_status', isEqualTo: 'diajukan'), (n) => _nHapusLapak = n);
       _dengar(db.collection('laporan_jasa').where('status', isEqualTo: 'baru'), (n) => _nLapJasa = n);
     }
   }
@@ -190,6 +193,8 @@ class _TabManageViewState extends State<TabManageView> {
                   Colors.green.shade700, nInfo, infoList),
               _MenuKelola('Perubahan info', 'Warga mengubah info yang sudah tayang. Bandingkan lalu setujui.',
                   Icons.edit_note_outlined, Colors.teal.shade700, _nRevisi, const RevisiInfoTab()),
+              _MenuKelola('Hapus info', 'Warga minta info miliknya dihapus. Baca alasannya, lalu setujui atau tolak.',
+                  Icons.delete_sweep_outlined, Colors.red.shade700, _nHapusInfo, const HapusInfoTab()),
               _MenuKelola('Pengaduan', 'Pengaduan warga. Saring, proses, atau teruskan ke Kades.',
                   Icons.report_problem_outlined, Colors.orange.shade800, nAduan, const PengaduanStaffTab()),
               _MenuKelola('Verifikasi KTP', 'Cocokkan data dan foto KTP warga.', Icons.badge_outlined,
@@ -208,6 +213,8 @@ class _TabManageViewState extends State<TabManageView> {
                   Colors.green.shade700, nInfo, infoList),
               _MenuKelola('Perubahan info', 'Perubahan info kategori sensitif.', Icons.edit_note_outlined,
                   Colors.teal.shade700, _nRevisi, const RevisiInfoTab()),
+              _MenuKelola('Hapus info', 'Permintaan hapus info kategori sensitif.',
+                  Icons.delete_sweep_outlined, Colors.red.shade700, _nHapusInfo, const HapusInfoTab()),
               _MenuKelola('Pengaduan berat', 'Pengaduan keamanan atau kekerasan yang diteruskan Admin.',
                   Icons.report_problem_outlined, Colors.orange.shade800, nAduan, const PengaduanStaffTab()),
             ];
@@ -218,7 +225,7 @@ class _TabManageViewState extends State<TabManageView> {
               _MenuKelola('Laporan jasa', 'Warga melaporkan penyedia jasa.', Icons.flag_outlined,
                   Colors.deepOrange, _nLapJasa, const LaporanJasaTab()),
               _MenuKelola('Lapak UMKM', 'Pantau lapak. Sembunyikan bila melanggar aturan.', Icons.storefront_outlined,
-                  Colors.pink.shade700, 0, const LapakStaffTab()),
+                  Colors.pink.shade700, _nHapusLapak, const LapakStaffTab()),
             ]
           : <_MenuKelola>[];
 

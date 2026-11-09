@@ -44,7 +44,12 @@ class TalagasariHubApp extends StatelessWidget {
       builder: (context, child) => Obx(() => MediaQuery(
             data: MediaQuery.of(context)
                 .copyWith(textScaler: TextScaler.linear(AppSettings.fontScale.value)),
-            child: child ?? const SizedBox.shrink(),
+            // Ketuk area kosong untuk menutup keyboard
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: child ?? const SizedBox.shrink(),
+            ),
           )),
       theme: AppTheme.buildTheme('warga'),
       translations: AppTranslations(),

@@ -55,9 +55,14 @@ service cloud.firestore {
              && request.resource.data.diff(resource.data).affectedKeys()
                   .hasOnly(['revisi', 'revisi_status', 'revisi_catatan'])
              && request.resource.data.revisi_status == 'diajukan')
+        // pembuat info mengajukan penghapusan (perlu ACC Admin)
+        || (login() && aktif() && resource.data.authorId == request.auth.uid
+             && request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['hapus_status', 'hapus_alasan', 'hapus_at'])
+             && request.resource.data.hapus_status == 'diajukan')
         || (isAdmin() && !(request.resource.data.status == 'published'
              && request.resource.data.kategori in ['kesehatan', 'ketenagakerjaan', 'bantuan_sosial']));
-      allow delete: if isStaff() || (login() && resource.data.authorId == request.auth.uid);
+      allow delete: if isStaff() || (login() && resource.data.authorId == request.auth.uid && resource.data.status != 'published');
       match /suka/{uid} {
         allow read: if login();
         allow create, update: if login() && aktif() && request.auth.uid == uid;
@@ -248,7 +253,22 @@ service cloud.firestore {
       allow create: if login() && request.resource.data.uid == request.auth.uid
                     && request.resource.data.status == 'menunggu_review';
       allow read: if login() && (resource.data.uid == request.auth.uid || isStaff());
-      allow update: if isStaff();
+      allow update: if isStaff()
+        // warga mengubah isi pengajuan sebelum disetujui Kades (kembali ke Admin)
+        || (login() && resource.data.uid == request.auth.uid
+            && resource.data.status in ['menunggu_review', 'pending_kades']
+            && request.resource.data.status == 'menunggu_review'
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['jenis', 'keperluan', 'tambahan', 'status']))
+        // warga membatalkan selama belum ditandatangani
+        || (login() && resource.data.uid == request.auth.uid
+            && resource.data.status in ['menunggu_review', 'pending_kades', 'terbit']
+            && request.resource.data.status == 'dibatalkan'
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['status', 'dibatalkan_at']));
+      // warga menghapus surat yang ditolak/dibatalkan dari riwayatnya
+      allow delete: if login() && resource.data.uid == request.auth.uid
+                    && resource.data.status in ['ditolak', 'dibatalkan'];
     }
     // Foto profil baru menunggu persetujuan Admin
     match /foto_profil_antri/{uid} {
@@ -387,7 +407,7 @@ service cloud.firestore {
                 .hasAny(['rating_total', 'rating_jumlah', 'alasan_admin']))
         || request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['rating_total', 'rating_jumlah', 'dilihat']));
-      allow delete: if isAdmin() || (login() && resource.data.uid == request.auth.uid);
+      allow delete: if isAdmin();   // pemilik mengajukan hapus (hapus_status), Admin yang menghapus
       match /ulasan/{uid} {
         allow read: if login();
         allow create, update: if login() && aktif() && request.auth.uid == uid

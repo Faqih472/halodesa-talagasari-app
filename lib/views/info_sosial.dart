@@ -436,7 +436,8 @@ Future<void> bukaKomentar(NewsModel news) async {
       }
 
       return Container(
-        height: MediaQuery.of(ctx).size.height * 0.75,
+        height: (MediaQuery.of(ctx).size.height * 0.75 + MediaQuery.of(ctx).viewInsets.bottom)
+            .clamp(0.0, MediaQuery.of(ctx).size.height * 0.94),
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         decoration: BoxDecoration(
           color: AppTheme.surface,

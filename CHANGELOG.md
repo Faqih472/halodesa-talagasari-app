@@ -5,6 +5,16 @@
 - Suara Warga dan Agenda: hero berwarna, kartu bergaris warna, formulir buat dengan hero.
 - Jasa/Lowongan/Lapak: strip penjelas berwarna per tab.
 
+## Hapus lapak (ACC), surat bisa diubah/dibatalkan
+- Lapak UMKM: pemilik mengajukan hapus dengan alasan siap pakai; Admin menyetujui atau menolak (Kelola Desa → Lapak UMKM, ada angka merah).
+- Surat online: warga bisa **Ubah pengajuan** (selama belum disetujui Kades; kembali ke Admin), **Batalkan** (selama belum ditandatangani), dan **Hapus dari riwayat** (ditolak/dibatalkan). **Deploy ulang firestore.rules.**
+
+## Hapus info dengan alasan, contoh per kategori, keyboard
+- Hapus info wajib alasan (8 alasan siap pakai + kalimat contoh yang bisa diubah); pembuat diberi tahu alasannya.
+- Warga dapat mengajukan hapus info miliknya (Info Saya); Admin/Kades menyetujui atau menolak di Kelola Desa → Hapus info. **Deploy ulang firestore.rules.**
+- Ganti kategori Ajukan Info mengisi contoh judul/isi otomatis (27 kategori).
+- Keyboard: menu bawah disembunyikan saat mengetik, tidak ada ubah ukuran ganda, ketuk area kosong menutup keyboard.
+
 ## Tema warna & kartu Jasa
 - **Tema Aplikasi** (menu Akun): 19 tema (Hijau Desa bawaan, Crimson Aurora, Inferno Bloom, Solar Flare, Emerald Mist, Blue Nebula, Neon Frost, Oceanic Void, Purple Eclipse, Pink Stardust, Magenta Rift, Aqua Genesis, Toxic Bloom, Terra Ember, Golden Cosmos, White Nova, Midnight Phantom, Titanium Storm, Lunar Steel). Pilihan tersimpan.
 - Kartu Cari Jasa, Butuh Pekerja, dan Lapak UMKM dirombak (garis warna, tarif/upah menonjol).

@@ -2,6 +2,7 @@
 // home_view.dart — MainLayoutView + TabHomeView + NotificationView
 // ============================================================
 
+import 'hapus_info.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -81,13 +82,18 @@ class _MainLayoutViewState extends State<MainLayoutView> {
       return Theme(
         data: AppTheme.buildTheme(role),
         child: Scaffold(
+          // Halaman di dalam sudah punya Scaffold sendiri yang menyesuaikan keyboard;
+          // jangan diubah ukurannya dua kali dan sembunyikan menu bawah saat mengetik.
+          resizeToAvoidBottomInset: false,
           body: Obx(
             () => IndexedStack(
               index: mainCtrl.currentIndex.value,
               children: pages,
             ),
           ),
-          bottomNavigationBar: _AnimatedBottomNav(
+          bottomNavigationBar: MediaQuery.of(context).viewInsets.bottom > 0
+              ? null
+              : _AnimatedBottomNav(
             mainCtrl: mainCtrl,
             role: role,
             isStaff: isStaff,

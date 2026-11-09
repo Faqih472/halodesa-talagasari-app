@@ -428,7 +428,8 @@ class _PanduanBeranda extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 class AjukanSuratView extends StatefulWidget {
   final String jenisAwal;
-  const AjukanSuratView({super.key, this.jenisAwal = 'domisili'});
+  final LetterModel? edit; // bila diisi: mengubah pengajuan yang sudah ada
+  const AjukanSuratView({super.key, this.jenisAwal = 'domisili', this.edit});
 
   @override
   State<AjukanSuratView> createState() => _AjukanSuratViewState();
@@ -487,7 +488,16 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
   @override
   void initState() {
     super.initState();
-    _jenis = widget.jenisAwal;
+    _jenis = widget.edit?.jenis ?? widget.jenisAwal;
+    final e = widget.edit;
+    if (e != null) {
+      _keperluanCtrl.text = e.keperluan;
+      _agama = e.tambahan['agama'] ?? '';
+      _kawin = e.tambahan['status_kawin'] ?? '';
+      for (final k in e.tambahan.keys) {
+        if (k != 'agama' && k != 'status_kawin') _c(k).text = e.tambahan[k] ?? '';
+      }
+    }
     _keperluanCtrl.addListener(() => setState(() {}));
   }
 
@@ -511,12 +521,17 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
       showSnack(false, '', galat);
       return;
     }
-    final ok = await _ctrl.ajukan(
-        jenis: _jenis,
-        keperluan: _keperluanCtrl.text.trim(),
-        tambahan: _tambahan());
+    final bool ok;
+    if (widget.edit != null) {
+      ok = await _ctrl.ubah(widget.edit!,
+          jenis: _jenis, keperluan: _keperluanCtrl.text.trim(), tambahan: _tambahan());
+    } else {
+      ok = await _ctrl.ajukan(
+          jenis: _jenis, keperluan: _keperluanCtrl.text.trim(), tambahan: _tambahan());
+    }
     if (ok) Get.back();
-    showSnack(ok, 'letter_sent'.tr, _ctrl.errorMsg.value);
+    showSnack(ok, widget.edit != null ? 'Perubahan terkirim. Admin akan memeriksa ulang.' : 'letter_sent'.tr,
+        _ctrl.errorMsg.value);
   }
 
   void _isiContoh(String teks) {
@@ -1066,6 +1081,69 @@ class LetterDetailView extends StatelessWidget {
               child: Text('${'cmp_reason'.tr}: ${l.alasan}',
                   style: TextStyle(color: Colors.red.shade700)),
             ),
+          if (role == 'warga' && l.uid == auth.currentUser.value?.uid) ...[
+            if (l.status == 'dibatalkan')
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text('Pengajuan ini Anda batalkan.', style: TextStyle(color: AppTheme.textSecondary)),
+              ),
+            if (l.bisaDiubahWarga)
+              Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 46)),
+                  onPressed: () async {
+                    await Get.to(() => AjukanSuratView(edit: l));
+                    Get.back();
+                  },
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Ubah pengajuan'),
+                ),
+              ),
+            if (l.bisaDibatalkanWarga)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 46), foregroundColor: Colors.red.shade700),
+                  onPressed: () async {
+                    final y = await Get.dialog<bool>(AlertDialog(
+                      title: const Text('Batalkan pengajuan?'),
+                      content: Text(l.menungguTtd
+                          ? 'Surat sudah diterbitkan dan menunggu tanda tangan. Bila dibatalkan, nomor surat ini tidak dipakai lagi dan Anda perlu mengajukan baru.'
+                          : 'Pengajuan akan dibatalkan. Anda bisa mengajukan lagi kapan saja.'),
+                      actions: [
+                        TextButton(onPressed: () => Get.back(result: false), child: const Text('Kembali')),
+                        ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(100, 42), backgroundColor: Colors.red.shade700),
+                            onPressed: () => Get.back(result: true),
+                            child: const Text('Batalkan')),
+                      ],
+                    ));
+                    if (y != true) return;
+                    final ok = await ctrl.batalkan(l);
+                    if (ok) Get.back();
+                    showSnack(ok, 'Pengajuan dibatalkan.', ctrl.errorMsg.value);
+                  },
+                  icon: const Icon(Icons.cancel_outlined),
+                  label: const Text('Batalkan pengajuan'),
+                ),
+              ),
+            if (l.status == 'ditolak' || l.status == 'dibatalkan')
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final ok = await ctrl.hapusRiwayat(l);
+                    if (ok) Get.back();
+                    showSnack(ok, 'Dihapus dari riwayat.', ctrl.errorMsg.value);
+                  },
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Hapus dari riwayat'),
+                ),
+              ),
+          ],
           const SizedBox(height: 20),
           if (l.bisaCetak && !l.kadaluarsa)
             SizedBox(

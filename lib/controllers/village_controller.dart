@@ -806,6 +806,78 @@ class LetterController extends GetxController {
     }
   }
 
+  /// Warga mengubah isi pengajuan (sebelum Kades menyetujui). Diperiksa ulang Admin.
+  Future<bool> ubah(LetterModel l,
+      {required String jenis, required String keperluan, Map<String, String> tambahan = const {}}) async {
+    final u = _authCtrl.currentUser.value;
+    if (u == null || !l.bisaDiubahWarga) {
+      errorMsg.value = 'Surat sudah diproses dan tidak dapat diubah lagi.';
+      return false;
+    }
+    try {
+      isSubmitting.value = true;
+      errorMsg.value = '';
+      await _firestore.collection('surat').doc(l.id).update({
+        'jenis': jenis,
+        'keperluan': keperluan.trim(),
+        'status': 'menunggu_review',
+        'tambahan': {
+          for (final e in tambahan.entries)
+            if (e.value.trim().isNotEmpty) e.key: e.value.trim(),
+        },
+      });
+      await fetchMine();
+      await notifPeran(['admin'],
+          judul: 'Pengajuan surat diubah warga',
+          isi: '${u.nama}: ${LetterModel.labelJenis(jenis)}',
+          tipe: 'surat',
+          targetId: l.id);
+      return true;
+    } catch (e) {
+      errorMsg.value = 'Gagal mengubah surat: $e';
+      return false;
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  /// Warga membatalkan pengajuan selama belum ditandatangani.
+  Future<bool> batalkan(LetterModel l) async {
+    final u = _authCtrl.currentUser.value;
+    if (u == null || !l.bisaDibatalkanWarga) {
+      errorMsg.value = 'Surat sudah ditandatangani dan tidak dapat dibatalkan.';
+      return false;
+    }
+    try {
+      await _firestore.collection('surat').doc(l.id).update({
+        'status': 'dibatalkan',
+        'dibatalkan_at': Timestamp.now(),
+      });
+      await fetchMine();
+      await notifPeran(l.status == 'pending_kades' ? ['admin', 'kades'] : ['admin'],
+          judul: 'Pengajuan surat dibatalkan',
+          isi: '${u.nama}: ${LetterModel.labelJenis(l.jenis)}',
+          tipe: 'surat',
+          targetId: l.id);
+      return true;
+    } catch (e) {
+      errorMsg.value = 'Gagal membatalkan: $e';
+      return false;
+    }
+  }
+
+  /// Warga menghapus surat yang ditolak/dibatalkan dari riwayatnya.
+  Future<bool> hapusRiwayat(LetterModel l) async {
+    try {
+      await _firestore.collection('surat').doc(l.id).delete();
+      await fetchMine();
+      return true;
+    } catch (e) {
+      errorMsg.value = 'Gagal menghapus: $e';
+      return false;
+    }
+  }
+
   Future<void> fetchAntrian() async {
     final u = _authCtrl.currentUser.value;
     if (u == null || !u.isStaff) return;

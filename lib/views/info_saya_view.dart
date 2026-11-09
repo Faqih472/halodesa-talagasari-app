@@ -5,6 +5,7 @@
 //  • RevisiInfoTab  : tab Admin/Kades untuk menyetujui atau menolak perubahan.
 // Info lama tetap tayang sampai perubahan disetujui. Firestore saja (gratis).
 // ============================================================
+import 'hapus_info.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -252,15 +253,49 @@ class _Kartu extends StatelessWidget {
                 style: TextStyle(color: Colors.red.shade800, fontSize: 12.5)),
           ),
         const SizedBox(height: 6),
+        if (n.hapusStatus == 'diajukan')
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.all(8),
+            width: double.infinity,
+            decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+            child: Text('Permintaan hapus menunggu persetujuan Admin. Info tetap tayang.',
+                style: TextStyle(color: Colors.orange.shade900, fontSize: 12.5)),
+          ),
+        if (n.hapusStatus == 'ditolak')
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.all(8),
+            width: double.infinity,
+            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
+            child: Text('Permintaan hapus ditolak Admin. Info tetap tayang.',
+                style: TextStyle(color: Colors.red.shade800, fontSize: 12.5)),
+          ),
         if (n.status == 'published')
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
-              onPressed: bisaUbah ? () => showFormInformasi(edit: n) : null,
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: Text(n.adaRevisi ? 'Menunggu persetujuan' : 'Ajukan perubahan'),
-            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 40)),
+                  onPressed: bisaUbah ? () => showFormInformasi(edit: n) : null,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: Text(n.adaRevisi ? 'Menunggu persetujuan' : 'Ajukan perubahan',
+                      style: const TextStyle(fontSize: 12.5)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 40), foregroundColor: Colors.red.shade700),
+                  onPressed: n.hapusStatus == 'diajukan' ? null : () => ajukanHapusInfo(n),
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: Text(n.hapusStatus == 'diajukan' ? 'Menunggu ACC' : 'Ajukan hapus',
+                      style: const TextStyle(fontSize: 12.5)),
+                ),
+              ),
+            ]),
           ),
       ]),
     );
