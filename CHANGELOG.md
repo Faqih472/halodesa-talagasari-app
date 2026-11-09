@@ -5,6 +5,11 @@
 - Suara Warga dan Agenda: hero berwarna, kartu bergaris warna, formulir buat dengan hero.
 - Jasa/Lowongan/Lapak: strip penjelas berwarna per tab.
 
+## Alamat baku (Blok, No., Kode pos) dan titik ribuan
+- Akun → Alamat dan Verifikasi Identitas memakai format baku: Blok, No. rumah, RT, RW, **Kode pos** (wajib), kampung dan jalan opsional. Wilayah Desa/Kec./Kab. terkunci.
+- Alamat baku ikut ke surat online, pengaduan, jasa, lapak, dan lowongan (kode pos terbawa otomatis). Alamat lama tetap terbaca.
+- Penghasilan di pengajuan surat diberi titik ribuan otomatis (4.000.000).
+
 ## Pengaduan & usulan: ubah/batal
 - Pengaduan: selama "Menunggu Review" pelapor bisa **Ubah** dan **Batalkan** (dengan alasan; riwayat tetap ada). Setelah diproses, terkunci.
 - Usulan Suara Warga/Agenda: warga bisa **Ubah** atau **Tarik kembali** selama "Menunggu".

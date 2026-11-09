@@ -1060,9 +1060,7 @@ class _AlamatSayaViewState extends State<AlamatSayaView> {
   final AuthController _authCtrl = Get.find<AuthController>();
   final _formKey = GlobalKey<FormState>();
 
-  late final TextEditingController _alamatCtrl;
-  late final TextEditingController _rtCtrl;
-  late final TextEditingController _rwCtrl;
+  final AlamatDesaCtrl _almt = AlamatDesaCtrl();
   late final TextEditingController _dusunCtrl;
   late final TextEditingController _patokanCtrl;
 
@@ -1070,29 +1068,30 @@ class _AlamatSayaViewState extends State<AlamatSayaView> {
   void initState() {
     super.initState();
     final u = _authCtrl.currentUser.value;
-    _alamatCtrl = TextEditingController(text: u?.alamatLengkap ?? '');
-    _rtCtrl = TextEditingController(text: u?.alamatRt ?? '');
-    _rwCtrl = TextEditingController(text: u?.alamatRw ?? '');
+    _almt.isiDari(
+        jalanTeks: u?.alamatLengkap ?? '', rtTeks: u?.alamatRt ?? '', rwTeks: u?.alamatRw ?? '');
     _dusunCtrl = TextEditingController(text: u?.alamatDusun ?? '');
     _patokanCtrl = TextEditingController(text: u?.alamatPatokan ?? '');
   }
 
   @override
   void dispose() {
-    _alamatCtrl.dispose();
-    _rtCtrl.dispose();
-    _rwCtrl.dispose();
+    _almt.dispose();
     _dusunCtrl.dispose();
     _patokanCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _simpan() async {
-    if (!_formKey.currentState!.validate()) return;
+    final ga = _almt.galat(kodePos: true);
+    if (ga != null) {
+      _snack(false, '', ga);
+      return;
+    }
     final ok = await _authCtrl.updateAlamat(
-      alamatLengkap: _alamatCtrl.text,
-      rt: _rtCtrl.text,
-      rw: _rwCtrl.text,
+      alamatLengkap: _almt.teks,
+      rt: _almt.rt.text,
+      rw: _almt.rw.text,
       dusun: _dusunCtrl.text,
       patokan: _patokanCtrl.text,
     );
@@ -1121,45 +1120,7 @@ class _AlamatSayaViewState extends State<AlamatSayaView> {
             ),
             child: Column(
               children: [
-                TextFormField(
-                  controller: _alamatCtrl,
-                  maxLines: 3,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (v) =>
-                      AppUtils.validateRequired(v, label: 'Alamat'),
-                  decoration: InputDecoration(
-                    labelText: 'address_full'.tr,
-                    hintText: 'address_full_hint'.tr,
-                    alignLabelWithHint: true,
-                    prefixIcon: const Icon(Icons.home_outlined),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _rtCtrl,
-                        keyboardType: TextInputType.number,
-                        validator: (v) =>
-                            AppUtils.validateRequired(v, label: 'RT'),
-                        decoration:
-                            InputDecoration(labelText: 'address_rt'.tr),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _rwCtrl,
-                        keyboardType: TextInputType.number,
-                        validator: (v) =>
-                            AppUtils.validateRequired(v, label: 'RW'),
-                        decoration:
-                            InputDecoration(labelText: 'address_rw'.tr),
-                      ),
-                    ),
-                  ],
-                ),
+                BlokAlamatDesa(c: _almt, kodePosWajib: true),
                 const SizedBox(height: 14),
                 TextFormField(
                   controller: _dusunCtrl,
@@ -1177,12 +1138,7 @@ class _AlamatSayaViewState extends State<AlamatSayaView> {
                       prefixIcon: const Icon(Icons.flag_outlined)),
                 ),
                 const SizedBox(height: 14),
-                _readOnlyField('address_village'.tr, 'Talagasari'),
-                const SizedBox(height: 14),
-                _readOnlyField('address_district'.tr, 'Cikupa'),
-                const SizedBox(height: 14),
-                _readOnlyField('address_regency'.tr, 'Tangerang'),
-                const SizedBox(height: 20),
+                const SizedBox(height: 6),
                 Obx(() => SizedBox(
                       width: double.infinity,
                       height: 48,

@@ -459,7 +459,10 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
         'status_kawin': _kawin,
         for (final k in ['pekerjaan', 'tinggal_sejak', 'penghasilan', 'tanggungan',
           'nama_usaha', 'jenis_usaha', 'alamat_usaha', 'lama_usaha', 'instansi'])
-          if (_f[k] != null) k: _f[k]!.text.trim(),
+          if (_f[k] != null)
+            k: k == 'penghasilan'
+                ? _f[k]!.text.replaceAll(RegExp(r'[^0-9]'), '')
+                : _f[k]!.text.trim(),
       };
 
   /// Pesan galat bila data wajib belum lengkap, null bila lengkap.
@@ -495,7 +498,12 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
       _agama = e.tambahan['agama'] ?? '';
       _kawin = e.tambahan['status_kawin'] ?? '';
       for (final k in e.tambahan.keys) {
-        if (k != 'agama' && k != 'status_kawin') _c(k).text = e.tambahan[k] ?? '';
+        if (k != 'agama' && k != 'status_kawin') {
+          final v = e.tambahan[k] ?? '';
+          _c(k).text = k == 'penghasilan' && int.tryParse(v) != null
+              ? RibuanFormatter.format(int.parse(v))
+              : v;
+        }
       }
     }
     _keperluanCtrl.addListener(() => setState(() {}));
@@ -622,7 +630,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
     final PanduanSurat g = LetterModel.panduan(_jenis);
     final int masa = LetterModel.masaBulan(_jenis);
     final String keperluan = _keperluanCtrl.text.trim();
-    final bool dataKurang = ktp.nik.isEmpty || (u?.alamatLengkap ?? '').isEmpty;
+    final bool dataKurang = ktp.nik.isEmpty || !(u?.punyaAlamat ?? false);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -758,7 +766,7 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
                   'Contoh: 2015', angka: true, maks: 4),
             if (_jenis == 'tidak_mampu') ...[
               _isian('penghasilan', 'Penghasilan keluarga per bulan (Rp)',
-                  'Angka saja, contoh: 1500000', angka: true, maks: 10),
+                  'Angka saja, contoh: 1500000', ribuan: true, maks: 13),
               _isian('tanggungan', 'Jumlah tanggungan keluarga (orang)',
                   'Contoh: 4', angka: true, maks: 2),
             ],
@@ -960,15 +968,18 @@ class _AjukanSuratViewState extends State<AjukanSuratView> {
       );
 
   Widget _isian(String k, String label, String hint,
-          {bool angka = false, int maks = 60}) =>
+          {bool angka = false, bool ribuan = false, int maks = 60}) =>
       Padding(
         padding: const EdgeInsets.only(bottom: 10),
         child: TextField(
           controller: _c(k),
           maxLength: maks,
-          keyboardType: angka ? TextInputType.number : TextInputType.text,
-          inputFormatters: angka ? [FilteringTextInputFormatter.digitsOnly] : null,
+          keyboardType: (angka || ribuan) ? TextInputType.number : TextInputType.text,
+          inputFormatters: ribuan
+              ? [FilteringTextInputFormatter.digitsOnly, RibuanFormatter()]
+              : (angka ? [FilteringTextInputFormatter.digitsOnly] : null),
           decoration: InputDecoration(
+              prefixText: ribuan ? 'Rp ' : null,
               labelText: label,
               hintText: hint,
               counterText: '',

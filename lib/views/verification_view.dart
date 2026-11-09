@@ -84,9 +84,7 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
   late final TextEditingController _namaCtrl;
   final _nikCtrl = TextEditingController();
   final _tempatCtrl = TextEditingController();
-  late final TextEditingController _alamatCtrl;
-  late final TextEditingController _rtCtrl;
-  late final TextEditingController _rwCtrl;
+  final AlamatDesaCtrl _almt = AlamatDesaCtrl();
   DateTime? _lahir;
   String _jk = '';
   String _fotoSelfie = ''; // foto 1 (kamera depan, pegang KTP)
@@ -97,9 +95,8 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
     super.initState();
     final u = _auth.currentUser.value;
     _namaCtrl = TextEditingController(text: u?.nama ?? '');
-    _alamatCtrl = TextEditingController(text: u?.alamatLengkap ?? '');
-    _rtCtrl = TextEditingController(text: u?.alamatRt ?? '');
-    _rwCtrl = TextEditingController(text: u?.alamatRw ?? '');
+    _almt.isiDari(
+        jalanTeks: u?.alamatLengkap ?? '', rtTeks: u?.alamatRt ?? '', rwTeks: u?.alamatRw ?? '');
     _lahir = u?.tanggalLahir;
     _jk = u?.jenisKelamin ?? '';
     _ctrl.fetchMyKtp();
@@ -107,9 +104,10 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
 
   @override
   void dispose() {
-    for (final c in [_namaCtrl, _nikCtrl, _tempatCtrl, _alamatCtrl, _rtCtrl, _rwCtrl]) {
+    for (final c in [_namaCtrl, _nikCtrl, _tempatCtrl]) {
       c.dispose();
     }
+    _almt.dispose();
     super.dispose();
   }
 
@@ -125,6 +123,11 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
 
   Future<void> _kirim() async {
     if (!_formKey.currentState!.validate()) return;
+    final ga = _almt.galat(kodePos: true);
+    if (ga != null) {
+      showSnack(false, '', ga);
+      return;
+    }
     if (_lahir == null || _jk.isEmpty) {
       showSnack(false, '', 'ktp_complete'.tr);
       return;
@@ -142,9 +145,9 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
       tempatLahir: _tempatCtrl.text,
       tanggalLahir: _lahir!,
       jenisKelamin: _jk,
-      alamat: _alamatCtrl.text,
-      rt: _rtCtrl.text,
-      rw: _rwCtrl.text,
+      alamat: _almt.teks,
+      rt: _almt.rt.text,
+      rw: _almt.rw.text,
     );
     if (ok) Get.back();
     showSnack(ok, 'ktp_sent'.tr, _ctrl.errorMsg.value);
@@ -247,35 +250,7 @@ class _KtpVerifikasiViewState extends State<KtpVerifikasiView> {
                   onChanged: (v) => setState(() => _jk = v ?? ''),
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _alamatCtrl,
-                  validator: _wajib,
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                      labelText: 'ktp_address'.tr, alignLabelWithHint: true),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _rtCtrl,
-                        validator: _wajib,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'RT'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _rwCtrl,
-                        validator: _wajib,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'RW'),
-                      ),
-                    ),
-                  ],
-                ),
+                BlokAlamatDesa(c: _almt, kodePosWajib: true),
                 const SizedBox(height: 16),
                 const SectionTitle('FOTO VERIFIKASI (WAJIB, 2 FOTO)'),
                 _kotakFoto(

@@ -763,11 +763,15 @@ class LetterController extends GetxController {
       errorMsg.value = '';
       // Data surat diambil dari data verifikasi identitas (sudah dicek Admin)
       final k = cmp.myKtp.value;
-      final alamat = [
-        k.alamat,
-        'RT ${k.rt}/RW ${k.rw}',
-        'Desa Talagasari, Kec. Cikupa, Kab. Tangerang',
-      ].join(', ');
+      // Alamat baku (Blok, No., RT/RW, Desa, Kec., Kab., Kode Pos) sudah lengkap bila
+      // memuat nama desa; data lama (tanpa itu) dirangkai seperti sebelumnya.
+      final alamat = k.alamat.contains('Talagasari')
+          ? k.alamat
+          : [
+              k.alamat,
+              'RT ${k.rt}/RW ${k.rw}',
+              'Desa Talagasari, Kec. Cikupa, Kab. Tangerang',
+            ].join(', ');
 
       final ref = await _firestore.collection('surat').add({
         'uid': u.uid,

@@ -1630,10 +1630,16 @@ class AlamatDesaCtrl {
   final rw = TextEditingController();
   final kampung = TextEditingController();
   final jalan = TextEditingController();
+  final kodepos = TextEditingController();
 
   /// Membaca kembali alamat yang pernah disimpan (Blok.. No.. , Jl.., Kp.., RT/RW) ke kolom.
   void isiDari({String jalanTeks = '', String rtTeks = '', String rwTeks = ''}) {
     var j = jalanTeks.trim();
+    final mk = RegExp(r'Kode Pos\s*(\d{5})', caseSensitive: false).firstMatch(j);
+    if (mk != null) {
+      kodepos.text = mk.group(1)!;
+      j = j.replaceAll(RegExp(r',?\s*Kode Pos\s*\d{5}', caseSensitive: false), '').trim();
+    }
     if (j.endsWith(tetap)) j = j.substring(0, j.length - tetap.length).trim();
     if (j.endsWith(',')) j = j.substring(0, j.length - 1);
     String b = '', n = '', k = '', r1 = '', r2 = '';
@@ -1672,10 +1678,11 @@ class AlamatDesaCtrl {
       if (rt.text.trim().isNotEmpty || rw.text.trim().isNotEmpty)
         'RT ${rt.text.trim()}/RW ${rw.text.trim()}',
       tetap,
+      if (kodepos.text.trim().isNotEmpty) 'Kode Pos ${kodepos.text.trim()}',
     ].join(', ');
   }
 
-  String? galat() {
+  String? galat({bool kodePos = false}) {
     if (blok.text.trim().isEmpty) {
       return 'Blok / gang wajib diisi. Contoh: A3, C, atau Gang Melati.';
     }
@@ -1684,6 +1691,9 @@ class AlamatDesaCtrl {
     }
     if (rt.text.trim().isEmpty || rw.text.trim().isEmpty) {
       return 'RT dan RW wajib diisi.';
+    }
+    if (kodePos && kodepos.text.trim().length != 5) {
+      return 'Kode pos wajib 5 angka. Lihat di KTP, surat, atau bungkus paket.';
     }
     return null;
   }
@@ -1695,6 +1705,7 @@ class AlamatDesaCtrl {
     rw.dispose();
     kampung.dispose();
     jalan.dispose();
+    kodepos.dispose();
   }
 }
 
@@ -1702,7 +1713,9 @@ class BlokAlamatDesa extends StatelessWidget {
   final AlamatDesaCtrl c;
   /// false = semua kolom opsional (dipakai untuk lokasi info yang tidak wajib).
   final bool wajib;
-  const BlokAlamatDesa({super.key, required this.c, this.wajib = true});
+  /// true = kode pos wajib (profil dan verifikasi identitas).
+  final bool kodePosWajib;
+  const BlokAlamatDesa({super.key, required this.c, this.wajib = true, this.kodePosWajib = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1783,6 +1796,17 @@ class BlokAlamatDesa extends StatelessWidget {
           ),
         ),
       ]),
+      const SizedBox(height: 8),
+      TextField(
+        controller: c.kodepos,
+        keyboardType: TextInputType.number,
+        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        maxLength: 5,
+        decoration: InputDecoration(
+            labelText: 'Kode pos${kodePosWajib ? ' *' : ' (opsional)'}',
+            hintText: '5 angka',
+            counterText: ''),
+      ),
       const SizedBox(height: 8),
       TextField(
         controller: c.jalan,

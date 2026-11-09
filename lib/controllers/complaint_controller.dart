@@ -268,9 +268,7 @@ class ComplaintController extends GetxController {
       }
 
       final alamat = alamatKejadian.trim().isNotEmpty ? alamatKejadian.trim() : [
-        if (user.alamatLengkap.isNotEmpty) user.alamatLengkap,
-        if (user.alamatRt.isNotEmpty || user.alamatRw.isNotEmpty)
-          'RT ${user.alamatRt}/RW ${user.alamatRw}',
+        if (user.alamatLengkap.isNotEmpty) user.alamatPenuh,
       ].join(', ');
 
       final ref = await _firestore.collection('pengaduan').add({

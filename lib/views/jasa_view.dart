@@ -3257,8 +3257,7 @@ class _BuatPesananViewState extends State<BuatPesananView> {
     _cLayanan = TextEditingController();
     _cDesk = TextEditingController();
     final alamat = <String>[
-      if ((u?.alamatLengkap ?? '').isNotEmpty) u!.alamatLengkap,
-      if ((u?.alamatPatokan ?? '').isNotEmpty) 'Patokan: ${u!.alamatPatokan}',
+      if ((u?.alamatLengkap ?? '').isNotEmpty) u!.alamatPenuh,
     ].join(', ');
     _cAlamat = TextEditingController(text: alamat);
     _almt.isiDari(
