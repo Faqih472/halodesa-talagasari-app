@@ -21,6 +21,7 @@ class TempatUsulan {
   void dispose() => alamat.dispose();
 
   bool get adaAlamat =>
+      alamat.perum.text.trim().isNotEmpty ||
       alamat.blok.text.trim().isNotEmpty ||
       alamat.nomor.text.trim().isNotEmpty ||
       alamat.jalan.text.trim().isNotEmpty ||

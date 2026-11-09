@@ -1631,6 +1631,7 @@ class AlamatDesaCtrl {
   final kampung = TextEditingController();
   final jalan = TextEditingController();
   final kodepos = TextEditingController();
+  final perum = TextEditingController(); // nama perumahan / cluster (opsional)
 
   /// Membaca kembali alamat yang pernah disimpan (Blok.. No.. , Jl.., Kp.., RT/RW) ke kolom.
   void isiDari({String jalanTeks = '', String rtTeks = '', String rwTeks = ''}) {
@@ -1642,14 +1643,17 @@ class AlamatDesaCtrl {
     }
     if (j.endsWith(tetap)) j = j.substring(0, j.length - tetap.length).trim();
     if (j.endsWith(',')) j = j.substring(0, j.length - 1);
-    String b = '', n = '', k = '', r1 = '', r2 = '';
+    String b = '', n = '', k = '', r1 = '', r2 = '', p0 = '';
     final sisa = <String>[];
     for (final part in j.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty)) {
       final mb = RegExp(r'^Blok\s+(.*?)(?:\s+No\.?\s*(.*))?$', caseSensitive: false).firstMatch(part);
       final mr = RegExp(r'^RT\s*(\d+)\s*/\s*RW\s*(\d+)$', caseSensitive: false).firstMatch(part);
+      final mp = RegExp(r'^(Perum(?:ahan)?\.?|Cluster|Komplek|Kompleks|Griya|Villa)\s', caseSensitive: false).hasMatch(part);
       if (mb != null && b.isEmpty) {
         b = (mb.group(1) ?? '').trim();
         n = (mb.group(2) ?? '').trim();
+      } else if (mp && p0.isEmpty) {
+        p0 = part;
       } else if (mr != null) {
         r1 = mr.group(1)!;
         r2 = mr.group(2)!;
@@ -1659,6 +1663,7 @@ class AlamatDesaCtrl {
         sisa.add(part);
       }
     }
+    perum.text = p0;
     blok.text = b;
     nomor.text = n;
     kampung.text = k;
@@ -1672,6 +1677,7 @@ class AlamatDesaCtrl {
     final b = blok.text.trim();
     final n = nomor.text.trim();
     return [
+      if (perum.text.trim().isNotEmpty) perum.text.trim(),
       if (b.isNotEmpty || n.isNotEmpty) 'Blok ${b.isEmpty ? '-' : b}${n.isEmpty ? '' : ' No. $n'}',
       if (jalan.text.trim().isNotEmpty) jalan.text.trim(),
       if (k.isNotEmpty) (k.toLowerCase().startsWith('kp') ? k : 'Kp. $k'),
@@ -1706,6 +1712,7 @@ class AlamatDesaCtrl {
     kampung.dispose();
     jalan.dispose();
     kodepos.dispose();
+    perum.dispose();
   }
 }
 
@@ -1746,6 +1753,14 @@ class BlokAlamatDesa extends StatelessWidget {
                 : 'Wilayah dikunci: Desa Talagasari. Semua kolom di bawah boleh dikosongkan.',
             style: const TextStyle(fontSize: 11, color: Colors.black54)),
       ),
+      TextField(
+        controller: c.perum,
+        textCapitalization: TextCapitalization.words,
+        decoration: const InputDecoration(
+            labelText: 'Perumahan / Cluster (opsional)',
+            hintText: 'Contoh: Perum Griya Yasa'),
+      ),
+      const SizedBox(height: 8),
       Row(children: [
         Expanded(
           flex: 3,
