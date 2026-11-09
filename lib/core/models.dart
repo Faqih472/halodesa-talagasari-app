@@ -1446,6 +1446,9 @@ class ComplaintModel {
   final bool sudahLaporRt;
   final String harapan;
 
+  /// Warga boleh mengubah/membatalkan selama belum dibaca/diproses petugas.
+  bool get bisaDiubahWarga => status == 'menunggu_review';
+
   ComplaintModel({
     required this.id,
     required this.uidPelapor,
@@ -1673,6 +1676,8 @@ class ComplaintModel {
         return 'Diproses';
       case 'selesai':
         return 'Selesai';
+      case 'dibatalkan':
+        return 'Dibatalkan';
       case 'ditolak':
         return 'Ditolak';
       default:

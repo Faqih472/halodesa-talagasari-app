@@ -7,6 +7,7 @@
 // Kades : PengaduanStaffTab (hanya kategori berat)
 // ============================================================
 
+import 'hapus_info.dart';
 import '../core/tema_app.dart';
 import 'dart:io';
 
@@ -21,7 +22,7 @@ import '../controllers/complaint_controller.dart';
 import '../core/core.dart';
 import '../core/models.dart';
 import '../core/models_extra.dart';
-import '../core/ui_helpers.dart' show pilihAlasanTolak, PemilihPeta, AlamatDesaCtrl, BlokAlamatDesa;
+import '../core/ui_helpers.dart' show pilihAlasanTolak, PemilihPeta, AlamatDesaCtrl, BlokAlamatDesa, showSnack;
 import 'chat_view.dart' show ChatAction;
 import 'verification_view.dart';
 
@@ -357,7 +358,8 @@ class PengaduanWargaTabState extends State<PengaduanWargaTab> {
 // WARGA — Form Buat Pengaduan
 // ============================================================
 class BuatPengaduanView extends StatefulWidget {
-  const BuatPengaduanView({super.key});
+  final ComplaintModel? edit; // bila diisi: mengubah pengaduan yang masih menunggu review
+  const BuatPengaduanView({super.key, this.edit});
 
   @override
   State<BuatPengaduanView> createState() => _BuatPengaduanViewState();
@@ -387,6 +389,21 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
     if (u != null) {
       _almt.isiDari(
           jalanTeks: u.alamatLengkap, rtTeks: u.alamatRt, rwTeks: u.alamatRw);
+    }
+    final e = widget.edit;
+    if (e != null) {
+      _kategori = e.kategori;
+      _judulCtrl.text = e.judul;
+      _isiCtrl.text = e.isi;
+      _terlaporCtrl.text = e.terlapor;
+      _rahasia = e.rahasia;
+      _tglKejadian = e.tglKejadian;
+      _urgensi = e.urgensi;
+      _dampak = e.dampak;
+      _sudahLapor = e.sudahLaporRt;
+      _harapanCtrl.text = e.harapan;
+      if (e.lat != 0 || e.lng != 0) _titik = LatLng(e.lat, e.lng);
+      _almt.isiDari(jalanTeks: e.alamat, rtTeks: '', rwTeks: '');
     }
   }
 
@@ -512,6 +529,28 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
       _snack(false, '', ga);
       return;
     }
+    if (widget.edit != null) {
+      final okU = await _ctrl.ubah(
+        widget.edit!,
+        kategori: _kategori,
+        judul: _judulCtrl.text,
+        isi: _isiCtrl.text,
+        fotoBaru: _foto,
+        rahasia: _rahasia,
+        tglKejadian: _tglKejadian,
+        terlapor: _terlaporCtrl.text,
+        lat: _titik?.latitude,
+        lng: _titik?.longitude,
+        urgensi: _urgensi,
+        dampak: _dampak,
+        sudahLaporRt: _sudahLapor,
+        harapan: _harapanCtrl.text,
+        alamatKejadian: _almt.teks,
+      );
+      if (okU) Get.back();
+      _snack(okU, 'Perubahan tersimpan. Petugas melihat isi terbaru.', _ctrl.errorMsg.value);
+      return;
+    }
     final ok = await _ctrl.kirim(
       kategori: _kategori,
       judul: _judulCtrl.text,
@@ -544,7 +583,7 @@ class _BuatPengaduanViewState extends State<BuatPengaduanView> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text('cmp_create'.tr),
+        title: Text(widget.edit != null ? 'Ubah Pengaduan' : 'cmp_create'.tr),
         backgroundColor: primary,
       ),
       body: SingleChildScrollView(
@@ -1064,6 +1103,45 @@ class PengaduanDetailView extends StatelessWidget {
             if (c.status == 'selesai' && (c.tanggapan ?? '').isNotEmpty)
               _kotak(Colors.green.shade700, 'cmp_response'.tr, c.tanggapan!),
             _AktivitasSection(complaint: c, sembunyiPelapor: sembunyi),
+            if (saya && c.bisaDiubahWarga) ...[
+              const SizedBox(height: 14),
+              Text('Pengaduan Anda belum dibaca petugas, jadi masih bisa diubah atau dibatalkan.',
+                  style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary)),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 46)),
+                    onPressed: () async {
+                      await Get.to(() => BuatPengaduanView(edit: c));
+                      Get.back();
+                    },
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Ubah'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 46), foregroundColor: Colors.red.shade700),
+                    onPressed: () async {
+                      final a = await dialogAlasanHapusInfo(
+                          judulInfo: c.judul,
+                          daftar: alasanBatalAduan,
+                          judulSheet: 'Batalkan pengaduan',
+                          tombol: 'Batalkan');
+                      if (a == null) return;
+                      final ok = await ctrl.batalkan(c, a);
+                      if (ok) Get.back();
+                      showSnack(ok, 'Pengaduan dibatalkan. Riwayat tetap tersimpan.', ctrl.errorMsg.value);
+                    },
+                    icon: const Icon(Icons.cancel_outlined, size: 18),
+                    label: const Text('Batalkan'),
+                  ),
+                ),
+              ]),
+            ],
             const SizedBox(height: 24),
 
             // ── Aksi ──

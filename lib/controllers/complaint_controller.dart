@@ -316,6 +316,94 @@ class ComplaintController extends GetxController {
     }
   }
 
+  /// Warga mengubah pengaduannya selama masih "Menunggu Review".
+  Future<bool> ubah(
+    ComplaintModel c, {
+    required String kategori,
+    required String judul,
+    required String isi,
+    List<File> fotoBaru = const [],
+    bool rahasia = false,
+    DateTime? tglKejadian,
+    String terlapor = '',
+    double? lat,
+    double? lng,
+    String urgensi = 'biasa',
+    String dampak = '',
+    bool sudahLaporRt = false,
+    String harapan = '',
+    String alamatKejadian = '',
+  }) async {
+    if (!c.bisaDiubahWarga) {
+      errorMsg.value = 'Pengaduan sudah diproses petugas dan tidak dapat diubah lagi.';
+      return false;
+    }
+    try {
+      isSubmitting.value = true;
+      errorMsg.value = '';
+      final urls = [...c.fotoUrls];
+      for (final f in fotoBaru) {
+        if (urls.length >= 3) break;
+        final enc = await ImageUtil.encode(f);
+        if (enc == null) {
+          errorMsg.value = 'Foto terlalu besar, pilih foto lain.';
+          return false;
+        }
+        urls.add(enc);
+      }
+      await _firestore.collection('pengaduan').doc(c.id).update({
+        'kategori': kategori,
+        'judul': judul.trim(),
+        'isi': isi.trim(),
+        'foto_urls': urls,
+        if (lat != null) 'lat': lat,
+        if (lng != null) 'lng': lng,
+        'tanggal_kejadian': tglKejadian != null ? Timestamp.fromDate(tglKejadian) : null,
+        'terlapor': terlapor.trim(),
+        'alamat': alamatKejadian.trim(),
+        'rahasia': rahasia,
+        'urgensi': urgensi,
+        'dampak': dampak,
+        'sudah_lapor_rt': sudahLaporRt,
+        'harapan': harapan.trim(),
+      });
+      await _catatAktivitas(c.id, tipe: 'status', status: 'menunggu_review', isi: 'Pelapor memperbarui isi pengaduan.');
+      await fetchMine();
+      await _notifAdmin(
+          judul: 'Pengaduan diperbarui pelapor',
+          isi: '${ComplaintModel.labelKategori(kategori)}: ${judul.trim()}',
+          tipe: 'pengaduan',
+          targetId: c.id);
+      return true;
+    } catch (e) {
+      errorMsg.value = 'Gagal menyimpan perubahan: $e';
+      return false;
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
+  /// Warga membatalkan pengaduan (hanya sebelum diproses). Riwayat tetap tersimpan.
+  Future<bool> batalkan(ComplaintModel c, String alasan) async {
+    if (!c.bisaDiubahWarga) {
+      errorMsg.value = 'Pengaduan sudah diproses petugas dan tidak dapat dibatalkan.';
+      return false;
+    }
+    try {
+      await _firestore.collection('pengaduan').doc(c.id).update({
+        'status': 'dibatalkan',
+        'alasan_batal': alasan.trim(),
+        'dibatalkan_at': Timestamp.now(),
+      });
+      await _catatAktivitas(c.id, tipe: 'status', status: 'dibatalkan', isi: alasan.trim());
+      await fetchMine();
+      return true;
+    } catch (e) {
+      errorMsg.value = 'Gagal membatalkan: $e';
+      return false;
+    }
+  }
+
   // ─────────────────────────────────────────────────────────
   // PENGADUAN — antrian Admin / Kades
   // ─────────────────────────────────────────────────────────

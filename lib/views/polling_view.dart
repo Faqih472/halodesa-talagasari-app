@@ -7,6 +7,8 @@
 // menetapkan keputusan yang bisa dibaca semua warga.
 // Warga juga dapat MENGUSULKAN topik. Firestore saja (gratis).
 // ============================================================
+import 'hapus_info.dart';
+import 'usulan_aksi.dart';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -700,11 +702,13 @@ class _PollDetailViewState extends State<PollDetailView> {
   }
 
   Future<void> _hapus(SuaraModel p) async {
-    final ok = await _konfirmasi('Hapus topik ini?', 'Topik, suara, dan komentar akan hilang permanen.');
-    if (ok != true) return;
+    final alasan = await dialogAlasanHapusInfo(
+        judulInfo: p.pertanyaan, daftar: alasanHapusPolling, judulSheet: 'Hapus topik');
+    if (alasan == null) return;
     try {
       await _ref.delete();
-      await AuditLog.catat(aksi: 'Menghapus suara warga', targetTipe: 'polling', targetId: p.id, detail: p.pertanyaan);
+      await AuditLog.catat(
+          aksi: 'Menghapus suara warga', targetTipe: 'polling', targetId: p.id, detail: '${p.pertanyaan} | Alasan: $alasan');
       Get.back();
       showSnack(true, 'Topik dihapus.', '');
     } catch (_) {
@@ -1983,6 +1987,7 @@ class _UsulanTab extends StatelessWidget {
                   TextButton(
                       onPressed: () => Get.to(() => PollDetailView(id: '${m['poll_id']}')),
                       child: const Text('Lihat topiknya')),
+                if (!staf && st == 'baru') barisAksiUsulanWarga(d, agenda: false),
                 if (staf && st == 'baru')
                   Row(children: [
                     ElevatedButton(

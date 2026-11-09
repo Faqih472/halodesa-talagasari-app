@@ -7,6 +7,8 @@
 // check-in saat acara, bertanya di kolom diskusi.
 // Firestore saja (gratis). Foto base64.
 // ============================================================
+import 'hapus_info.dart';
+import 'usulan_aksi.dart';
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -720,22 +722,12 @@ class _AgendaDetailViewState extends State<AgendaDetailView> {
   }
 
   Future<void> _hapus(AgendaModel a) async {
-    final ok = await Get.dialog<bool>(AlertDialog(
-      title: const Text('Hapus agenda?'),
-      content: const Text('Agenda dan data konfirmasi dihapus permanen. Bila kegiatan batal, pakai tombol Batalkan agar warga tahu.'),
-      actions: [
-        TextButton(onPressed: () => Get.back(result: false), child: const Text('Kembali')),
-        ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                minimumSize: const Size(100, 42), backgroundColor: Colors.red.shade700),
-            onPressed: () => Get.back(result: true),
-            child: const Text('Hapus')),
-      ],
-    ));
-    if (ok != true) return;
+    final alasan = await dialogAlasanHapusInfo(
+        judulInfo: a.judul, daftar: alasanHapusAgenda, judulSheet: 'Hapus agenda');
+    if (alasan == null) return;
     try {
       await _ref.delete();
-      await AuditLog.catat(aksi: 'Menghapus agenda', targetTipe: 'agenda', targetId: a.id, detail: a.judul);
+      await AuditLog.catat(aksi: 'Menghapus agenda', targetTipe: 'agenda', targetId: a.id, detail: '${a.judul} | Alasan: $alasan');
       Get.back();
       showSnack(true, 'Agenda dihapus.', '');
     } catch (_) {
@@ -1831,6 +1823,7 @@ class _UsulanAgendaTab extends StatelessWidget {
                     TextButton(
                         onPressed: () => Get.to(() => AgendaDetailView(id: '${m['agenda_id']}')),
                         child: const Text('Lihat agendanya')),
+                  if (!staf && st == 'baru') barisAksiUsulanWarga(d, agenda: true),
                   if (staf && st == 'baru')
                     Row(children: [
                       ElevatedButton(

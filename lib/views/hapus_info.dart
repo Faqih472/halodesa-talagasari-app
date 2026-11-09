@@ -23,6 +23,29 @@ const List<(String, String)> alasanHapusInfo = [
 ];
 
 /// Lembar pilih alasan. Mengembalikan teks alasan atau null bila dibatalkan.
+const List<(String, String)> alasanHapusPolling = [
+  ('Salah buat', 'Topik ini salah dibuat (pertanyaan atau pilihan keliru) dan akan dibuat ulang dengan benar.'),
+  ('Sudah diputuskan', 'Hal ini sudah diputuskan dalam musyawarah langsung sehingga pemungutan suara tidak diperlukan.'),
+  ('Duplikat', 'Topik yang sama sudah ada sebelumnya sehingga yang ini dihapus agar tidak ganda.'),
+  ('Tidak relevan', 'Topik tidak lagi relevan atau bukan kewenangan desa.'),
+  ('Lainnya', ''),
+];
+
+const List<(String, String)> alasanHapusAgenda = [
+  ('Salah buat', 'Agenda ini salah dibuat dan akan dibuat ulang dengan data yang benar.'),
+  ('Duplikat', 'Agenda yang sama sudah ada sebelumnya sehingga yang ini dihapus agar tidak ganda.'),
+  ('Kegiatan tidak jadi', 'Kegiatan tidak jadi dilaksanakan dan sudah diumumkan kepada warga.'),
+  ('Lainnya', ''),
+];
+
+const List<(String, String)> alasanBatalAduan = [
+  ('Sudah selesai', 'Masalah sudah selesai diatasi sendiri sehingga pengaduan tidak diperlukan lagi.'),
+  ('Salah kirim', 'Pengaduan terkirim tidak sengaja atau isinya salah, akan saya buat ulang dengan benar.'),
+  ('Sudah ditangani RT/RW', 'Masalah sudah ditangani oleh pengurus RT/RW setempat.'),
+  ('Dobel', 'Pengaduan ini sama dengan pengaduan lain yang sudah saya kirim.'),
+  ('Lainnya', ''),
+];
+
 const List<(String, String)> alasanHapusLapak = [
   ('Usaha tutup', 'Usaha sudah tutup permanen sehingga lapak ini tidak diperlukan lagi.'),
   ('Berhenti berjualan', 'Saya berhenti berjualan dan ingin lapak ini dihapus.'),
@@ -38,6 +61,7 @@ Future<String?> dialogAlasanHapusInfo({
   String? awal,
   List<(String, String)>? daftar,
   String? judulSheet,
+  String? tombol,
 }) {
   final ctrl = TextEditingController();
   String? terpilih;
@@ -114,7 +138,7 @@ Future<String?> dialogAlasanHapusInfo({
                     }
                     Get.back(result: t);
                   },
-                  child: Text(ajukan ? 'Kirim ke Admin' : 'Hapus', style: const TextStyle(color: Colors.white)),
+                  child: Text(tombol ?? (ajukan ? 'Kirim ke Admin' : 'Hapus'), style: const TextStyle(color: Colors.white)),
                 ),
               ),
             ]),

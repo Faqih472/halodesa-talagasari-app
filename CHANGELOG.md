@@ -5,6 +5,11 @@
 - Suara Warga dan Agenda: hero berwarna, kartu bergaris warna, formulir buat dengan hero.
 - Jasa/Lowongan/Lapak: strip penjelas berwarna per tab.
 
+## Pengaduan & usulan: ubah/batal
+- Pengaduan: selama "Menunggu Review" pelapor bisa **Ubah** dan **Batalkan** (dengan alasan; riwayat tetap ada). Setelah diproses, terkunci.
+- Usulan Suara Warga/Agenda: warga bisa **Ubah** atau **Tarik kembali** selama "Menunggu".
+- Staf menghapus polling/agenda wajib memilih alasan (dicatat di riwayat). **Deploy ulang firestore.rules.**
+
 ## Hapus lapak (ACC), surat bisa diubah/dibatalkan
 - Lapak UMKM: pemilik mengajukan hapus dengan alasan siap pakai; Admin menyetujui atau menolak (Kelola Desa → Lapak UMKM, ada angka merah).
 - Surat online: warga bisa **Ubah pengajuan** (selama belum disetujui Kades; kembali ke Admin), **Batalkan** (selama belum ditandatangani), dan **Hapus dari riwayat** (ditolak/dibatalkan). **Deploy ulang firestore.rules.**

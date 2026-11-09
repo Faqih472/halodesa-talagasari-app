@@ -233,7 +233,20 @@ service cloud.firestore {
       allow update: if login() && (isStaff() ||
           (resource.data.uid_pelapor == request.auth.uid
            && request.resource.data.diff(resource.data).affectedKeys()
-               .hasOnly(['rating', 'ulasan_rating'])));
+               .hasOnly(['rating', 'ulasan_rating']))
+          // pelapor mengubah isi selama belum diproses petugas
+          || (resource.data.uid_pelapor == request.auth.uid
+              && resource.data.status == 'menunggu_review'
+              && request.resource.data.status == 'menunggu_review'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['kategori', 'judul', 'isi', 'foto_urls', 'lat', 'lng', 'tanggal_kejadian',
+                             'terlapor', 'alamat', 'rahasia', 'urgensi', 'dampak', 'sudah_lapor_rt', 'harapan']))
+          // pelapor membatalkan (riwayat tetap ada)
+          || (resource.data.uid_pelapor == request.auth.uid
+              && resource.data.status == 'menunggu_review'
+              && request.resource.data.status == 'dibatalkan'
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['status', 'alasan_batal', 'dibatalkan_at'])));
       match /aktivitas/{aid} {
         allow read, create: if login() &&
           (get(/databases/$(database)/documents/pengaduan/$(id)).data.uid_pelapor == request.auth.uid || isStaff());
@@ -312,13 +325,25 @@ service cloud.firestore {
     match /usulan_polling/{id} {
       allow create: if login() && aktif() && request.resource.data.uid == request.auth.uid;
       allow read: if isStaff() || (login() && resource.data.uid == request.auth.uid);
-      allow update, delete: if isStaff();
+      allow update: if isStaff()
+        || (login() && resource.data.uid == request.auth.uid && resource.data.status == 'baru'
+            && request.resource.data.status == 'baru'
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['pertanyaan', 'alasan', 'opsi_saran', 'judul', 'isi', 'lokasi', 'waktu_saran']));
+      allow delete: if isStaff()
+        || (login() && resource.data.uid == request.auth.uid && resource.data.status == 'baru');
     }
 
     match /usulan_agenda/{id} {
       allow create: if login() && aktif() && request.resource.data.uid == request.auth.uid;
       allow read: if isStaff() || (login() && resource.data.uid == request.auth.uid);
-      allow update, delete: if isStaff();
+      allow update: if isStaff()
+        || (login() && resource.data.uid == request.auth.uid && resource.data.status == 'baru'
+            && request.resource.data.status == 'baru'
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['pertanyaan', 'alasan', 'opsi_saran', 'judul', 'isi', 'lokasi', 'waktu_saran']));
+      allow delete: if isStaff()
+        || (login() && resource.data.uid == request.auth.uid && resource.data.status == 'baru');
     }
 
     // ── Agenda Desa ──
